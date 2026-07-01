@@ -1,0 +1,1 @@
+"""dotx Discord bot package."""

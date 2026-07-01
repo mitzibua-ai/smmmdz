@@ -1,0 +1,8 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "pip install -r discord_bot/requirements.txt"
+
+[deploy]
+startCommand = "python start_dotx.py"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10

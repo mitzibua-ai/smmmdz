@@ -1,0 +1,269 @@
+function discordApiUrl(path) {
+  return `https://discord.com/api${path}`;
+}
+
+function getGuildConfig() {
+  const guildId = window.SITE_CONFIG?.discordGuildId;
+  const roleId = window.SITE_CONFIG?.customerRoleId;
+  if (!guildId || !roleId) return null;
+  if (String(guildId).startsWith("YOUR_") || String(roleId).startsWith("YOUR_")) return null;
+  return { guildId: String(guildId), roleId: String(roleId) };
+}
+
+function getLicensePollMs() {
+  const ms = Number(window.SITE_CONFIG?.licensePollMs);
+  return ms > 0 ? ms : 5000;
+}
+
+function hasRole(member, customerRoleId) {
+  if (!member?.roles) return false;
+  const target = String(customerRoleId);
+  return member.roles.some((roleId) => String(roleId) === target);
+}
+
+function licensedStatusFromMember(member, customerRoleId) {
+  return hasRole(member, customerRoleId) ? "Customer" : "Standard";
+}
+
+async function fetchLicenseFromServer(discordId) {
+  if (!window.location.protocol.startsWith("http")) return null;
+
+  const stored = getAccount();
+  const accessToken = stored?.discordAccessToken || null;
+
+  try {
+    const res = await fetch(apiUrl(`/api/license/${discordId}`), {
+      method: accessToken ? "POST" : "GET",
+      cache: "no-store",
+      headers: {
+        Accept: "application/json",
+        ...(accessToken ? { "Content-Type": "application/json" } : {}),
+      },
+      body: accessToken ? JSON.stringify({ accessToken }) : undefined,
+    });
+    if (res.status === 404) {
+      return {
+        status: "Standard",
+        error: "wrong_server",
+        message: "Run python serve.py in the web folder (not python -m http.server)",
+        source: "none",
+      };
+    }
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || typeof data.status !== "string") return null;
+    return {
+      status: data.status === "Customer" ? "Customer" : "Standard",
+      isOwner: data.isOwner === true,
+      isAdmin: data.isAdmin === true,
+      isStaff: data.isStaff === true,
+      panelRole: data.panelRole || (data.isOwner ? "owner" : data.isAdmin ? "admin" : data.isStaff ? "staff" : "member"),
+      error: data.error || null,
+      message: data.message || null,
+      source: data.method || "bot",
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function refreshDiscordAccessToken(refreshToken) {
+  const clientId = getDiscordClientId();
+  if (!clientId || !refreshToken) return null;
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+  });
+
+  const res = await fetch(discordApiUrl("/oauth2/token"), {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body,
+  });
+
+  if (!res.ok) return null;
+  return res.json();
+}
+
+function storeDiscordTokens(account, tokenData) {
+  if (!tokenData?.access_token) return account;
+  return {
+    ...account,
+    discordAccessToken: tokenData.access_token,
+    discordRefreshToken: tokenData.refresh_token || account.discordRefreshToken || null,
+    tokenExpiresAt: tokenData.expires_in
+      ? Date.now() + tokenData.expires_in * 1000
+      : account.tokenExpiresAt || null,
+    licenseNeedsReauth: false,
+  };
+}
+
+async function getValidAccessToken(account) {
+  if (!account?.discordAccessToken) return null;
+
+  const stillValid =
+    account.tokenExpiresAt && Date.now() < account.tokenExpiresAt - 60_000;
+
+  if (stillValid) return account.discordAccessToken;
+
+  if (account.discordRefreshToken) {
+    const data = await refreshDiscordAccessToken(account.discordRefreshToken);
+    if (data?.access_token) {
+      const updated = storeDiscordTokens(account, data);
+      saveAccount(updated);
+      return data.access_token;
+    }
+  }
+
+  return account.discordAccessToken;
+}
+
+async function fetchGuildMember(accessToken, guildId) {
+  const res = await fetch(discordApiUrl(`/users/@me/guilds/${guildId}/member`), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  });
+
+  if (res.status === 404) return { member: null, unauthorized: false };
+  if (res.status === 401) return { member: null, unauthorized: true };
+  if (!res.ok) return { member: null, unauthorized: false };
+  return { member: await res.json(), unauthorized: false };
+}
+
+async function fetchLicenseFromOAuth(account, cfg) {
+  let updated = { ...account };
+  let token = await getValidAccessToken(updated);
+  if (!token) {
+    return { status: null, needsReauth: true, account: updated };
+  }
+
+  let result = await fetchGuildMember(token, cfg.guildId);
+
+  if (result.unauthorized && updated.discordRefreshToken) {
+    const data = await refreshDiscordAccessToken(updated.discordRefreshToken);
+    if (data?.access_token) {
+      updated = storeDiscordTokens(updated, data);
+      token = data.access_token;
+      result = await fetchGuildMember(token, cfg.guildId);
+    }
+  }
+
+  if (result.unauthorized) {
+    return { status: null, needsReauth: true, account: updated };
+  }
+
+  return {
+    status: licensedStatusFromMember(result.member, cfg.roleId),
+    needsReauth: false,
+    account: updated,
+    source: "oauth",
+  };
+}
+
+async function applyLicensedStatus(account) {
+  const cfg = getGuildConfig();
+  let updated = { ...account };
+  const previous = updated.licensedStatus || "Standard";
+
+  const server = await fetchLicenseFromServer(updated.discordId);
+  if (server) {
+    updated = {
+      ...updated,
+      licensedStatus: server.status,
+      plan: server.status,
+      isOwner: server.isOwner === true,
+      isAdmin: server.isAdmin === true,
+      isStaff: server.isStaff === true,
+      panelRole: server.panelRole || "member",
+      licenseSyncedAt: Date.now(),
+      licenseNeedsReauth:
+        server.error === "bot_not_configured" ||
+        server.error === "wrong_server" ||
+        server.error === "oauth_expired" ||
+        server.error === "oauth_forbidden",
+      licenseError: server.error,
+      licenseMessage: server.message,
+      licenseSource: server.source,
+    };
+    saveAccount(updated);
+    updated._licenseChanged = previous !== server.status;
+    return updated;
+  }
+
+  if (!cfg) {
+    updated.licensedStatus = "Standard";
+    updated.plan = "Standard";
+    updated.isOwner = false;
+    updated.isAdmin = false;
+    updated.isStaff = false;
+    updated.panelRole = "member";
+    saveAccount(updated);
+    return updated;
+  }
+
+  const oauth = await fetchLicenseFromOAuth(updated, cfg);
+  updated = oauth.account;
+
+  if (oauth.needsReauth || !oauth.status) {
+    updated.licenseNeedsReauth = true;
+    updated.licenseError = "oauth_reauth_required";
+    return updated;
+  }
+
+  updated = {
+    ...updated,
+    licensedStatus: oauth.status,
+    plan: oauth.status,
+    isOwner: false,
+    isAdmin: false,
+    isStaff: false,
+    panelRole: "member",
+    licenseSyncedAt: Date.now(),
+    licenseNeedsReauth: false,
+    licenseError: null,
+    licenseSource: oauth.source,
+  };
+  saveAccount(updated);
+  updated._licenseChanged = previous !== oauth.status;
+  return updated;
+}
+
+function startLicenseSync(onUpdate) {
+  let busy = false;
+
+  async function tick() {
+    if (busy) return;
+    const current = getAccount();
+    if (!current?.oauthLinked) return;
+
+    busy = true;
+    try {
+      const updated = await applyLicensedStatus(current);
+      if (onUpdate) onUpdate(updated);
+    } catch {
+      // keep last known status
+    } finally {
+      busy = false;
+    }
+  }
+
+  const intervalMs = getLicensePollMs();
+  const timer = setInterval(tick, intervalMs);
+
+  function onVisible() {
+    if (!document.hidden) tick();
+  }
+
+  document.addEventListener("visibilitychange", onVisible);
+  window.addEventListener("focus", tick);
+
+  tick();
+
+  return function stopLicenseSync() {
+    clearInterval(timer);
+    document.removeEventListener("visibilitychange", onVisible);
+    window.removeEventListener("focus", tick);
+  };
+}

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ site_name }} - Login</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body class="login">
+    <div class="login__wrap">
+      <div class="login__card">
+        <div class="login__brand">
+          <div class="login__logo">{{ site_name[:1] | upper }}</div>
+          <div>
+            <div class="login__title">{{ site_name }}</div>
+            <div class="login__subtitle">Sign in with Discord (permanently bound)</div>
+          </div>
+        </div>
+
+        {% if request.query_params.get('error') %}
+          <div class="alert">
+            Login failed. Try again.
+          </div>
+        {% endif %}
+
+        <a class="btn btn--discord" href="/auth/discord">
+          Continue with Discord
+        </a>
+
+        <div class="login__note">
+          Your account is locked to your Discord ID. Ownership transfer is disabled.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+

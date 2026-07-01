@@ -1,0 +1,7 @@
+discord_bot/config.json
+.railway/
+reports/
+__pycache__/
+*.pyc
+web/.venv/
+*.env

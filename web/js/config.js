@@ -1,0 +1,31 @@
+window.SITE_CONFIG = {
+  name: "dotx",
+  tagline: "FiveM PC Check Tool",
+  version: "1.0",
+
+  discordClientId: "1519618635054841867",
+
+  // Your Discord server ID (Developer Mode → right-click server → Copy Server ID)
+  discordGuildId: "1519369196188733440",
+
+  // Customer role ID (Server Settings → Roles → right-click role → Copy Role ID)
+  customerRoleId: "1519527288503275641",
+
+  // Optional extra owner access (server also grants guild owner automatically)
+  ownerDiscordIds: [],
+  ownerRoleIds: [],
+
+  // Railway API URL (data: pins, scans, users, roles) + PC Check download
+  // Set this to your Railway domain. Or use deploy.config.json + push-github.bat.
+  apiBaseUrl: "https://YOUR-RAILWAY-DOMAIN.up.railway.app",
+
+  // Leave empty — OAuth uses your GitHub Pages domain automatically
+  oauthRedirectUri: "",
+
+  // How often to re-check Discord role while the panel is open (milliseconds)
+  licensePollMs: 5000,
+
+  pcCheckToolName: "dotx PC Check Tool",
+  pcCheckToolUrl: "/downloads/dotx-pc-check.exe",
+  dataSyncPollMs: 5000,
+};

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% set active = 'dashboard' %}
+
+{% block content %}
+  <div class="topbar">
+    <div class="topbar__title">Welcome Back, {{ user.username }} <span class="wave">👋</span></div>
+    <div class="topbar__actions">
+      <div class="chip">Async v3</div>
+    </div>
+  </div>
+
+  <section class="grid grid--stats">
+    <div class="card stat">
+      <div class="stat__label">Total Scans</div>
+      <div class="stat__value">{{ stats.total_scans }}</div>
+    </div>
+    <div class="card stat">
+      <div class="stat__label">Detections</div>
+      <div class="stat__value">{{ stats.detections }}</div>
+    </div>
+    <div class="card stat">
+      <div class="stat__label">Flagged</div>
+      <div class="stat__value">{{ stats.flagged }}</div>
+    </div>
+    <div class="card stat">
+      <div class="stat__label">Clean Rate</div>
+      <div class="stat__value">{{ stats.clean_rate }}</div>
+    </div>
+  </section>
+
+  <section class="grid grid--main">
+    <div class="card">
+      <div class="card__head">
+        <div>
+          <div class="card__title">Verdict Distribution</div>
+          <div class="card__sub">All time results</div>
+        </div>
+      </div>
+
+      <div class="donut">
+        <div class="donut__ring">
+          <div class="donut__center">
+            <div class="donut__big">{{ stats.total_scans }}</div>
+            <div class="donut__small">Total scans</div>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend__row">
+            <span class="legend__dot legend__dot--green"></span>
+            <span class="legend__label">Clean</span>
+            <span class="legend__value">{{ verdicts.clean }}</span>
+          </div>
+          <div class="legend__row">
+            <span class="legend__dot legend__dot--amber"></span>
+            <span class="legend__label">Suspicious</span>
+            <span class="legend__value">{{ verdicts.suspicious }}</span>
+          </div>
+          <div class="legend__row">
+            <span class="legend__dot legend__dot--red"></span>
+            <span class="legend__label">Cheating</span>
+            <span class="legend__value">{{ verdicts.cheating }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card__head">
+        <div>
+          <div class="card__title">Scan Activity</div>
+          <div class="card__sub">Past 30 days</div>
+        </div>
+        <div class="tabs">
+          <div class="tab is-active">30D</div>
+          <div class="tab">90D</div>
+          <div class="tab">All</div>
+        </div>
+      </div>
+      <div class="chart">
+        <div class="chart__grid"></div>
+        <div class="chart__line"></div>
+        <div class="chart__hint">No scan activity yet.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid grid--bottom">
+    <div class="card">
+      <div class="card__head">
+        <div>
+          <div class="card__title">Recent Scans</div>
+          <div class="card__sub">Latest scans from your account</div>
+        </div>
+      </div>
+      {% if recent_scans|length == 0 %}
+        <div class="empty">
+          No scans yet. Start your first scan.
+        </div>
+      {% else %}
+        <div class="table">
+          <!-- later -->
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <div class="card__head">
+        <div>
+          <div class="card__title">Account Info</div>
+          <div class="card__sub">Discord-bound identity</div>
+        </div>
+      </div>
+
+      <div class="kv">
+        <div class="kv__row">
+          <div class="kv__k">Account</div>
+          <div class="kv__v">{{ user.username }}</div>
+        </div>
+        <div class="kv__row">
+          <div class="kv__k">Plan</div>
+          <div class="kv__v">Lifetime</div>
+        </div>
+        <div class="kv__row">
+          <div class="kv__k">Total Scans</div>
+          <div class="kv__v">{{ stats.total_scans }}</div>
+        </div>
+        <div class="kv__row">
+          <div class="kv__k">Bound to</div>
+          <div class="kv__v mono">{{ user.discord_id }}</div>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
