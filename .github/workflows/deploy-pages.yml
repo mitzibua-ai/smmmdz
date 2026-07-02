@@ -34,6 +34,8 @@ jobs:
           cp -r web/* _site/
           cp index.html _site/
           cp 404.html _site/
+          cp CNAME _site/ || true
+          cp web/.nojekyll _site/ || true
       
       - uses: actions/upload-pages-artifact@v3
         with:
