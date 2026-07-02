@@ -26,8 +26,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      
+      # Copy web content to root for Pages deployment
+      - name: Prepare Pages content
+        run: |
+          mkdir -p _site
+          cp -r web/* _site/
+          cp index.html _site/
+          cp 404.html _site/
+      
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web
+          path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
