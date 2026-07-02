@@ -5,3 +5,5 @@ __pycache__/
 *.pyc
 web/.venv/
 *.env
+web/downloads/dotx-pc-check/build/
+web/downloads/dotx-pc-check/dist/
