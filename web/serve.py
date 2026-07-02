@@ -448,7 +448,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
             self._send_json(
                 {
                     "publicUrl": base,
-                    "oauthRedirectUri": f"{base}/callback.html",
+                    "oauthRedirectUri": f"{base}/callback/",
                 }
             )
             return True

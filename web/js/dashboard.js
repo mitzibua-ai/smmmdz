@@ -253,7 +253,7 @@ function showReauthBanner() {
       return;
     }
     logout();
-    window.location.href = "login.html";
+    window.location.href = "/login/";
   });
 }
 
@@ -925,7 +925,7 @@ async function init() {
   account = getAccount();
 
   if (!account || !account.oauthLinked) {
-    window.location.href = "login.html";
+    window.location.href = "/login/";
     return;
   }
 
@@ -938,7 +938,7 @@ async function init() {
 
   $("logout-btn").addEventListener("click", () => {
     logout();
-    window.location.href = "login.html";
+    window.location.href = "/login/";
   });
 
   renderProfile();

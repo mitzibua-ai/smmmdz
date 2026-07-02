@@ -21,7 +21,7 @@ function init() {
   }
 
   if (window.location.protocol.startsWith("http") && window.location.href.split("?")[0] !== loginUrl) {
-    const pageCallback = new URL("callback.html", window.location.href).href;
+    const pageCallback = new URL("/callback/", window.location.origin).href;
     if (pageCallback !== redirectUri) {
       window.location.replace(loginUrl);
       return;
@@ -35,7 +35,7 @@ function init() {
 
   const account = getAccount();
   if (account?.oauthLinked && account?.discordAccessToken) {
-    window.location.href = "dashboard.html";
+    window.location.href = "/dashboard/";
     return;
   }
 

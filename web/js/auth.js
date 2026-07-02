@@ -47,7 +47,7 @@ function logout() {
 function loginWithDiscord() {
   const existing = getAccount();
   if (existing?.oauthLinked && existing?.discordAccessToken) {
-    window.location.href = "dashboard.html";
+    window.location.href = "/dashboard/";
     return Promise.resolve();
   }
   if (existing && !existing.oauthLinked) {

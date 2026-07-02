@@ -25,7 +25,7 @@ async function run() {
   try {
     status.textContent = "Finishing login…";
     await completeDiscordOAuth(code, state);
-    window.location.replace("dashboard.html");
+    window.location.replace("/dashboard/");
   } catch (e) {
     status.textContent = "Login failed.";
     errEl.textContent = e.message || "Could not complete Discord login.";

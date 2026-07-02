@@ -13,13 +13,13 @@ function getRedirectUri() {
   const configured = window.SITE_CONFIG?.oauthRedirectUri;
   if (configured && String(configured).trim()) return configured;
   if (window.location.protocol === "http:" || window.location.protocol === "https:") {
-    return new URL("callback.html", window.location.href).href;
+    return new URL("/callback/", window.location.origin).href;
   }
-  return "http://127.0.0.1:8080/callback.html";
+  return "http://127.0.0.1:8080/callback/";
 }
 
 function loginUrlForRedirect(redirectUri) {
-  return redirectUri.replace(/callback\.html(\?.*)?$/i, "login.html");
+  return redirectUri.replace(/callback\/?(\?.*)?$/i, "login/");
 }
 
 function randomUrlSafe(len) {
