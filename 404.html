@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Redirecting...</title>
+    <script>
+      var path = window.location.pathname;
+      if (!path.startsWith('/web/') && path !== '/web' && path !== '/') {
+        window.location.replace('/web/');
+      } else if (path === '/') {
+        window.location.replace('/web/');
+      }
+    </script>
+  </head>
+  <body>
+    <p><a href="/web/">Click here if not redirected automatically</a></p>
+  </body>
+</html>
