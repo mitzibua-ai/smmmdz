@@ -18,7 +18,7 @@ window.SITE_CONFIG = {
   // Railway API URL (data: pins, scans, users, roles) + PC Check download
   // Leave empty to serve downloads from the site origin (GitHub Pages).
   // Set to a Railway domain only if you host the API there.
-  apiBaseUrl: "",
+  apiBaseUrl: "https://proactive-nourishment-production-0d4e.up.railway.app",
 
   // Leave empty — OAuth uses your GitHub Pages domain automatically
   oauthRedirectUri: "",

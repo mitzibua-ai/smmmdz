@@ -10,6 +10,11 @@ function apiBaseUrl() {
   return "";
 }
 
+function isExternalApiConfigured() {
+  const configured = window.SITE_CONFIG?.apiBaseUrl;
+  return !!(configured && String(configured).trim());
+}
+
 function apiUrl(path) {
   const base = apiBaseUrl();
   const p = path.startsWith("/") ? path : `/${path}`;

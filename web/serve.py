@@ -299,6 +299,17 @@ def check_license_bot(user_id: str) -> dict:
 
 
 def check_license(user_id: str, access_token: str | None = None) -> dict:
+    active = get_active_site_license(user_id)
+    if active:
+        payload = {
+            "status": "Customer",
+            "licenseExpiresAt": active.get("licenseExpiresAt"),
+            "licenseSource": "site_key",
+            "method": "site_key",
+            "roles": [],
+        }
+        return finalize_license(user_id, payload)
+
     if access_token:
         oauth = check_license_oauth(user_id, access_token)
         if oauth.get("method") == "oauth" or oauth.get("error") in {

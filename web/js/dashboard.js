@@ -185,7 +185,7 @@ function updateOwnerNav(acc = account) {
 }
 
 function renderProfile() {
-  const status = account.licensedStatus || account.plan || "Standard";
+  const status = isCustomerAccount(account) ? "Customer" : account.licensedStatus || account.plan || "Standard";
   const badge =
     status === "Customer"
       ? `<div class="profile__badge profile__badge--customer">${escapeHtml(status)}</div>`
@@ -263,6 +263,8 @@ function handleLicenseUpdate(updated) {
   }
 
   if (lostCustomer && account?.discordId) {
+    account.licenseExpiresAt = null;
+    saveAccount(account);
     savePins(account.discordId, []);
     saveScans(account.discordId, []);
   }

@@ -44,13 +44,44 @@ function hasRole(member, customerRoleId) {
   return member.roles.some((roleId) => String(roleId) === target);
 }
 
+function hasValidLicenseExpiry(expiresAt) {
+  if (!expiresAt) return false;
+  const exp = new Date(expiresAt);
+  return !Number.isNaN(exp.getTime()) && exp.getTime() > Date.now();
+}
+
+function isNonAuthoritativeLicenseError(server) {
+  if (!server?.error) return false;
+  return (
+    server.error === "wrong_server" ||
+    server.error === "bot_not_configured" ||
+    server.error === "discord_403" ||
+    server.error === "not_in_guild"
+  );
+}
+
+function keepCustomerFromLocalExpiry(account, previous, serverError = null) {
+  if (!hasValidLicenseExpiry(account.licenseExpiresAt)) return null;
+  const updated = {
+    ...account,
+    licensedStatus: "Customer",
+    plan: "Customer",
+    licenseSyncedAt: Date.now(),
+    licenseNeedsReauth: false,
+    licenseError: serverError?.error || account.licenseError || null,
+    licenseMessage: serverError?.message || account.licenseMessage || null,
+    licenseSource: account.licenseSource || "site_key",
+  };
+  saveAccount(updated);
+  updated._licenseChanged = previous !== "Customer";
+  updated._licenseActivated = previous !== "Customer";
+  return applyConfigOwnerFlags(updated);
+}
+
 function licensedStatusFromMember(member, customerRoleId) {
   const acc = getAccount();
-  if (acc?.licensedStatus === "Customer" && acc?.licenseExpiresAt) {
-    const exp = new Date(acc.licenseExpiresAt);
-    if (!Number.isNaN(exp.getTime()) && exp.getTime() > Date.now()) {
-      return "Customer";
-    }
+  if (hasValidLicenseExpiry(acc?.licenseExpiresAt)) {
+    return "Customer";
   }
   return hasRole(member, customerRoleId) ? "Customer" : "Standard";
 }
@@ -73,10 +104,13 @@ async function fetchLicenseFromServer(discordId) {
       body: accessToken ? JSON.stringify({ accessToken }) : undefined,
     });
     if (res.status === 404) {
+      if (!isExternalApiConfigured() && /\.github\.io$/i.test(window.location.hostname)) {
+        return null;
+      }
       return {
         status: "Standard",
         error: "wrong_server",
-        message: "Run python serve.py in the web folder (not python -m http.server)",
+        message: "Set apiBaseUrl in config.js to your Railway API domain.",
         source: "none",
       };
     }
@@ -202,10 +236,25 @@ async function applyLicensedStatus(account) {
 
   const server = await fetchLicenseFromServer(updated.discordId);
   if (server) {
+    if (server.status !== "Customer" && isNonAuthoritativeLicenseError(server)) {
+      const kept = keepCustomerFromLocalExpiry(updated, previous, server);
+      if (kept) return kept;
+    }
+
+    let status = server.status === "Customer" ? "Customer" : "Standard";
+    let expiresAt = server.licenseExpiresAt || null;
+
+    if (status === "Customer" && !expiresAt && hasValidLicenseExpiry(updated.licenseExpiresAt)) {
+      expiresAt = updated.licenseExpiresAt;
+    }
+    if (status === "Standard") {
+      expiresAt = null;
+    }
+
     updated = {
       ...updated,
-      licensedStatus: server.status,
-      plan: server.status,
+      licensedStatus: status,
+      plan: status,
       isOwner: server.isOwner === true,
       isAdmin: server.isAdmin === true,
       isStaff: server.isStaff === true,
@@ -218,13 +267,26 @@ async function applyLicensedStatus(account) {
         server.error === "oauth_forbidden",
       licenseError: server.error,
       licenseMessage: server.message,
-      licenseSource: server.source,
-      licenseExpiresAt: server.licenseExpiresAt || null,
+      licenseSource: server.licenseSource || server.source,
+      licenseExpiresAt: expiresAt,
     };
     saveAccount(updated);
-    const becameCustomer = server.status === "Customer" && previous !== "Customer";
-    updated._licenseChanged = previous !== server.status || becameCustomer;
+    const becameCustomer = status === "Customer" && previous !== "Customer";
+    updated._licenseChanged = previous !== status || becameCustomer;
     updated._licenseActivated = becameCustomer;
+    return applyConfigOwnerFlags(updated);
+  }
+
+  if (hasValidLicenseExpiry(updated.licenseExpiresAt)) {
+    updated = {
+      ...updated,
+      licensedStatus: "Customer",
+      plan: "Customer",
+      licenseSyncedAt: Date.now(),
+    };
+    saveAccount(updated);
+    updated._licenseChanged = previous !== "Customer";
+    updated._licenseActivated = previous !== "Customer";
     return applyConfigOwnerFlags(updated);
   }
 
@@ -261,6 +323,11 @@ async function applyLicensedStatus(account) {
     licenseError: null,
     licenseSource: oauth.source,
   };
+  if (oauth.status === "Standard" && hasValidLicenseExpiry(updated.licenseExpiresAt)) {
+    updated.licensedStatus = "Customer";
+    updated.plan = "Customer";
+    updated.licenseSource = updated.licenseSource || "site_key";
+  }
   saveAccount(updated);
   updated._licenseChanged = previous !== oauth.status;
   return applyConfigOwnerFlags(updated);
@@ -268,6 +335,7 @@ async function applyLicensedStatus(account) {
 
 function isCustomerAccount(acc = getAccount()) {
   if (!acc) return false;
+  if (hasValidLicenseExpiry(acc.licenseExpiresAt)) return true;
   if ((acc.licensedStatus || acc.plan) === "Customer") return true;
   if (typeof isOwnerAccount === "function" && isOwnerAccount(acc)) return true;
   if (typeof isAdminAccount === "function" && isAdminAccount(acc)) return true;

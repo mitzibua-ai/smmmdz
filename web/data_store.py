@@ -230,6 +230,36 @@ def redeem_license_key(
         }
 
 
+def revoke_site_license(*, discord_id: str, staff_id: str) -> dict:
+    target_id = str(discord_id).strip()
+    if not target_id.isdigit():
+        raise ValueError("invalid_discord_id")
+
+    with _lock:
+        store = load_store()
+        user = _find_site_user(store, target_id)
+        if not user:
+            raise LookupError("user_not_found")
+
+        now = datetime.now(timezone.utc).isoformat()
+        key_id = user.get("licenseKeyId")
+        if key_id:
+            for key_entry in store.get("licenseKeys", []):
+                if str(key_entry.get("id")) == str(key_id) and str(key_entry.get("redeemedBy")) == target_id:
+                    key_entry["status"] = "revoked"
+                    key_entry["revokedAt"] = now
+                    key_entry["revokedBy"] = str(staff_id).strip()
+                    break
+
+        user["licensedStatus"] = "Standard"
+        user["licenseExpiresAt"] = None
+        user["licenseKeyId"] = None
+        user["licenseRevokedAt"] = now
+        user["licenseRevokedBy"] = str(staff_id).strip()
+        save_store(store)
+        return dict(user)
+
+
 def list_license_keys(*, limit: int = 25) -> list[dict]:
     store = load_store()
     keys = list(store.get("licenseKeys", []))
@@ -273,6 +303,9 @@ def register_site_user(payload: dict) -> dict:
                 existing["licenseExpiresAt"] = active["licenseExpiresAt"]
                 if active.get("licenseKeyId"):
                     existing["licenseKeyId"] = active["licenseKeyId"]
+            elif licensed_status == "Standard":
+                existing.pop("licenseExpiresAt", None)
+                existing.pop("licenseKeyId", None)
             save_store(store)
             return dict(existing)
 

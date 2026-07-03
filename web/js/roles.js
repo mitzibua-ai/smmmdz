@@ -50,7 +50,6 @@ async function registerUserOnServer(acc) {
         username: acc.username,
         avatarHash: acc.avatarHash || null,
         accessToken: acc.discordAccessToken || null,
-        licensedStatus: acc.licensedStatus || "Standard",
       }),
     });
     if (!res.ok) return null;
