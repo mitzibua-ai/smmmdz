@@ -168,7 +168,21 @@ async function completeDiscordOAuth(code, state) {
   const user = await fetchDiscordMe(tokenData.access_token);
 
   let profile = profileFromDiscordUser(user);
-  profile = storeDiscordTokens(profile, tokenData);
+  if (typeof window.storeDiscordTokens === "function" || typeof storeDiscordTokens === "function") {
+    try {
+      profile = (window.storeDiscordTokens || storeDiscordTokens)(profile, tokenData);
+    } catch (e) {
+      // fall back to simple token attach on error
+      profile.discordAccessToken = tokenData.access_token;
+      profile.discordRefreshToken = tokenData.refresh_token || null;
+      profile.tokenExpiresAt = tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : null;
+    }
+  } else {
+    // license helper not present; attach tokens directly
+    profile.discordAccessToken = tokenData.access_token;
+    profile.discordRefreshToken = tokenData.refresh_token || null;
+    profile.tokenExpiresAt = tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : null;
+  }
 
   try {
     const extra = await fetchDiscordProfile(user.id);
