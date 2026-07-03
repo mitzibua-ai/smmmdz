@@ -16,8 +16,9 @@ window.SITE_CONFIG = {
   ownerRoleIds: [],
 
   // Railway API URL (data: pins, scans, users, roles) + PC Check download
-  // Set this to your Railway domain. Or use deploy.config.json + push-github.bat.
-  apiBaseUrl: "https://YOUR-RAILWAY-DOMAIN.up.railway.app",
+  // Leave empty to serve downloads from the site origin (GitHub Pages).
+  // Set to a Railway domain only if you host the API there.
+  apiBaseUrl: "",
 
   // Leave empty — OAuth uses your GitHub Pages domain automatically
   oauthRedirectUri: "",
