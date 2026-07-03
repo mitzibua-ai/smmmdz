@@ -573,8 +573,8 @@ function renderChecks() {
       </aside>
     </section>
   `, {
-    title: "Pins are locked",
-    hint: "Purchase a Customer license in Discord. Staff redeems your key with smky license to unlock PIN generation.",
+    title: "locked",
+    hint: "",
   });
 }
 
@@ -699,8 +699,8 @@ function renderReports() {
       </div>
     </section>
   `, {
-    title: "Reports are locked",
-    hint: "Customer license required to view scan reports and detections.",
+    title: "LOCKED",
+    hint: "",
   });
 }
 
