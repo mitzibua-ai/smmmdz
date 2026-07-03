@@ -15,39 +15,59 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build static site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+
+          # Public HTML
+          for file in index.html 404.html login.html callback.html dashboard.html; do
+            cp "web/$file" "_site/$file"
+          done
+
+          # Assets
+          cp -r web/css web/js web/static _site/
+          cp -r web/login web/callback web/dashboard _site/
+
+          # Downloads (exe only — no Python bundle)
+          mkdir -p _site/downloads
+          if [ -f web/downloads/dotx-pc-check.exe ]; then
+            cp web/downloads/dotx-pc-check.exe _site/downloads/
+          fi
+
+          # GitHub Pages: skip Jekyll processing
+          cp web/.nojekyll _site/.nojekyll
+
+          echo "Site files:"
+          find _site -type f | head -50
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      
-      # Copy only public website files to the Pages artifact
-      - name: Prepare Pages content
-        run: |
-          mkdir -p _site
-          mkdir -p _site/downloads
-          cp web/index.html _site/
-          cp web/404.html _site/ 2>/dev/null || true
-          cp web/login.html _site/
-          cp web/callback.html _site/
-          cp web/dashboard.html _site/
-          cp -r web/css _site/
-          cp -r web/js _site/
-          cp -r web/static _site/
-          cp -r web/login _site/
-          cp -r web/callback _site/
-          cp -r web/dashboard _site/
-          cp web/downloads/dotx-pc-check.exe _site/downloads/ 2>/dev/null || true
-          cp .nojekyll _site/ || true
-      
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-      - id: deployment
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
