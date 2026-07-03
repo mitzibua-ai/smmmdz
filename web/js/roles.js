@@ -125,6 +125,32 @@ function teamDashboardMeta(kind) {
 
 function renderTeamShell(kind) {
   const meta = teamDashboardMeta(kind);
+  const addUserForm =
+    kind === "owner"
+      ? `
+    <section class="panel panel--wide team-panel team-panel--add-user">
+      <div class="panel__head">
+        <div>
+          <div class="panel__title">Add or promote a user</div>
+          <div class="panel__sub">Enter a Discord ID and assign a role.</div>
+        </div>
+      </div>
+      <div class="panel__body panel__body--flush team-add-user-form">
+        <div class="team-add-user-row">
+          <input class="form__input" id="team-add-user-id" type="text" placeholder="Discord user ID" />
+          <select class="form__input" id="team-add-user-role">
+            <option value="owner">Owner</option>
+            <option value="admin">Admin</option>
+            <option value="staff">Staff</option>
+          </select>
+          <button type="button" class="btn btn--primary btn--small" id="team-add-user-btn">Assign Role</button>
+        </div>
+        <p class="team-footnote">This assigns a panel role by Discord ID and creates a site user placeholder if needed.</p>
+      </div>
+    </section>
+  `
+      : "";
+
   return `
     <header class="page-header page-header--team page-header--${meta.className}">
       <div>
@@ -136,6 +162,7 @@ function renderTeamShell(kind) {
         <button type="button" class="btn btn--ghost btn--small" id="team-refresh-btn">Refresh</button>
       </div>
     </header>
+    ${addUserForm}
     <div id="team-dashboard-body" data-team-kind="${kind}">
       <div class="empty-state">Loading…</div>
     </div>
@@ -299,6 +326,32 @@ async function loadTeamDashboard(kind, { silent = false } = {}) {
 function bindTeamDashboardEvents(kind) {
   document.getElementById("team-refresh-btn")?.addEventListener("click", () => {
     loadTeamDashboard(kind);
+  });
+
+  document.getElementById("team-add-user-btn")?.addEventListener("click", async () => {
+    const targetId = document.getElementById("team-add-user-id")?.value.trim();
+    const role = document.getElementById("team-add-user-role")?.value;
+    if (!targetId) {
+      alert("Enter a Discord ID.");
+      return;
+    }
+    const btn = document.getElementById("team-add-user-btn");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Assigning…";
+    }
+    try {
+      await promoteUser("owner", targetId, role);
+      document.getElementById("team-add-user-id").value = "";
+      await loadTeamDashboard(kind, { silent: true });
+    } catch (err) {
+      alert(err.message || "Could not assign role.");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Assign Role";
+      }
+    }
   });
 
   document.getElementById("team-user-search")?.addEventListener("input", (e) => {

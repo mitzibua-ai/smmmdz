@@ -11,7 +11,7 @@ DATA_DIR = Path(os.getenv("DATA_DIR", str(ROOT / "data")))
 STORE_PATH = Path(os.getenv("DATA_PATH", str(DATA_DIR / "store.json")))
 
 _lock = threading.Lock()
-PANEL_ROLES = {"member", "staff", "admin"}
+PANEL_ROLES = {"member", "staff", "admin", "owner"}
 ROLE_RANK = {"member": 1, "staff": 2, "admin": 3, "owner": 4}
 
 
@@ -113,7 +113,22 @@ def set_site_user_role(target_id: str, role: str) -> dict | None:
         store = load_store()
         user = _find_site_user(store, target_id)
         if not user:
-            return None
+            now = _now()
+            user = {
+                "discordId": str(target_id).strip(),
+                "username": "Unknown",
+                "avatarHash": "",
+                "panelRole": role,
+                "licensedStatus": "Standard",
+                "firstSeen": now,
+                "lastSeen": now,
+                "loginCount": 0,
+                "promotedAt": now,
+            }
+            store["siteUsers"].insert(0, user)
+            save_store(store)
+            return dict(user)
+
         user["panelRole"] = role
         user["promotedAt"] = _now()
         save_store(store)

@@ -214,6 +214,17 @@ function handleLicenseUpdate(updated) {
   renderProfile();
   updateRoleNav(updated);
 
+  const requestedView = window.location.hash.replace("#", "") || currentView;
+  if (requestedView !== currentView && ROLE_VIEWS.has(requestedView) && canAccessView(requestedView, account)) {
+    renderView(requestedView);
+    return;
+  }
+
+  if (ROLE_VIEWS.has(currentView) && !canAccessView(currentView, account)) {
+    renderView("overview");
+    return;
+  }
+
   const roleChanged = (typeof panelRole === "function" ? panelRole(account) : account.panelRole) !== prevRole;
   if (ROLE_VIEWS.has(currentView)) {
     return;
@@ -945,7 +956,7 @@ async function init() {
   updateRoleNav();
   const hash = window.location.hash.replace("#", "");
   const initialView = canAccessView(hash, account) ? hash || "overview" : "overview";
-  if (hash && !canAccessView(hash, account)) {
+  if (hash && !canAccessView(hash, account) && !ROLE_VIEWS.has(hash)) {
     window.location.hash = "overview";
   }
   renderView(initialView);

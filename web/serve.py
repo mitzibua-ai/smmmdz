@@ -138,8 +138,6 @@ def role_rank(role: str) -> int:
 def can_assign_role(actor_role: str, target_role: str, new_role: str, target_is_owner: bool) -> bool:
     if target_is_owner:
         return False
-    if new_role == "owner":
-        return False
     if new_role not in PANEL_ROLES:
         return False
     if actor_role == "owner":
