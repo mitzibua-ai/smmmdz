@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +16,7 @@ from auth import (
     exchange_code_for_token,
     fetch_discord_user,
     new_state,
+    refresh_discord_token,
     sign_session,
     unsign_session,
 )
@@ -46,6 +48,40 @@ def _startup() -> None:
     init_db()
 
 
+def _maybe_refresh_tokens(user):
+    if not user or not user.refresh_token:
+        return user
+
+    now = int(time.time())
+    if user.access_token and user.expires_at and now < user.expires_at - 60:
+        return user
+
+    try:
+        token_data = refresh_discord_token(refresh_token=user.refresh_token)
+    except Exception:
+        return user
+
+    access_token = str(token_data.get("access_token") or "")
+    refresh_token = token_data.get("refresh_token") or user.refresh_token
+    expires_at = None
+    expires_in = token_data.get("expires_in")
+    if expires_in is not None:
+        try:
+            expires_at = int(time.time()) + int(expires_in)
+        except (TypeError, ValueError):
+            expires_at = None
+
+    upsert_user(
+        discord_id=user.discord_id,
+        username=user.username,
+        avatar_url=user.avatar_url,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_at=expires_at,
+    )
+    return get_user(user.discord_id) or user
+
+
 def current_user(request: Request):
     cookie = request.cookies.get("session")
     if not cookie:
@@ -53,7 +89,8 @@ def current_user(request: Request):
     discord_id = unsign_session(cookie)
     if not discord_id:
         return None
-    return get_user(discord_id)
+    user = get_user(discord_id)
+    return _maybe_refresh_tokens(user)
 
 
 def require_user(request: Request):
@@ -110,8 +147,18 @@ def auth_discord_callback(request: Request, code: str | None = None, state: str 
     if not code or not state or not expected_state or state != expected_state:
         return RedirectResponse(url="/login?error=oauth_state", status_code=302)
 
-    token = exchange_code_for_token(code=code)
-    du = fetch_discord_user(access_token=token)
+    token_data = exchange_code_for_token(code=code)
+    access_token = str(token_data.get("access_token") or "")
+    refresh_token = token_data.get("refresh_token")
+    expires_at = None
+    expires_in = token_data.get("expires_in")
+    if expires_in is not None:
+        try:
+            expires_at = int(time.time()) + int(expires_in)
+        except (TypeError, ValueError):
+            expires_at = None
+
+    du = fetch_discord_user(access_token=access_token)
 
     discord_id = str(du.get("id") or "")
     if not discord_id:
@@ -119,7 +166,14 @@ def auth_discord_callback(request: Request, code: str | None = None, state: str 
 
     username = du.get("global_name") or du.get("username") or f"discord:{discord_id}"
     avatar_url = avatar_url_for(du)
-    upsert_user(discord_id=discord_id, username=username, avatar_url=avatar_url)
+    upsert_user(
+        discord_id=discord_id,
+        username=username,
+        avatar_url=avatar_url,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        expires_at=expires_at,
+    )
 
     r = RedirectResponse(url="/dashboard", status_code=302)
     r.delete_cookie("oauth_state", path="/")

@@ -24,14 +24,14 @@ def discord_authorize_url(*, state: str) -> str:
         "client_id": _env("DISCORD_CLIENT_ID"),
         "redirect_uri": _env("DISCORD_REDIRECT_URI"),
         "response_type": "code",
-        "scope": "identify",
+        "scope": "identify offline_access",
         "state": state,
         "prompt": "consent",
     }
     return f"{DISCORD_API}/oauth2/authorize?{urllib.parse.urlencode(params)}"
 
 
-def exchange_code_for_token(*, code: str) -> str:
+def exchange_code_for_token(*, code: str) -> dict:
     data = {
         "client_id": _env("DISCORD_CLIENT_ID"),
         "client_secret": _env("DISCORD_CLIENT_SECRET"),
@@ -45,7 +45,23 @@ def exchange_code_for_token(*, code: str) -> str:
     token = payload.get("access_token")
     if not token:
         raise RuntimeError("Discord token exchange failed (no access_token).")
-    return token
+    return payload
+
+
+def refresh_discord_token(*, refresh_token: str) -> dict:
+    data = {
+        "client_id": _env("DISCORD_CLIENT_ID"),
+        "client_secret": _env("DISCORD_CLIENT_SECRET"),
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+    r = requests.post(f"{DISCORD_API}/oauth2/token", data=data, timeout=15)
+    r.raise_for_status()
+    payload = r.json()
+    token = payload.get("access_token")
+    if not token:
+        raise RuntimeError("Discord refresh failed (no access_token).")
+    return payload
 
 
 def fetch_discord_user(*, access_token: str) -> dict:
