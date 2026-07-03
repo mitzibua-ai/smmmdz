@@ -206,9 +206,37 @@ function renderProfile() {
   `;
 }
 
+function showLicenseActivatedToast(expiresLabel = "") {
+  let toast = document.getElementById("license-activated-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "license-activated-toast";
+    toast.className = "license-toast";
+    toast.innerHTML = `
+      <div class="license-toast__icon">✓</div>
+      <div class="license-toast__body">
+        <div class="license-toast__title">Customer license active</div>
+        <div class="license-toast__sub">Pins and Reports are unlocked.</div>
+        <div class="license-toast__expiry"></div>
+      </div>
+    `;
+    document.body.appendChild(toast);
+  }
+  const expiryEl = toast.querySelector(".license-toast__expiry");
+  if (expiryEl) {
+    expiryEl.textContent = expiresLabel ? `Valid until ${expiresLabel}` : "";
+  }
+  toast.classList.add("is-visible");
+  window.clearTimeout(showLicenseActivatedToast._timer);
+  showLicenseActivatedToast._timer = window.setTimeout(() => {
+    toast.classList.remove("is-visible");
+  }, 8000);
+}
+
 function handleLicenseUpdate(updated) {
   const prev = account?.licensedStatus;
   const prevRole = typeof panelRole === "function" ? panelRole(account) : account?.panelRole;
+  const wasCustomer = isCustomerAccount(account);
   account = updated;
 
   if (account.licenseNeedsReauth) {
@@ -220,6 +248,24 @@ function handleLicenseUpdate(updated) {
   renderProfile();
   updateRoleNav(updated);
   updateLicenseNav(updated);
+
+  const isCustomerNow = isCustomerAccount(account);
+  const becameCustomer = isCustomerNow && !wasCustomer;
+  const lostCustomer = !isCustomerNow && wasCustomer;
+
+  if (becameCustomer) {
+    showLicenseActivatedToast(formatLicenseExpiry(account));
+    syncDashboardData(account.discordId)
+      .then(() => {
+        if (!isPinModalOpen()) renderView(currentView);
+      })
+      .catch(() => {});
+  }
+
+  if (lostCustomer && account?.discordId) {
+    savePins(account.discordId, []);
+    saveScans(account.discordId, []);
+  }
 
   const requestedView = window.location.hash.replace("#", "") || currentView;
   if (requestedView !== currentView && ROLE_VIEWS.has(requestedView) && canAccessView(requestedView, account)) {
@@ -233,20 +279,11 @@ function handleLicenseUpdate(updated) {
   }
 
   const roleChanged = (typeof panelRole === "function" ? panelRole(account) : account.panelRole) !== prevRole;
-  const becameCustomer = isCustomerAccount(account) && !isCustomerAccount({ ...account, licensedStatus: prev, plan: prev });
-  const lostCustomer = !isCustomerAccount(account) && isCustomerAccount({ ...account, licensedStatus: prev, plan: prev });
-  if (lostCustomer && account?.discordId) {
-    savePins(account.discordId, []);
-    saveScans(account.discordId, []);
-  }
-  if (becameCustomer || lostCustomer) {
-    syncDashboardData(account.discordId).catch(() => {});
-  }
   if (ROLE_VIEWS.has(currentView)) {
     return;
   }
 
-  if ((account.licensedStatus !== prev || updated._licenseChanged || roleChanged) && !isPinModalOpen()) {
+  if ((becameCustomer || lostCustomer || account.licensedStatus !== prev || updated._licenseChanged || roleChanged) && !isPinModalOpen()) {
     renderView(currentView);
   }
 }

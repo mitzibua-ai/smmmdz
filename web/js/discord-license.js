@@ -35,7 +35,7 @@ function applyConfigOwnerFlags(acc) {
 
 function getLicensePollMs() {
   const ms = Number(window.SITE_CONFIG?.licensePollMs);
-  return ms > 0 ? ms : 5000;
+  return ms > 0 ? ms : 2000;
 }
 
 function hasRole(member, customerRoleId) {
@@ -62,11 +62,12 @@ async function fetchLicenseFromServer(discordId) {
   const accessToken = stored?.discordAccessToken || null;
 
   try {
-    const res = await fetch(apiUrl(`/api/license/${discordId}`), {
+    const res = await fetch(apiUrl(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
       method: accessToken ? "POST" : "GET",
       cache: "no-store",
       headers: {
         Accept: "application/json",
+        "Cache-Control": "no-cache",
         ...(accessToken ? { "Content-Type": "application/json" } : {}),
       },
       body: accessToken ? JSON.stringify({ accessToken }) : undefined,
@@ -221,7 +222,9 @@ async function applyLicensedStatus(account) {
       licenseExpiresAt: server.licenseExpiresAt || null,
     };
     saveAccount(updated);
-    updated._licenseChanged = previous !== server.status;
+    const becameCustomer = server.status === "Customer" && previous !== "Customer";
+    updated._licenseChanged = previous !== server.status || becameCustomer;
+    updated._licenseActivated = becameCustomer;
     return applyConfigOwnerFlags(updated);
   }
 
@@ -310,6 +313,8 @@ function startLicenseSync(onUpdate) {
   window.addEventListener("focus", tick);
 
   tick();
+  // Quick second check — catches license right after Discord staff redeems
+  setTimeout(tick, 800);
 
   return function stopLicenseSync() {
     clearInterval(timer);

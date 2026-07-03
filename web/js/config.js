@@ -23,10 +23,10 @@ window.SITE_CONFIG = {
   // Leave empty — OAuth uses your GitHub Pages domain automatically
   oauthRedirectUri: "",
 
-  // How often to re-check Discord role while the panel is open (milliseconds)
-  licensePollMs: 5000,
+  // How often to re-check license while the panel is open (milliseconds)
+  licensePollMs: 2000,
 
   pcCheckToolName: "dotx PC Check Tool",
   pcCheckToolUrl: "/downloads/dotx-pc-check.exe",
-  dataSyncPollMs: 5000,
+  dataSyncPollMs: 3000,
 };

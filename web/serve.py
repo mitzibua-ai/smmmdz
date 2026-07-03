@@ -185,7 +185,24 @@ def enrich_license(user_id: str, payload: dict) -> dict:
 def membership_status(user_id: str, roles: list | None = None) -> str:
     if get_active_site_license(user_id):
         return "Customer"
+    customer_role = env("DISCORD_CUSTOMER_ROLE_ID", "1519527288503275641")
+    role_ids = [str(r) for r in (roles or [])]
+    if customer_role and customer_role in role_ids:
+        return "Customer"
     return "Standard"
+
+
+def finalize_license(user_id: str, payload: dict) -> dict:
+    """Site key licenses always win — unlocks panel right after staff redeems."""
+    active = get_active_site_license(user_id)
+    if active:
+        payload = {
+            **payload,
+            "status": "Customer",
+            "licenseExpiresAt": active.get("licenseExpiresAt"),
+            "licenseSource": "site_key",
+        }
+    return enrich_license(user_id, payload)
 
 
 def is_customer_license(info: dict) -> bool:
@@ -282,17 +299,6 @@ def check_license_bot(user_id: str) -> dict:
 
 
 def check_license(user_id: str, access_token: str | None = None) -> dict:
-    active = get_active_site_license(user_id)
-    if active and not access_token:
-        payload = {
-            "status": "Customer",
-            "licenseExpiresAt": active.get("licenseExpiresAt"),
-            "licenseSource": "site_key",
-            "roles": [],
-            "method": "site_key",
-        }
-        return enrich_license(user_id, payload)
-
     if access_token:
         oauth = check_license_oauth(user_id, access_token)
         if oauth.get("method") == "oauth" or oauth.get("error") in {
@@ -301,8 +307,8 @@ def check_license(user_id: str, access_token: str | None = None) -> dict:
             "not_in_guild",
             "token_user_mismatch",
         }:
-            return enrich_license(user_id, oauth)
-    return enrich_license(user_id, check_license_bot(user_id))
+            return finalize_license(user_id, oauth)
+    return finalize_license(user_id, check_license_bot(user_id))
 
 
 class DotxHandler(SimpleHTTPRequestHandler):
