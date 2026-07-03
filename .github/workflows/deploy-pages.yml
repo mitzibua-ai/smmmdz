@@ -33,7 +33,7 @@ jobs:
           mkdir -p _site
           mkdir -p _site/downloads
           cp web/index.html _site/
-          cp web/404.html _site/
+          cp web/404.html _site/ 2>/dev/null || true
           cp web/login.html _site/
           cp web/callback.html _site/
           cp web/dashboard.html _site/
@@ -44,7 +44,6 @@ jobs:
           cp -r web/callback _site/
           cp -r web/dashboard _site/
           cp web/downloads/dotx-pc-check.exe _site/downloads/ 2>/dev/null || true
-          cp CNAME _site/ || true
           cp .nojekyll _site/ || true
       
       - uses: actions/upload-pages-artifact@v3
