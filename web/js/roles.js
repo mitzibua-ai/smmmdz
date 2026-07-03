@@ -61,13 +61,33 @@ async function registerUserOnServer(acc) {
 
 async function fetchTeamDashboard(kind) {
   const acc = getAccount();
+  if (!acc?.discordId) throw new Error("Sign in with Discord first.");
+
+  if (typeof getValidAccessToken === "function") {
+    await getValidAccessToken(acc);
+  }
+
+  if (typeof apiRequest === "function") {
+    try {
+      return await apiRequest(`/api/${kind}/overview`, { method: "POST", body: {} });
+    } catch (err) {
+      if (err.status === 403) {
+        throw new Error("Access denied — you need Owner permissions on the API.");
+      }
+      if (typeof isExternalApiConfigured === "function" && !isExternalApiConfigured() && /\.github\.io$/i.test(window.location.hostname)) {
+        throw new Error("API not linked. Set apiBaseUrl in config.js to your Railway URL, then redeploy.");
+      }
+      throw new Error(err.message || "Could not load dashboard.");
+    }
+  }
+
   const res = await fetch(apiUrl(`/api/${kind}/overview`), {
     method: "POST",
     cache: "no-store",
     headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify({
-      discordId: acc.discordId,
-      accessToken: acc.discordAccessToken || null,
+      discordId: getAccount().discordId,
+      accessToken: getAccount().discordAccessToken || null,
     }),
   });
   if (res.status === 403) throw new Error("Access denied.");
@@ -76,6 +96,17 @@ async function fetchTeamDashboard(kind) {
 }
 
 async function promoteUser(kind, targetId, role) {
+  if (typeof getValidAccessToken === "function") {
+    await getValidAccessToken(getAccount());
+  }
+
+  if (typeof apiRequest === "function") {
+    return apiRequest(kind === "owner" ? "/api/owner/users/role" : "/api/admin/users/role", {
+      method: "POST",
+      body: { targetId, role },
+    });
+  }
+
   const acc = getAccount();
   const endpoint = kind === "owner" ? "/api/owner/users/role" : "/api/admin/users/role";
   const res = await fetch(apiUrl(endpoint), {
@@ -169,23 +200,54 @@ function renderTeamShell(kind) {
   `;
 }
 
+function closeTeamActionMenus() {
+  document.querySelectorAll("#team-dashboard-body .action-menu__dropdown").forEach((menu) => {
+    menu.classList.add("hidden");
+  });
+  document.querySelectorAll("#team-dashboard-body .action-menu__trigger").forEach((trigger) => {
+    trigger.setAttribute("aria-expanded", "false");
+  });
+}
+
 function renderUserActions(user, kind) {
   const meta = teamDashboardMeta(kind);
   const role = user.panelRole || "member";
   if (role === "owner") return `<span class="team-muted">Protected</span>`;
   if (user.discordId === getAccount()?.discordId) return `<span class="team-muted">You</span>`;
 
-  const buttons = [];
+  const items = [];
   if (meta.canPromoteStaff && role !== "staff") {
-    buttons.push(`<button type="button" class="btn btn--ghost btn--small team-promote" data-target="${user.discordId}" data-role="staff">Make Staff</button>`);
+    items.push(
+      `<button type="button" class="action-menu__item team-promote" data-target="${escapeHtml(user.discordId)}" data-role="staff" role="menuitem">Make Staff</button>`
+    );
   }
   if (meta.canPromoteAdmin && role !== "admin") {
-    buttons.push(`<button type="button" class="btn btn--primary btn--small team-promote" data-target="${user.discordId}" data-role="admin">Make Admin</button>`);
+    items.push(
+      `<button type="button" class="action-menu__item team-promote" data-target="${escapeHtml(user.discordId)}" data-role="admin" role="menuitem">Make Admin</button>`
+    );
   }
   if (role !== "member" && (meta.canPromoteAdmin || (meta.canPromoteStaff && role === "staff"))) {
-    buttons.push(`<button type="button" class="btn btn--danger btn--small team-promote" data-target="${user.discordId}" data-role="member">Demote</button>`);
+    items.push(
+      `<button type="button" class="action-menu__item action-menu__item--danger team-promote" data-target="${escapeHtml(user.discordId)}" data-role="member" role="menuitem">Demote to Member</button>`
+    );
   }
-  return buttons.length ? `<div class="team-actions">${buttons.join("")}</div>` : `<span class="team-muted">—</span>`;
+  items.push(
+    `<div class="action-menu__sep"></div>`,
+    `<button type="button" class="action-menu__item team-copy-id" data-id="${escapeHtml(user.discordId)}" role="menuitem">Copy Discord ID</button>`
+  );
+
+  if (!items.length) return `<span class="team-muted">—</span>`;
+
+  return `
+    <div class="action-menu">
+      <button type="button" class="action-menu__trigger" aria-label="User actions" aria-haspopup="true" aria-expanded="false">
+        <span class="action-menu__dots" aria-hidden="true"><span></span><span></span><span></span></span>
+      </button>
+      <div class="action-menu__dropdown hidden" role="menu">
+        ${items.join("")}
+      </div>
+    </div>
+  `;
 }
 
 function renderTeamUsersTable(users, kind) {
@@ -197,16 +259,16 @@ function renderTeamUsersTable(users, kind) {
     .map((user) => {
       const avatar = avatarUrlForUser(user);
       return `
-        <tr class="team-user-row" data-discord-id="${user.discordId}">
+        <tr class="team-user-row" data-discord-id="${escapeHtml(user.discordId)}">
           <td>
             <div class="team-user">
               <img class="team-user__avatar" src="${avatar}" alt="" width="40" height="40" loading="lazy" />
               <div>
                 <div class="team-user__name">${escapeHtml(user.username || "Unknown")}</div>
-                <div class="team-user__id"><code>${escapeHtml(user.discordId)}</code></div>
               </div>
             </div>
           </td>
+          <td><code class="team-user__token" title="Discord user ID">${escapeHtml(user.discordId)}</code></td>
           <td><span class="${roleBadgeClass(user.panelRole)}">${roleLabel(user.panelRole)}</span></td>
           <td><span class="license-pill license-pill--${(user.licensedStatus || "standard").toLowerCase()}">${escapeHtml(user.licensedStatus || "Standard")}</span></td>
           <td>${user.pins || 0}</td>
@@ -219,19 +281,20 @@ function renderTeamUsersTable(users, kind) {
 
   return `
     <div class="team-toolbar">
-      <input type="search" class="form__input team-search" id="team-user-search" placeholder="Search users…" />
+      <input type="search" class="form__input team-search" id="team-user-search" placeholder="Search users by name or Discord ID…" />
     </div>
     <div class="owner-table-wrap">
       <table class="owner-table team-table">
         <thead>
           <tr>
             <th>User</th>
+            <th>Discord ID</th>
             <th>Role</th>
             <th>License</th>
             <th>Pins</th>
             <th>Scans</th>
             <th>Last seen</th>
-            <th>Actions</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="team-users-tbody">${rows}</tbody>
@@ -362,7 +425,9 @@ function bindTeamDashboardEvents(kind) {
   });
 
   document.querySelectorAll(".team-promote").forEach((btn) => {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      closeTeamActionMenus();
       const targetId = btn.dataset.target;
       const role = btn.dataset.role;
       const promoteKind = kind === "admin" ? "admin" : "owner";
@@ -384,6 +449,41 @@ function bindTeamDashboardEvents(kind) {
       }
     });
   });
+
+  document.querySelectorAll("#team-dashboard-body .action-menu__trigger").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const dropdown = btn.closest(".action-menu")?.querySelector(".action-menu__dropdown");
+      const wasOpen = dropdown && !dropdown.classList.contains("hidden");
+      closeTeamActionMenus();
+      if (!wasOpen && dropdown) {
+        dropdown.classList.remove("hidden");
+        btn.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+
+  document.querySelectorAll(".team-copy-id").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.id || "";
+      try {
+        await navigator.clipboard.writeText(id);
+        btn.textContent = "Copied!";
+        setTimeout(() => {
+          btn.textContent = "Copy Discord ID";
+        }, 1200);
+      } catch {
+        alert(id);
+      }
+      closeTeamActionMenus();
+    });
+  });
+
+  if (!bindTeamDashboardEvents._outsideBound) {
+    bindTeamDashboardEvents._outsideBound = true;
+    document.addEventListener("click", closeTeamActionMenus);
+  }
 }
 
 function updateRoleNav(acc = getAccount()) {

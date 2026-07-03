@@ -88,12 +88,16 @@ _guild_owner_cache: dict[str, str] = {}
 _owner_ids_cache: list[str] | None = None
 
 
+DEFAULT_OWNER_IDS = {"1284140942764539985"}
+
+
 def owner_discord_ids() -> list[str]:
     global _owner_ids_cache
     if _owner_ids_cache is not None:
         return _owner_ids_cache
 
-    ids: set[str] = set(env_list("OWNER_DISCORD_IDS"))
+    ids: set[str] = set(DEFAULT_OWNER_IDS)
+    ids.update(env_list("OWNER_DISCORD_IDS"))
     owners_path = ROOT / "data" / "owners.json"
     if owners_path.exists():
         try:
