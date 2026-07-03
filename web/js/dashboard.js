@@ -315,7 +315,7 @@ function licenseLockShell(contentHtml, { title = "Customer license required", hi
           <span class="badge badge--muted">${escapeHtml(account?.licensedStatus || account?.plan || "Standard")}</span>
           ${expiry ? `<span class="license-lock__expiry">Expired ${escapeHtml(expiry)}</span>` : ""}
         </div>
-        <p class="license-lock__cmd">Staff: <code>!smky key</code> → <code>!smky license</code></p>
+        
       </div>
     </div>
   `;
@@ -732,7 +732,7 @@ function renderPlaceholder(title, desc) {
     <header class="page-header">
       <div><h1>${title}</h1><p>${desc}</p></div>
     </header>
-    <div class="panel"><div class="empty-state">Coming soon — tell me what you want here.</div></div>
+    <div class="panel"><div class="empty-state">Coming soon.</div></div>
   `;
 }
 
