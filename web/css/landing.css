@@ -6,8 +6,8 @@
   --navy-mid: #151d30;
   --text: #f0f4fa;
   --muted: #8a94a8;
-  --accent: #00d4aa;
-  --accent-blue: #3b9eff;
+  --accent: #d40000;
+  --accent-blue: #ffeb3b;
   --font: "Outfit", system-ui, sans-serif;
 }
 
@@ -319,7 +319,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 .btn-primary:hover {
-  background: #00e8bb;
+  background: #e80000;
   transform: translateY(-1px);
 }
 
