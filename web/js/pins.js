@@ -28,6 +28,9 @@ function generatePinCode(discordId) {
 }
 
 function addPin(discordId, data) {
+  if (typeof isCustomerAccount === "function" && !isCustomerAccount()) {
+    throw new Error("license_required");
+  }
   const pins = getPins(discordId);
   const pin = {
     id: `pin_${Date.now()}`,

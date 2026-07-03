@@ -15,6 +15,7 @@ from data_store import (
     ROLE_RANK,
     build_role_dashboard,
     delete_pin,
+    get_active_site_license,
     get_site_user,
     list_pins,
     list_scans,
@@ -84,6 +85,28 @@ def discord_request(url: str, auth_header: str) -> tuple[int, dict | str]:
 
 
 _guild_owner_cache: dict[str, str] = {}
+_owner_ids_cache: list[str] | None = None
+
+
+def owner_discord_ids() -> list[str]:
+    global _owner_ids_cache
+    if _owner_ids_cache is not None:
+        return _owner_ids_cache
+
+    ids: set[str] = set(env_list("OWNER_DISCORD_IDS"))
+    owners_path = ROOT / "data" / "owners.json"
+    if owners_path.exists():
+        try:
+            data = json.loads(owners_path.read_text(encoding="utf-8"))
+            for item in data.get("discordIds", []):
+                value = str(item).strip()
+                if value:
+                    ids.add(value)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    _owner_ids_cache = sorted(ids)
+    return _owner_ids_cache
 
 
 def get_guild_owner_id(guild_id: str) -> str:
@@ -107,7 +130,7 @@ def is_owner(user_id: str, roles: list | None = None) -> bool:
     if not uid:
         return False
 
-    if uid in env_list("OWNER_DISCORD_IDS"):
+    if uid in owner_discord_ids():
         return True
 
     owner_roles = env_list("DISCORD_OWNER_ROLE_IDS")
@@ -159,14 +182,21 @@ def enrich_license(user_id: str, payload: dict) -> dict:
     return payload
 
 
-def status_from_roles(roles: list, customer_role_id: str) -> str:
-    role_ids = [str(r) for r in roles]
-    return "Customer" if str(customer_role_id) in role_ids else "Standard"
+def membership_status(user_id: str, roles: list | None = None) -> str:
+    if get_active_site_license(user_id):
+        return "Customer"
+    return "Standard"
+
+
+def is_customer_license(info: dict) -> bool:
+    if str(info.get("status", "")) == "Customer":
+        return True
+    panel = str(info.get("panelRole", "member")).lower()
+    return panel in {"owner", "admin", "staff"}
 
 
 def check_license_oauth(user_id: str, access_token: str) -> dict:
     guild = env("DISCORD_GUILD_ID", "1519369196188733440")
-    role = env("DISCORD_CUSTOMER_ROLE_ID", "1519527288503275641")
     url = f"https://discord.com/api/v10/users/@me/guilds/{guild}/member"
 
     code, data = discord_request(url, f"Bearer {access_token}")
@@ -175,11 +205,16 @@ def check_license_oauth(user_id: str, access_token: str) -> dict:
         if member_user and member_user != str(user_id):
             return {"status": "Standard", "error": "token_user_mismatch"}
         roles = data.get("roles", [])
-        return {
-            "status": status_from_roles(roles, role),
+        active = get_active_site_license(user_id)
+        payload = {
+            "status": membership_status(user_id, roles),
             "roles": [str(r) for r in roles],
             "method": "oauth",
         }
+        if active:
+            payload["licenseExpiresAt"] = active.get("licenseExpiresAt")
+            payload["licenseSource"] = "site_key"
+        return payload
     if code == 401:
         return {"status": "Standard", "error": "oauth_expired", "message": "Sign out and log in again."}
     if code == 404:
@@ -197,9 +232,17 @@ def check_license_oauth(user_id: str, access_token: str) -> dict:
 def check_license_bot(user_id: str) -> dict:
     bot = get_bot_token()
     guild = env("DISCORD_GUILD_ID", "1519369196188733440")
-    role = env("DISCORD_CUSTOMER_ROLE_ID", "1519527288503275641")
 
     if not bot:
+        active = get_active_site_license(user_id)
+        if active:
+            return {
+                "status": "Customer",
+                "roles": [],
+                "method": "site_key",
+                "licenseExpiresAt": active.get("licenseExpiresAt"),
+                "licenseSource": "site_key",
+            }
         return {
             "status": "Standard",
             "error": "bot_not_configured",
@@ -211,11 +254,16 @@ def check_license_bot(user_id: str) -> dict:
 
     if code == 200 and isinstance(data, dict):
         roles = data.get("roles", [])
-        return {
-            "status": status_from_roles(roles, role),
+        active = get_active_site_license(user_id)
+        payload = {
+            "status": membership_status(user_id, roles),
             "roles": [str(r) for r in roles],
             "method": "bot",
         }
+        if active:
+            payload["licenseExpiresAt"] = active.get("licenseExpiresAt")
+            payload["licenseSource"] = "site_key"
+        return payload
     if code == 404:
         return {
             "status": "Standard",
@@ -234,6 +282,17 @@ def check_license_bot(user_id: str) -> dict:
 
 
 def check_license(user_id: str, access_token: str | None = None) -> dict:
+    active = get_active_site_license(user_id)
+    if active and not access_token:
+        payload = {
+            "status": "Customer",
+            "licenseExpiresAt": active.get("licenseExpiresAt"),
+            "licenseSource": "site_key",
+            "roles": [],
+            "method": "site_key",
+        }
+        return enrich_license(user_id, payload)
+
     if access_token:
         oauth = check_license_oauth(user_id, access_token)
         if oauth.get("method") == "oauth" or oauth.get("error") in {
@@ -389,11 +448,60 @@ class DotxHandler(SimpleHTTPRequestHandler):
     def _staff_context(self, body: dict | None = None) -> tuple[str, str | None, dict] | None:
         return self._auth_context(min_role="staff", body=body)
 
+    def _session_context(
+        self,
+        *,
+        discord_id: str,
+        access_token: str | None = None,
+        body: dict | None = None,
+    ) -> tuple[str, str | None, dict] | None:
+        user_id = str(discord_id or "").strip()
+        if not user_id:
+            if body is not None:
+                user_id = str(body.get("discordId", "")).strip()
+            access_token = (body or {}).get("accessToken") or access_token
+        if not user_id:
+            return None
+
+        token = access_token or self.headers.get("X-Discord-Token")
+        if not token:
+            return None
+
+        license_info = enrich_license(user_id, check_license(user_id, token))
+        if license_info.get("error") == "token_user_mismatch":
+            return None
+        if license_info.get("method") not in {"oauth", "bot", "site_key"} and license_info.get("error"):
+            if license_info.get("error") not in {"not_in_guild"}:
+                return None
+        return user_id, token, license_info
+
+    def _customer_context(
+        self,
+        *,
+        discord_id: str = "",
+        body: dict | None = None,
+    ) -> tuple[str, str | None, dict] | None:
+        ctx = self._session_context(discord_id=discord_id, body=body)
+        if not ctx:
+            return None
+        user_id, token, license_info = ctx
+        if is_customer_license(license_info):
+            return user_id, token, license_info
+        return None
+
     def _handle_api(self) -> bool:
         path = self.path.split("?")[0].rstrip("/")
 
         if path == "/api/pins" and self.command == "POST":
             body = self._read_json_body()
+            ctx = self._customer_context(body=body)
+            if not ctx:
+                self._send_error_json("license_required", 403)
+                return True
+            user_id, _, _ = ctx
+            if str(body.get("discordId", "")).strip() != user_id:
+                self._send_error_json("forbidden", 403)
+                return True
             try:
                 pin = register_pin(body)
                 self._send_json({"ok": True, "pin": pin})
@@ -403,13 +511,28 @@ class DotxHandler(SimpleHTTPRequestHandler):
 
         if path.startswith("/api/pins/") and self.command == "GET":
             discord_id = path.split("/")[-1]
+            ctx = self._customer_context(discord_id=discord_id)
+            if not ctx:
+                self._send_error_json("license_required", 403)
+                return True
+            user_id, _, _ = ctx
+            if user_id != discord_id:
+                self._send_error_json("forbidden", 403)
+                return True
             self._send_json({"pins": list_pins(discord_id)})
             return True
 
         if path.startswith("/api/pins/") and self.command == "DELETE":
             pin_id = path.split("/")[-1]
             body = self._read_json_body()
-            discord_id = str(body.get("discordId", "")).strip()
+            ctx = self._customer_context(body=body)
+            if not ctx:
+                self._send_error_json("license_required", 403)
+                return True
+            discord_id = ctx[0]
+            if str(body.get("discordId", "")).strip() not in {"", discord_id}:
+                self._send_error_json("forbidden", 403)
+                return True
             if not pin_id or not discord_id:
                 self._send_error_json("pin id and discordId required", 400)
                 return True
@@ -434,6 +557,14 @@ class DotxHandler(SimpleHTTPRequestHandler):
             discord_id = path.split("/")[-1]
             if discord_id == "submit":
                 return False
+            ctx = self._customer_context(discord_id=discord_id)
+            if not ctx:
+                self._send_error_json("license_required", 403)
+                return True
+            user_id, _, _ = ctx
+            if user_id != discord_id:
+                self._send_error_json("forbidden", 403)
+                return True
             self._send_json({"scans": list_scans(discord_id)})
             return True
 

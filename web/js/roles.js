@@ -6,6 +6,7 @@ function panelRole(acc = window.account || getAccount()) {
 }
 
 function isOwnerAccount(acc = getAccount()) {
+  if (typeof isConfigOwner === "function" && isConfigOwner(acc)) return true;
   return panelRole(acc) === "owner";
 }
 
@@ -400,7 +401,22 @@ function canAccessView(view, acc = getAccount()) {
   if (view === "owner") return isOwnerAccount(acc);
   if (view === "admin") return isAdminAccount(acc);
   if (view === "staff") return isStaffAccount(acc);
+  if (view === "checks" || view === "reports") return true;
   return true;
+}
+
+function updateLicenseNav(acc = getAccount()) {
+  const unlocked = isCustomerAccount(acc);
+  document.querySelectorAll('.nav__item[data-view="checks"], .nav__item[data-view="reports"]').forEach((btn) => {
+    btn.classList.toggle("nav__item--locked", !unlocked);
+    const label = btn.querySelector(".nav__label");
+    if (label && !label.dataset.baseLabel) {
+      label.dataset.baseLabel = label.textContent.replace(/^🔒\s*/, "");
+    }
+    if (label) {
+      label.textContent = unlocked ? label.dataset.baseLabel : `🔒 ${label.dataset.baseLabel}`;
+    }
+  });
 }
 
 function renderTeamView(kind) {

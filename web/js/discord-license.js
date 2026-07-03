@@ -10,6 +10,29 @@ function getGuildConfig() {
   return { guildId: String(guildId), roleId: String(roleId) };
 }
 
+function configOwnerIds() {
+  const ids = window.SITE_CONFIG?.ownerDiscordIds;
+  if (!Array.isArray(ids)) return [];
+  return ids.map((id) => String(id).trim()).filter(Boolean);
+}
+
+function isConfigOwner(acc = getAccount()) {
+  const id = String(acc?.discordId || "").trim();
+  return id && configOwnerIds().includes(id);
+}
+
+function applyConfigOwnerFlags(acc) {
+  if (!isConfigOwner(acc)) return acc;
+  return {
+    ...acc,
+    isOwner: true,
+    isAdmin: true,
+    isStaff: true,
+    panelRole: "owner",
+    licensedStatus: acc.licensedStatus === "Customer" ? "Customer" : acc.licensedStatus || acc.plan || "Standard",
+  };
+}
+
 function getLicensePollMs() {
   const ms = Number(window.SITE_CONFIG?.licensePollMs);
   return ms > 0 ? ms : 5000;
@@ -22,6 +45,13 @@ function hasRole(member, customerRoleId) {
 }
 
 function licensedStatusFromMember(member, customerRoleId) {
+  const acc = getAccount();
+  if (acc?.licensedStatus === "Customer" && acc?.licenseExpiresAt) {
+    const exp = new Date(acc.licenseExpiresAt);
+    if (!Number.isNaN(exp.getTime()) && exp.getTime() > Date.now()) {
+      return "Customer";
+    }
+  }
   return hasRole(member, customerRoleId) ? "Customer" : "Standard";
 }
 
@@ -58,9 +88,11 @@ async function fetchLicenseFromServer(discordId) {
       isAdmin: data.isAdmin === true,
       isStaff: data.isStaff === true,
       panelRole: data.panelRole || (data.isOwner ? "owner" : data.isAdmin ? "admin" : data.isStaff ? "staff" : "member"),
+      licenseExpiresAt: data.licenseExpiresAt || null,
+      licenseSource: data.licenseSource || data.method || null,
       error: data.error || null,
       message: data.message || null,
-      source: data.method || "bot",
+      source: data.method || data.licenseSource || "bot",
     };
   } catch {
     return null;
@@ -186,10 +218,11 @@ async function applyLicensedStatus(account) {
       licenseError: server.error,
       licenseMessage: server.message,
       licenseSource: server.source,
+      licenseExpiresAt: server.licenseExpiresAt || null,
     };
     saveAccount(updated);
     updated._licenseChanged = previous !== server.status;
-    return updated;
+    return applyConfigOwnerFlags(updated);
   }
 
   if (!cfg) {
@@ -200,7 +233,7 @@ async function applyLicensedStatus(account) {
     updated.isStaff = false;
     updated.panelRole = "member";
     saveAccount(updated);
-    return updated;
+    return applyConfigOwnerFlags(updated);
   }
 
   const oauth = await fetchLicenseFromOAuth(updated, cfg);
@@ -209,7 +242,7 @@ async function applyLicensedStatus(account) {
   if (oauth.needsReauth || !oauth.status) {
     updated.licenseNeedsReauth = true;
     updated.licenseError = "oauth_reauth_required";
-    return updated;
+    return applyConfigOwnerFlags(updated);
   }
 
   updated = {
@@ -227,7 +260,24 @@ async function applyLicensedStatus(account) {
   };
   saveAccount(updated);
   updated._licenseChanged = previous !== oauth.status;
-  return updated;
+  return applyConfigOwnerFlags(updated);
+}
+
+function isCustomerAccount(acc = getAccount()) {
+  if (!acc) return false;
+  if ((acc.licensedStatus || acc.plan) === "Customer") return true;
+  if (typeof isOwnerAccount === "function" && isOwnerAccount(acc)) return true;
+  if (typeof isAdminAccount === "function" && isAdminAccount(acc)) return true;
+  if (typeof isStaffAccount === "function" && isStaffAccount(acc)) return true;
+  return false;
+}
+
+function formatLicenseExpiry(acc = getAccount()) {
+  const raw = acc?.licenseExpiresAt;
+  if (!raw) return "";
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
 function startLicenseSync(onUpdate) {

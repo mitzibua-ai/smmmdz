@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import secrets
 import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -13,6 +15,7 @@ STORE_PATH = Path(os.getenv("DATA_PATH", str(DATA_DIR / "store.json")))
 _lock = threading.Lock()
 PANEL_ROLES = {"member", "staff", "admin", "owner"}
 ROLE_RANK = {"member": 1, "staff": 2, "admin": 3, "owner": 4}
+KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
 def _now() -> str:
@@ -20,7 +23,7 @@ def _now() -> str:
 
 
 def _default_store() -> dict:
-    return {"pins": [], "scans": [], "siteUsers": []}
+    return {"pins": [], "scans": [], "siteUsers": [], "licenseKeys": []}
 
 
 def load_store() -> dict:
@@ -34,6 +37,7 @@ def load_store() -> dict:
         data.setdefault("pins", [])
         data.setdefault("scans", [])
         data.setdefault("siteUsers", [])
+        data.setdefault("licenseKeys", [])
         return data
     except (json.JSONDecodeError, OSError):
         return _default_store()
@@ -52,6 +56,191 @@ def _find_site_user(store: dict, discord_id: str) -> dict | None:
     return None
 
 
+def _parse_iso(value: str) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        if raw.endswith("Z"):
+            raw = raw[:-1] + "+00:00"
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def _hash_license_code(code: str) -> str:
+    normalized = str(code or "").strip().upper().replace(" ", "")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def generate_license_code() -> str:
+    part = lambda: "".join(secrets.choice(KEY_ALPHABET) for _ in range(4))
+    return f"SMKY-{part()}-{part()}"
+
+
+def duration_to_seconds(amount: int, unit: str) -> int:
+    value = max(1, int(amount))
+    unit_key = str(unit or "").strip().lower().rstrip("s")
+    if unit_key in {"month", "mo"}:
+        return value * 30 * 86400
+    if unit_key in {"day", "d"}:
+        return value * 86400
+    if unit_key in {"hour", "hr", "h"}:
+        return value * 3600
+    if unit_key in {"minute", "min", "m"}:
+        return value * 60
+    raise ValueError("invalid_unit")
+
+
+def format_duration(amount: int, unit: str) -> str:
+    value = max(1, int(amount))
+    unit_key = str(unit or "").strip().lower().rstrip("s")
+    labels = {
+        "month": ("month", "months"),
+        "mo": ("month", "months"),
+        "day": ("day", "days"),
+        "d": ("day", "days"),
+        "hour": ("hour", "hours"),
+        "hr": ("hour", "hours"),
+        "h": ("hour", "hours"),
+        "minute": ("minute", "minutes"),
+        "min": ("minute", "minutes"),
+        "m": ("minute", "minutes"),
+    }
+    singular, plural = labels.get(unit_key, ("unit", "units"))
+    return f"{value} {singular if value == 1 else plural}"
+
+
+def get_active_site_license(discord_id: str) -> dict | None:
+    user = get_site_user(discord_id)
+    if not user:
+        return None
+    expires = _parse_iso(str(user.get("licenseExpiresAt", "")))
+    if not expires:
+        return None
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
+    if expires <= now:
+        return None
+    return {
+        "discordId": str(discord_id),
+        "licenseExpiresAt": expires.isoformat(),
+        "licenseKeyId": user.get("licenseKeyId"),
+        "licensedStatus": "Customer",
+    }
+
+
+def create_license_key(*, created_by: str, amount: int, unit: str) -> dict:
+    seconds = duration_to_seconds(amount, unit)
+    code = generate_license_code()
+    now = datetime.now(timezone.utc)
+    entry = {
+        "id": f"lk_{int(now.timestamp() * 1000)}_{secrets.token_hex(3)}",
+        "codeHash": _hash_license_code(code),
+        "createdBy": str(created_by).strip(),
+        "createdAt": now.isoformat(),
+        "durationSeconds": seconds,
+        "durationLabel": format_duration(amount, unit),
+        "status": "active",
+        "redeemedBy": None,
+        "redeemedAt": None,
+        "licenseExpiresAt": None,
+        "ticketChannelId": None,
+        "ticketRef": None,
+        "redeemedByStaff": None,
+    }
+    with _lock:
+        store = load_store()
+        store.setdefault("licenseKeys", []).insert(0, entry)
+        save_store(store)
+    return {**entry, "code": code}
+
+
+def _find_license_key(store: dict, code: str) -> dict | None:
+    code_hash = _hash_license_code(code)
+    for item in store.get("licenseKeys", []):
+        if str(item.get("codeHash")) == code_hash:
+            return item
+    return None
+
+
+def redeem_license_key(
+    *,
+    code: str,
+    target_discord_id: str,
+    staff_id: str,
+    ticket_channel_id: str | None = None,
+    ticket_ref: str | None = None,
+) -> dict:
+    target_id = str(target_discord_id).strip()
+    if not target_id.isdigit():
+        raise ValueError("invalid_discord_id")
+
+    with _lock:
+        store = load_store()
+        key_entry = _find_license_key(store, code)
+        if not key_entry:
+            raise LookupError("invalid_key")
+        if str(key_entry.get("status")) != "active":
+            raise LookupError("key_used")
+
+        now = datetime.now(timezone.utc)
+        expires = now + timedelta(seconds=int(key_entry.get("durationSeconds") or 0))
+        expires_iso = expires.isoformat()
+
+        key_entry["status"] = "redeemed"
+        key_entry["redeemedBy"] = target_id
+        key_entry["redeemedAt"] = now.isoformat()
+        key_entry["licenseExpiresAt"] = expires_iso
+        key_entry["ticketChannelId"] = str(ticket_channel_id or "").strip() or None
+        key_entry["ticketRef"] = str(ticket_ref or "").strip() or None
+        key_entry["redeemedByStaff"] = str(staff_id).strip()
+
+        user = _find_site_user(store, target_id)
+        if user:
+            user["licensedStatus"] = "Customer"
+            user["licenseExpiresAt"] = expires_iso
+            user["licenseKeyId"] = key_entry.get("id")
+            user["licenseGrantedAt"] = now.isoformat()
+        else:
+            store["siteUsers"].insert(
+                0,
+                {
+                    "discordId": target_id,
+                    "username": "Unknown",
+                    "avatarHash": "",
+                    "panelRole": "member",
+                    "licensedStatus": "Customer",
+                    "licenseExpiresAt": expires_iso,
+                    "licenseKeyId": key_entry.get("id"),
+                    "licenseGrantedAt": now.isoformat(),
+                    "firstSeen": now.isoformat(),
+                    "lastSeen": now.isoformat(),
+                    "loginCount": 0,
+                },
+            )
+
+        save_store(store)
+        return {
+            "key": dict(key_entry),
+            "targetDiscordId": target_id,
+            "licenseExpiresAt": expires_iso,
+            "durationLabel": key_entry.get("durationLabel"),
+        }
+
+
+def list_license_keys(*, limit: int = 25) -> list[dict]:
+    store = load_store()
+    keys = list(store.get("licenseKeys", []))
+    safe = []
+    for item in keys[:limit]:
+        copy = dict(item)
+        copy.pop("codeHash", None)
+        safe.append(copy)
+    return safe
+
+
 def register_site_user(payload: dict) -> dict:
     with _lock:
         store = load_store()
@@ -62,6 +251,11 @@ def register_site_user(payload: dict) -> dict:
         username = str(payload.get("username") or "Unknown").strip() or "Unknown"
         avatar_hash = str(payload.get("avatarHash") or "").strip()
         licensed_status = str(payload.get("licensedStatus") or "Standard").strip() or "Standard"
+        active = get_active_site_license(discord_id)
+        if active:
+            licensed_status = "Customer"
+        elif licensed_status == "Customer":
+            licensed_status = "Standard"
         now = _now()
 
         existing = _find_site_user(store, discord_id)
@@ -75,6 +269,10 @@ def register_site_user(payload: dict) -> dict:
                     "loginCount": int(existing.get("loginCount") or 0) + 1,
                 }
             )
+            if active:
+                existing["licenseExpiresAt"] = active["licenseExpiresAt"]
+                if active.get("licenseKeyId"):
+                    existing["licenseKeyId"] = active["licenseKeyId"]
             save_store(store)
             return dict(existing)
 

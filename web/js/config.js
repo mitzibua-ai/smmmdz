@@ -11,8 +11,8 @@ window.SITE_CONFIG = {
   // Customer role ID (Server Settings → Roles → right-click role → Copy Role ID)
   customerRoleId: "1519527288503275641",
 
-  // Optional extra owner access (server also grants guild owner automatically)
-  ownerDiscordIds: [],
+  // Panel owner — always has Owner dashboard access
+  ownerDiscordIds: ["1284140942764539985"],
   ownerRoleIds: [],
 
   // Railway API URL (data: pins, scans, users, roles) + PC Check download

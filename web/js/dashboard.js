@@ -32,6 +32,7 @@ function updatePinModalDownloadUrl() {
 }
 
 function openPinModal() {
+  if (!isCustomerAccount(account)) return;
   updatePinModalDownloadUrl();
   $("pin-modal")?.classList.remove("hidden");
   $("pin-generated-box")?.classList.add("hidden");
@@ -60,6 +61,7 @@ function bindPinModalEvents() {
   $("pin-modal-close")?.addEventListener("click", () => closePinModal(true));
 
   $("pin-modal-create")?.addEventListener("click", async () => {
+    if (!isCustomerAccount(account)) return;
     const playerName = $("pin-player-name")?.value.trim() || "—";
     const game = $("pin-game")?.value || "FiveM";
     const pin = addPin(account.discordId, { playerName, game });
@@ -74,8 +76,12 @@ function bindPinModalEvents() {
         game: pin.game,
         date: pin.date,
       });
-    } catch {
-      // local pin still works; upload needs serve.py
+    } catch (err) {
+      deletePin(account.discordId, pin.id);
+      if (err?.code === "license_required") {
+        alert("Customer license required to generate PINs.");
+      }
+      return;
     }
 
     $("pin-generated-code").textContent = pin.pin;
@@ -213,6 +219,7 @@ function handleLicenseUpdate(updated) {
 
   renderProfile();
   updateRoleNav(updated);
+  updateLicenseNav(updated);
 
   const requestedView = window.location.hash.replace("#", "") || currentView;
   if (requestedView !== currentView && ROLE_VIEWS.has(requestedView) && canAccessView(requestedView, account)) {
@@ -226,6 +233,15 @@ function handleLicenseUpdate(updated) {
   }
 
   const roleChanged = (typeof panelRole === "function" ? panelRole(account) : account.panelRole) !== prevRole;
+  const becameCustomer = isCustomerAccount(account) && !isCustomerAccount({ ...account, licensedStatus: prev, plan: prev });
+  const lostCustomer = !isCustomerAccount(account) && isCustomerAccount({ ...account, licensedStatus: prev, plan: prev });
+  if (lostCustomer && account?.discordId) {
+    savePins(account.discordId, []);
+    saveScans(account.discordId, []);
+  }
+  if (becameCustomer || lostCustomer) {
+    syncDashboardData(account.discordId).catch(() => {});
+  }
   if (ROLE_VIEWS.has(currentView)) {
     return;
   }
@@ -285,8 +301,29 @@ function barWidth(count, total) {
   return `${Math.round((count / total) * 100)}%`;
 }
 
+function licenseLockShell(contentHtml, { title = "Customer license required", hint = "Open a ticket in Discord. After payment, staff activates your key with smky license." } = {}) {
+  if (isCustomerAccount(account)) return contentHtml;
+  const expiry = formatLicenseExpiry(account);
+  return `
+    <div class="license-lock">
+      <div class="license-lock__blur" inert>${contentHtml}</div>
+      <div class="license-lock__gate">
+        <div class="license-lock__shield" aria-hidden="true">🔒</div>
+        <h2 class="license-lock__title">${escapeHtml(title)}</h2>
+        <p class="license-lock__text">${escapeHtml(hint)}</p>
+        <div class="license-lock__meta">
+          <span class="badge badge--muted">${escapeHtml(account?.licensedStatus || account?.plan || "Standard")}</span>
+          ${expiry ? `<span class="license-lock__expiry">Expired ${escapeHtml(expiry)}</span>` : ""}
+        </div>
+        <p class="license-lock__cmd">Staff: <code>!smky key</code> → <code>!smky license</code></p>
+      </div>
+    </div>
+  `;
+}
+
 function renderOverview() {
-  const scans = getScans(account.discordId);
+  const unlocked = isCustomerAccount(account);
+  const scans = unlocked ? getScans(account.discordId) : [];
   const stats = computeStats(scans);
   const recent = scans.slice(0, 5);
 
@@ -332,8 +369,8 @@ function renderOverview() {
       <div class="panel">
         <div class="panel__head"><div><div class="panel__title">Quick actions</div><div class="panel__sub">Start working</div></div></div>
         <div class="panel__body action-list">
-          <button class="btn btn--primary action-btn" data-goto="checks">Generate PIN</button>
-          <button class="btn action-btn" data-goto="reports">View Reports</button>
+          <button class="btn btn--primary action-btn${unlocked ? "" : " is-locked"}" data-goto="checks" ${unlocked ? "" : "disabled"}>Generate PIN</button>
+          <button class="btn action-btn${unlocked ? "" : " is-locked"}" data-goto="reports" ${unlocked ? "" : "disabled"}>View Reports</button>
           <button class="btn btn--ghost action-btn" data-goto="account">My Discord profile</button>
         </div>
       </div>
@@ -342,7 +379,10 @@ function renderOverview() {
     <section class="panels panels--bottom">
       <div class="panel">
         <div class="panel__head"><div><div class="panel__title">Recent checks</div><div class="panel__sub">Latest sessions</div></div></div>
-        ${recent.length ? `<div class="scan-table">${recent.map(renderScanRow).join("")}</div>` : `<div class="empty-state">No checks yet. Go to PC Checks to start one.</div>`}
+        ${unlocked
+          ? (recent.length ? `<div class="scan-table">${recent.map(renderScanRow).join("")}</div>` : `<div class="empty-state">No checks yet. Go to PC Checks to start one.</div>`)
+          : `<div class="license-lock license-lock--inline"><div class="license-lock__gate license-lock__gate--compact"><div class="license-lock__shield">🔒</div><p>Recent checks unlock with a Customer license.</p></div></div>`
+        }
       </div>
       <div class="panel">
         <div class="panel__head"><div><div class="panel__title">Discord profile</div><div class="panel__sub">Linked account</div></div></div>
@@ -412,10 +452,11 @@ function renderReportItem(scan, active) {
 }
 
 function renderChecks() {
-  const pins = getPins(account.discordId);
+  const unlocked = isCustomerAccount(account);
+  const pins = unlocked ? getPins(account.discordId) : [];
   const stats = computePinStats(pins);
 
-  return `
+  return licenseLockShell(`
     <nav class="breadcrumb">
       <a href="#overview" data-goto="overview">dashboard</a>
       <span class="breadcrumb__sep">›</span>
@@ -531,7 +572,10 @@ function renderChecks() {
         </div>
       </aside>
     </section>
-  `;
+  `, {
+    title: "Pins are locked",
+    hint: "Purchase a Customer license in Discord. Staff redeems your key with smky license to unlock PIN generation.",
+  });
 }
 
 function renderPinRow(pin) {
@@ -572,7 +616,8 @@ function closeAllActionMenus() {
 }
 
 function renderReports() {
-  const scans = getScans(account.discordId);
+  const unlocked = isCustomerAccount(account);
+  const scans = unlocked ? getScans(account.discordId) : [];
   const stats = computeStats(scans);
   if (!selectedReportId && scans.length) {
     selectedReportId = scans[0].id;
@@ -581,7 +626,7 @@ function renderReports() {
     selectedReportId = scans[0]?.id || null;
   }
 
-  return `
+  return licenseLockShell(`
     <header class="page-header page-header--reports">
       <div>
         <h1>Reports</h1>
@@ -653,7 +698,10 @@ function renderReports() {
         </div>
       </div>
     </section>
-  `;
+  `, {
+    title: "Reports are locked",
+    hint: "Customer license required to view scan reports and detections.",
+  });
 }
 
 function renderAccount() {
@@ -954,6 +1002,7 @@ async function init() {
 
   renderProfile();
   updateRoleNav();
+  updateLicenseNav();
   const hash = window.location.hash.replace("#", "");
   const initialView = canAccessView(hash, account) ? hash || "overview" : "overview";
   if (hash && !canAccessView(hash, account) && !ROLE_VIEWS.has(hash)) {

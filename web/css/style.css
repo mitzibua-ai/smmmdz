@@ -2199,3 +2199,98 @@ a.btn.pin-download-link {
   .main { padding: 20px 16px; }
   .metrics { grid-template-columns: 1fr; }
 }
+
+/* ── Customer license lock ── */
+.nav__item--locked {
+  opacity: 0.72;
+}
+
+.nav__item--locked.is-active {
+  opacity: 1;
+}
+
+.action-btn.is-locked,
+.action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.license-lock {
+  position: relative;
+  min-height: 420px;
+}
+
+.license-lock__blur {
+  filter: blur(10px) saturate(0.7);
+  opacity: 0.35;
+  pointer-events: none;
+  user-select: none;
+}
+
+.license-lock__gate {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  padding: 32px 24px;
+  background: radial-gradient(ellipse at center, rgba(8, 10, 14, 0.55) 0%, rgba(8, 10, 14, 0.92) 70%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+}
+
+.license-lock__gate--compact {
+  position: relative;
+  inset: auto;
+  min-height: 140px;
+  background: rgba(8, 10, 14, 0.75);
+}
+
+.license-lock--inline .license-lock__gate {
+  border-radius: var(--radius);
+}
+
+.license-lock__shield {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 18px rgba(255, 215, 0, 0.35));
+}
+
+.license-lock__title {
+  margin: 0 0 8px;
+  font-size: 1.35rem;
+}
+
+.license-lock__text {
+  margin: 0 0 16px;
+  max-width: 420px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.license-lock__meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.license-lock__expiry {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.license-lock__cmd {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.license-lock__cmd code {
+  font-family: var(--mono);
+  color: var(--accent);
+}
