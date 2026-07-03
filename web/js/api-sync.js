@@ -3,6 +3,10 @@ const API_BASE = apiBaseUrl;
 function apiAuthHeaders(extra = {}) {
   const acc = getAccount();
   const headers = { "Content-Type": "application/json", ...extra };
+  const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
+  if (siteToken) {
+    headers["X-Site-Token"] = siteToken;
+  }
   if (acc?.discordAccessToken) {
     headers["X-Discord-Token"] = acc.discordAccessToken;
   }
@@ -28,7 +32,7 @@ async function apiRequest(path, options = {}) {
     body = JSON.stringify(apiAuthBody(body));
   }
 
-  const init = { ...options, headers };
+  const init = { ...options, headers, mode: "cors", cache: "no-store" };
   if (body !== undefined && String(options.method || "GET").toUpperCase() !== "GET") {
     init.body = body;
   } else {
@@ -44,6 +48,23 @@ async function apiRequest(path, options = {}) {
     throw err;
   }
   return data;
+}
+
+function apiFetchErrorMessage(err) {
+  const msg = String(err?.message || "");
+  if (msg === "Failed to fetch" || err?.name === "TypeError") {
+    if (typeof isExternalApiConfigured === "function" && !isExternalApiConfigured()) {
+      return "API not linked. Set apiBaseUrl in config.js to your Railway URL, then redeploy.";
+    }
+    if (typeof siteApiToken === "function" && !siteApiToken()) {
+      return "Could not reach the API. Set apiToken in config.js (must match Railway SITE_API_TOKEN).";
+    }
+    return "Could not reach the API. Check Railway is online and CORS_ORIGINS includes your GitHub Pages URL.";
+  }
+  if (err?.code === "invalid_site_token" || err?.status === 401) {
+    return "API security token mismatch. Update apiToken in config.js to match Railway SITE_API_TOKEN.";
+  }
+  return msg || "Request failed.";
 }
 
 async function registerPinOnServer(pin) {

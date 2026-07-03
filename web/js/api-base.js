@@ -15,6 +15,12 @@ function isExternalApiConfigured() {
   return !!(configured && String(configured).trim());
 }
 
+function siteApiToken() {
+  const token = window.SITE_CONFIG?.apiToken;
+  if (!token || String(token).startsWith("YOUR_")) return "";
+  return String(token).trim();
+}
+
 function apiUrl(path) {
   const base = apiBaseUrl();
   const p = path.startsWith("/") ? path : `/${path}`;

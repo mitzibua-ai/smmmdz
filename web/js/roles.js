@@ -42,9 +42,25 @@ function avatarUrlForUser(user) {
 async function registerUserOnServer(acc) {
   if (!acc?.discordId || !window.location.protocol.startsWith("http")) return null;
   try {
+    if (typeof apiRequest === "function") {
+      return await apiRequest("/api/users/register", {
+        method: "POST",
+        body: {
+          discordId: acc.discordId,
+          username: acc.username,
+          avatarHash: acc.avatarHash || null,
+        },
+      });
+    }
+    const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
     const res = await fetch(apiUrl("/api/users/register"), {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      mode: "cors",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        ...(siteToken ? { "X-Site-Token": siteToken } : {}),
+      },
       body: JSON.stringify({
         discordId: acc.discordId,
         username: acc.username,
@@ -73,6 +89,9 @@ async function fetchTeamDashboard(kind) {
     } catch (err) {
       if (err.status === 403) {
         throw new Error("Access denied — you need Owner permissions on the API.");
+      }
+      if (typeof apiFetchErrorMessage === "function") {
+        throw new Error(apiFetchErrorMessage(err));
       }
       if (typeof isExternalApiConfigured === "function" && !isExternalApiConfigured() && /\.github\.io$/i.test(window.location.hostname)) {
         throw new Error("API not linked. Set apiBaseUrl in config.js to your Railway URL, then redeploy.");
@@ -382,7 +401,11 @@ async function loadTeamDashboard(kind, { silent = false } = {}) {
     body.innerHTML = renderTeamData(data, kind);
     bindTeamDashboardEvents(kind);
   } catch (err) {
-    body.innerHTML = `<div class="empty-state">${escapeHtml(err.message || "Dashboard unavailable.")}</div>`;
+    const message =
+      typeof apiFetchErrorMessage === "function"
+        ? apiFetchErrorMessage(err)
+        : err.message || "Dashboard unavailable.";
+    body.innerHTML = `<div class="empty-state">${escapeHtml(message)}</div>`;
   }
 }
 

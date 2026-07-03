@@ -20,6 +20,9 @@ window.SITE_CONFIG = {
   // Set to a Railway domain only if you host the API there.
   apiBaseUrl: "https://proactive-nourishment-production-0d4e.up.railway.app",
 
+  // Site API security token — must match Railway SITE_API_TOKEN
+  apiToken: "CghI7o7bKeoevRU074_kPm08OrDq6EqcQVsCGX3xBnQ",
+
   // Leave empty — OAuth uses your GitHub Pages domain automatically
   oauthRedirectUri: "",
 

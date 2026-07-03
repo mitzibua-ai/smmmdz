@@ -58,6 +58,16 @@ def api_only() -> bool:
     return env("API_ONLY", "").lower() in ("1", "true", "yes")
 
 
+def site_api_token() -> str:
+    return env("SITE_API_TOKEN", "").strip()
+
+
+SITE_TOKEN_EXEMPT_PATHS = {
+    "/api/scans/submit",
+    "/api/tool-config",
+}
+
+
 def get_bot_token() -> str:
     token = env("DISCORD_BOT_TOKEN")
     if token:
@@ -359,19 +369,51 @@ class DotxHandler(SimpleHTTPRequestHandler):
         allowed = env_list("CORS_ORIGINS")
         origin = self.headers.get("Origin", "").strip()
         if not allowed:
-            return "*"
-        if origin and origin in allowed:
-            return origin
+            return origin or "*"
+        if origin:
+            if origin in allowed:
+                return origin
+            if origin.endswith(".github.io") and any("github.io" in item for item in allowed):
+                return origin
         return allowed[0]
+
+    def _cors_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", self._cors_origin())
+        self.send_header(
+            "Access-Control-Allow-Headers",
+            "Content-Type, X-Discord-Token, X-Site-Token",
+        )
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+
+    def _api_path(self) -> str:
+        return self.path.split("?")[0].rstrip("/")
+
+    def _site_token_ok(self, path: str | None = None) -> bool:
+        required = site_api_token()
+        if not required:
+            return True
+        route = path or self._api_path()
+        if route in SITE_TOKEN_EXEMPT_PATHS:
+            return True
+        provided = self.headers.get("X-Site-Token", "").strip()
+        if not provided and "?" in self.path:
+            from urllib.parse import parse_qs, urlparse
+
+            provided = (parse_qs(urlparse(self.path).query).get("siteToken") or [""])[0].strip()
+        return provided == required
+
+    def _reject_site_token(self) -> bool:
+        if self._site_token_ok():
+            return False
+        self._send_error_json("invalid_site_token", 401)
+        return True
 
     def _send_json(self, payload: dict, status: int = 200) -> None:
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Cache-Control", "no-store")
-        self.send_header("Access-Control-Allow-Origin", self._cors_origin())
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Discord-Token")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self._cors_headers()
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -405,9 +447,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
     def do_OPTIONS(self):
         if self.path.startswith("/api/"):
             self.send_response(204)
-            self.send_header("Access-Control-Allow-Origin", self._cors_origin())
-            self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Discord-Token")
-            self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+            self._cors_headers()
             self.end_headers()
             return
         if api_only():
@@ -511,7 +551,9 @@ class DotxHandler(SimpleHTTPRequestHandler):
         return None
 
     def _handle_api(self) -> bool:
-        path = self.path.split("?")[0].rstrip("/")
+        path = self._api_path()
+        if self._reject_site_token(path):
+            return True
 
         if path == "/api/pins" and self.command == "POST":
             body = self._read_json_body()
@@ -698,9 +740,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
                 return True
             self._send_json(
                 build_role_dashboard(
-                    resolve_effective_role=lambda uid: resolve_panel_role(
-                        uid, check_license(uid).get("roles", [])
-                    ),
+                    resolve_effective_role=lambda uid: resolve_panel_role(uid, None),
                     include_users=True,
                     actor_role="owner",
                 )
@@ -714,9 +754,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
                 return True
             self._send_json(
                 build_role_dashboard(
-                    resolve_effective_role=lambda uid: resolve_panel_role(
-                        uid, check_license(uid).get("roles", [])
-                    ),
+                    resolve_effective_role=lambda uid: resolve_panel_role(uid, None),
                     include_users=True,
                     actor_role=ctx[2].get("panelRole", "admin"),
                 )
@@ -730,9 +768,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
                 return True
             self._send_json(
                 build_role_dashboard(
-                    resolve_effective_role=lambda uid: resolve_panel_role(
-                        uid, check_license(uid).get("roles", [])
-                    ),
+                    resolve_effective_role=lambda uid: resolve_panel_role(uid, None),
                     include_users=False,
                     actor_role=ctx[2].get("panelRole", "staff"),
                 )
@@ -743,6 +779,8 @@ class DotxHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith("/api/license/"):
+            if self._reject_site_token():
+                return
             self._send_json(self._license_payload())
             return
         if self._handle_api():
@@ -757,6 +795,8 @@ class DotxHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if self.path.startswith("/api/license/"):
+            if self._reject_site_token():
+                return
             self._send_json(self._license_payload())
             return
         if self._handle_api():

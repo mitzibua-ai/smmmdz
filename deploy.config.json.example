@@ -1,4 +1,5 @@
 {
   "githubPagesUrl": "https://mitzibua-ai.github.io/smmmdz",
-  "railwayApiUrl": "https://YOUR-RAILWAY-DOMAIN.up.railway.app"
+  "railwayApiUrl": "https://YOUR-RAILWAY-DOMAIN.up.railway.app",
+  "siteApiToken": "YOUR_RANDOM_SECRET_TOKEN"
 }

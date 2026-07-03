@@ -93,12 +93,15 @@ async function fetchLicenseFromServer(discordId) {
   const accessToken = stored?.discordAccessToken || null;
 
   try {
+    const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
     const res = await fetch(apiUrl(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
       method: accessToken ? "POST" : "GET",
+      mode: "cors",
       cache: "no-store",
       headers: {
         Accept: "application/json",
         "Cache-Control": "no-cache",
+        ...(siteToken ? { "X-Site-Token": siteToken } : {}),
         ...(accessToken ? { "Content-Type": "application/json" } : {}),
       },
       body: accessToken ? JSON.stringify({ accessToken }) : undefined,
