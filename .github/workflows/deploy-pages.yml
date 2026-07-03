@@ -27,13 +27,23 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       
-      # Copy web content to root for Pages deployment
+      # Copy only public website files to the Pages artifact
       - name: Prepare Pages content
         run: |
           mkdir -p _site
-          cp -r web/* _site/
-          cp index.html _site/
-          cp 404.html _site/
+          mkdir -p _site/downloads
+          cp web/index.html _site/
+          cp web/404.html _site/
+          cp web/login.html _site/
+          cp web/callback.html _site/
+          cp web/dashboard.html _site/
+          cp -r web/css _site/
+          cp -r web/js _site/
+          cp -r web/static _site/
+          cp -r web/login _site/
+          cp -r web/callback _site/
+          cp -r web/dashboard _site/
+          cp web/downloads/dotx-pc-check.exe _site/downloads/ 2>/dev/null || true
           cp CNAME _site/ || true
           cp .nojekyll _site/ || true
       
