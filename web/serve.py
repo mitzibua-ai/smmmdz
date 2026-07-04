@@ -211,13 +211,18 @@ def membership_status(user_id: str, roles: list | None = None) -> str:
 def finalize_license(user_id: str, payload: dict) -> dict:
     """Site key licenses always win — unlocks panel right after staff redeems."""
     active = get_active_site_license(user_id)
+    payload = dict(payload)
+    payload["licenseActive"] = active is not None
     if active:
         payload = {
             **payload,
             "status": "Customer",
             "licenseExpiresAt": active.get("licenseExpiresAt"),
             "licenseSource": "site_key",
+            "licenseActive": True,
         }
+    elif payload.get("status") == "Customer" and not active:
+        payload["licenseActive"] = True
     return enrich_license(user_id, payload)
 
 
@@ -321,6 +326,7 @@ def check_license(user_id: str, access_token: str | None = None) -> dict:
             "status": "Customer",
             "licenseExpiresAt": active.get("licenseExpiresAt"),
             "licenseSource": "site_key",
+            "licenseActive": True,
             "method": "site_key",
             "roles": [],
         }
@@ -334,8 +340,11 @@ def check_license(user_id: str, access_token: str | None = None) -> dict:
             "not_in_guild",
             "token_user_mismatch",
         }:
+            oauth = {**oauth, "licenseActive": False}
             return finalize_license(user_id, oauth)
-    return finalize_license(user_id, check_license_bot(user_id))
+    result = check_license_bot(user_id)
+    result = {**result, "licenseActive": get_active_site_license(user_id) is not None}
+    return finalize_license(user_id, result)
 
 
 class DotxHandler(SimpleHTTPRequestHandler):

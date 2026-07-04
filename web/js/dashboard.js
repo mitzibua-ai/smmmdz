@@ -262,8 +262,9 @@ function handleLicenseUpdate(updated) {
       .catch(() => {});
   }
 
-  if (lostCustomer && account?.discordId) {
+  if (lostCustomer && updated._licenseRevoked && account?.discordId) {
     account.licenseExpiresAt = null;
+    account.licenseActive = false;
     saveAccount(account);
     savePins(account.discordId, []);
     saveScans(account.discordId, []);

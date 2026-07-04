@@ -27,7 +27,10 @@ window.SITE_CONFIG = {
   oauthRedirectUri: "",
 
   // How often to re-check license while the panel is open (milliseconds)
-  licensePollMs: 2000,
+  licensePollMs: 1000,
+
+  // Fast polling while waiting for a license (milliseconds)
+  licenseBurstMs: 500,
 
   pcCheckToolName: "dotx PC Check Tool",
   pcCheckToolUrl: "/downloads/dotx-pc-check.exe",

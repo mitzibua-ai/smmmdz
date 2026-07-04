@@ -35,7 +35,12 @@ function applyConfigOwnerFlags(acc) {
 
 function getLicensePollMs() {
   const ms = Number(window.SITE_CONFIG?.licensePollMs);
-  return ms > 0 ? ms : 2000;
+  return ms > 0 ? ms : 1000;
+}
+
+function getLicenseBurstMs() {
+  const ms = Number(window.SITE_CONFIG?.licenseBurstMs);
+  return ms > 0 ? ms : 500;
 }
 
 function hasRole(member, customerRoleId) {
@@ -50,37 +55,42 @@ function hasValidLicenseExpiry(expiresAt) {
   return !Number.isNaN(exp.getTime()) && exp.getTime() > Date.now();
 }
 
+function isLicenseActive(acc = getAccount()) {
+  if (!acc) return false;
+  if (acc.licenseActive === true) return true;
+  if (hasValidLicenseExpiry(acc.licenseExpiresAt)) return true;
+  return (acc.licensedStatus || acc.plan) === "Customer";
+}
+
 function isNonAuthoritativeLicenseError(server) {
   if (!server?.error) return false;
   return (
     server.error === "wrong_server" ||
     server.error === "bot_not_configured" ||
     server.error === "discord_403" ||
-    server.error === "not_in_guild"
+    server.error === "not_in_guild" ||
+    server.unreachable === true
   );
 }
 
-function keepCustomerFromLocalExpiry(account, previous, serverError = null) {
-  if (!hasValidLicenseExpiry(account.licenseExpiresAt)) return null;
+function preserveCustomerState(account, previous) {
+  if (!isLicenseActive(account)) return null;
   const updated = {
     ...account,
     licensedStatus: "Customer",
     plan: "Customer",
+    licenseActive: true,
     licenseSyncedAt: Date.now(),
-    licenseNeedsReauth: false,
-    licenseError: serverError?.error || account.licenseError || null,
-    licenseMessage: serverError?.message || account.licenseMessage || null,
-    licenseSource: account.licenseSource || "site_key",
   };
   saveAccount(updated);
   updated._licenseChanged = previous !== "Customer";
-  updated._licenseActivated = previous !== "Customer";
+  updated._licenseActivated = false;
   return applyConfigOwnerFlags(updated);
 }
 
 function licensedStatusFromMember(member, customerRoleId) {
   const acc = getAccount();
-  if (hasValidLicenseExpiry(acc?.licenseExpiresAt)) {
+  if (isLicenseActive(acc)) {
     return "Customer";
   }
   return hasRole(member, customerRoleId) ? "Customer" : "Standard";
@@ -91,37 +101,66 @@ async function fetchLicenseFromServer(discordId) {
 
   const stored = getAccount();
   const accessToken = stored?.discordAccessToken || null;
+  const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
 
   try {
-    const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
     const res = await fetch(apiUrlWithToken(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
       method: accessToken ? "POST" : "GET",
       mode: "cors",
       cache: "no-store",
       headers: {
         Accept: "application/json",
-        "Cache-Control": "no-cache",
+        "Cache-Control": "no-cache, no-store",
+        Pragma: "no-cache",
         ...(siteToken ? { "X-Site-Token": siteToken } : {}),
         ...(accessToken ? { "Content-Type": "application/json" } : {}),
       },
-      body: accessToken ? JSON.stringify({ accessToken }) : undefined,
+      body: accessToken
+        ? JSON.stringify({ accessToken, ...(siteToken ? { siteToken } : {}) })
+        : undefined,
     });
+
     if (res.status === 404) {
       if (!isExternalApiConfigured() && /\.github\.io$/i.test(window.location.hostname)) {
         return null;
       }
       return {
         status: "Standard",
+        licenseActive: false,
         error: "wrong_server",
         message: "Set apiBaseUrl in config.js to your Railway API domain.",
         source: "none",
       };
     }
-    if (!res.ok) return null;
+
+    if (res.status === 401) {
+      return {
+        status: stored?.licensedStatus || "Standard",
+        licenseActive: isLicenseActive(stored),
+        error: "invalid_site_token",
+        unreachable: true,
+        source: "none",
+      };
+    }
+
+    if (!res.ok) {
+      return {
+        status: stored?.licensedStatus || "Standard",
+        licenseActive: isLicenseActive(stored),
+        unreachable: true,
+        source: "none",
+      };
+    }
+
     const data = await res.json();
-    if (!data || typeof data.status !== "string") return null;
+    if (!data || typeof data.status !== "string") {
+      return { unreachable: true, licenseActive: isLicenseActive(stored), source: "none" };
+    }
+
+    const licenseActive = data.licenseActive === true || data.status === "Customer";
     return {
-      status: data.status === "Customer" ? "Customer" : "Standard",
+      status: licenseActive ? "Customer" : "Standard",
+      licenseActive,
       isOwner: data.isOwner === true,
       isAdmin: data.isAdmin === true,
       isStaff: data.isStaff === true,
@@ -131,9 +170,15 @@ async function fetchLicenseFromServer(discordId) {
       error: data.error || null,
       message: data.message || null,
       source: data.method || data.licenseSource || "bot",
+      unreachable: false,
     };
   } catch {
-    return null;
+    return {
+      unreachable: true,
+      licenseActive: isLicenseActive(stored),
+      status: stored?.licensedStatus || "Standard",
+      source: "none",
+    };
   }
 }
 
@@ -232,70 +277,79 @@ async function fetchLicenseFromOAuth(account, cfg) {
   };
 }
 
+function applyServerLicense(account, server, previous) {
+  if (server.unreachable || isNonAuthoritativeLicenseError(server)) {
+    const kept = preserveCustomerState(account, previous);
+    if (kept) return kept;
+    return applyConfigOwnerFlags({ ...account, licenseSyncedAt: Date.now() });
+  }
+
+  const licenseActive = server.licenseActive === true;
+  const status = licenseActive ? "Customer" : "Standard";
+  const expiresAt = licenseActive ? server.licenseExpiresAt || account.licenseExpiresAt || null : null;
+
+  const updated = {
+    ...account,
+    licensedStatus: status,
+    plan: status,
+    licenseActive,
+    isOwner: server.isOwner === true,
+    isAdmin: server.isAdmin === true,
+    isStaff: server.isStaff === true,
+    panelRole: server.panelRole || "member",
+    licenseSyncedAt: Date.now(),
+    licenseNeedsReauth:
+      server.error === "oauth_expired" ||
+      server.error === "oauth_forbidden",
+    licenseError: server.error || null,
+    licenseMessage: server.message || null,
+    licenseSource: server.licenseSource || server.source || null,
+    licenseExpiresAt: expiresAt,
+  };
+
+  saveAccount(updated);
+  const becameCustomer = licenseActive && previous !== "Customer";
+  const lostCustomer = !licenseActive && previous === "Customer";
+  updated._licenseChanged = previous !== status || becameCustomer || lostCustomer;
+  updated._licenseActivated = becameCustomer;
+  updated._licenseRevoked = lostCustomer;
+  return applyConfigOwnerFlags(updated);
+}
+
 async function applyLicensedStatus(account) {
   const cfg = getGuildConfig();
+  const apiConfigured = typeof isExternalApiConfigured === "function" && isExternalApiConfigured();
   let updated = { ...account };
   const previous = updated.licensedStatus || "Standard";
 
   const server = await fetchLicenseFromServer(updated.discordId);
   if (server) {
-    if (server.status !== "Customer" && isNonAuthoritativeLicenseError(server)) {
-      const kept = keepCustomerFromLocalExpiry(updated, previous, server);
-      if (kept) return kept;
-    }
+    return applyServerLicense(updated, server, previous);
+  }
 
-    let status = server.status === "Customer" ? "Customer" : "Standard";
-    let expiresAt = server.licenseExpiresAt || null;
-
-    if (status === "Customer" && !expiresAt && hasValidLicenseExpiry(updated.licenseExpiresAt)) {
-      expiresAt = updated.licenseExpiresAt;
-    }
-    if (status === "Standard") {
-      expiresAt = null;
-    }
-
-    updated = {
-      ...updated,
-      licensedStatus: status,
-      plan: status,
-      isOwner: server.isOwner === true,
-      isAdmin: server.isAdmin === true,
-      isStaff: server.isStaff === true,
-      panelRole: server.panelRole || "member",
-      licenseSyncedAt: Date.now(),
-      licenseNeedsReauth:
-        server.error === "bot_not_configured" ||
-        server.error === "wrong_server" ||
-        server.error === "oauth_expired" ||
-        server.error === "oauth_forbidden",
-      licenseError: server.error,
-      licenseMessage: server.message,
-      licenseSource: server.licenseSource || server.source,
-      licenseExpiresAt: expiresAt,
-    };
-    saveAccount(updated);
-    const becameCustomer = status === "Customer" && previous !== "Customer";
-    updated._licenseChanged = previous !== status || becameCustomer;
-    updated._licenseActivated = becameCustomer;
+  if (apiConfigured) {
+    const kept = preserveCustomerState(updated, previous);
+    if (kept) return kept;
     return applyConfigOwnerFlags(updated);
   }
 
-  if (hasValidLicenseExpiry(updated.licenseExpiresAt)) {
+  if (isLicenseActive(updated)) {
     updated = {
       ...updated,
       licensedStatus: "Customer",
       plan: "Customer",
+      licenseActive: true,
       licenseSyncedAt: Date.now(),
     };
     saveAccount(updated);
     updated._licenseChanged = previous !== "Customer";
-    updated._licenseActivated = previous !== "Customer";
     return applyConfigOwnerFlags(updated);
   }
 
   if (!cfg) {
     updated.licensedStatus = "Standard";
     updated.plan = "Standard";
+    updated.licenseActive = false;
     updated.isOwner = false;
     updated.isAdmin = false;
     updated.isStaff = false;
@@ -313,10 +367,12 @@ async function applyLicensedStatus(account) {
     return applyConfigOwnerFlags(updated);
   }
 
+  const status = oauth.status;
   updated = {
     ...updated,
-    licensedStatus: oauth.status,
-    plan: oauth.status,
+    licensedStatus: status,
+    plan: status,
+    licenseActive: status === "Customer",
     isOwner: false,
     isAdmin: false,
     isStaff: false,
@@ -326,20 +382,14 @@ async function applyLicensedStatus(account) {
     licenseError: null,
     licenseSource: oauth.source,
   };
-  if (oauth.status === "Standard" && hasValidLicenseExpiry(updated.licenseExpiresAt)) {
-    updated.licensedStatus = "Customer";
-    updated.plan = "Customer";
-    updated.licenseSource = updated.licenseSource || "site_key";
-  }
   saveAccount(updated);
-  updated._licenseChanged = previous !== oauth.status;
+  updated._licenseChanged = previous !== status;
   return applyConfigOwnerFlags(updated);
 }
 
 function isCustomerAccount(acc = getAccount()) {
   if (!acc) return false;
-  if (hasValidLicenseExpiry(acc.licenseExpiresAt)) return true;
-  if ((acc.licensedStatus || acc.plan) === "Customer") return true;
+  if (isLicenseActive(acc)) return true;
   if (typeof isOwnerAccount === "function" && isOwnerAccount(acc)) return true;
   if (typeof isAdminAccount === "function" && isAdminAccount(acc)) return true;
   if (typeof isStaffAccount === "function" && isStaffAccount(acc)) return true;
@@ -356,6 +406,7 @@ function formatLicenseExpiry(acc = getAccount()) {
 
 function startLicenseSync(onUpdate) {
   let busy = false;
+  let burstTimer = null;
 
   async function tick() {
     if (busy) return;
@@ -366,6 +417,11 @@ function startLicenseSync(onUpdate) {
     try {
       const updated = await applyLicensedStatus(current);
       if (onUpdate) onUpdate(updated);
+
+      if (isCustomerAccount(updated) && burstTimer) {
+        clearInterval(burstTimer);
+        burstTimer = null;
+      }
     } catch {
       // keep last known status
     } finally {
@@ -373,22 +429,42 @@ function startLicenseSync(onUpdate) {
     }
   }
 
+  function startBurst() {
+    if (burstTimer || isCustomerAccount(getAccount())) return;
+    const burstMs = getLicenseBurstMs();
+    burstTimer = setInterval(tick, burstMs);
+    setTimeout(() => {
+      if (burstTimer) {
+        clearInterval(burstTimer);
+        burstTimer = null;
+      }
+    }, 120_000);
+  }
+
   const intervalMs = getLicensePollMs();
   const timer = setInterval(tick, intervalMs);
 
   function onVisible() {
-    if (!document.hidden) tick();
+    if (!document.hidden) {
+      tick();
+      startBurst();
+    }
   }
 
   document.addEventListener("visibilitychange", onVisible);
-  window.addEventListener("focus", tick);
+  window.addEventListener("focus", () => {
+    tick();
+    startBurst();
+  });
 
   tick();
-  // Quick second check — catches license right after Discord staff redeems
+  startBurst();
+  setTimeout(tick, 300);
   setTimeout(tick, 800);
 
   return function stopLicenseSync() {
     clearInterval(timer);
+    if (burstTimer) clearInterval(burstTimer);
     document.removeEventListener("visibilitychange", onVisible);
     window.removeEventListener("focus", tick);
   };
