@@ -100,10 +100,16 @@ async function fetchTeamDashboard(kind) {
     }
   }
 
+  const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
   const res = await fetch(apiUrl(`/api/${kind}/overview`), {
     method: "POST",
+    mode: "cors",
     cache: "no-store",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(siteToken ? { "X-Site-Token": siteToken } : {}),
+    },
     body: JSON.stringify({
       discordId: getAccount().discordId,
       accessToken: getAccount().discordAccessToken || null,
@@ -128,9 +134,15 @@ async function promoteUser(kind, targetId, role) {
 
   const acc = getAccount();
   const endpoint = kind === "owner" ? "/api/owner/users/role" : "/api/admin/users/role";
+  const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
   const res = await fetch(apiUrl(endpoint), {
     method: "POST",
-    headers: { Accept: "application/json", "Content-Type": "application/json" },
+    mode: "cors",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...(siteToken ? { "X-Site-Token": siteToken } : {}),
+    },
     body: JSON.stringify({
       discordId: acc.discordId,
       accessToken: acc.discordAccessToken || null,

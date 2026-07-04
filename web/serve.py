@@ -402,8 +402,8 @@ class DotxHandler(SimpleHTTPRequestHandler):
             provided = (parse_qs(urlparse(self.path).query).get("siteToken") or [""])[0].strip()
         return provided == required
 
-    def _reject_site_token(self) -> bool:
-        if self._site_token_ok():
+    def _reject_site_token(self, path: str | None = None) -> bool:
+        if self._site_token_ok(path):
             return False
         self._send_error_json("invalid_site_token", 401)
         return True
