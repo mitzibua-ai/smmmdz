@@ -2363,6 +2363,105 @@ body {
   font-weight: 600;
   text-decoration: none;
   word-break: break-all;
+  flex: 1;
+  min-width: 0;
+}
+
+.pin-share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pin-share-row .btn--small {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+}
+
+/* ── PIN download page ── */
+#download-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  position: relative;
+}
+
+.download-panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  padding: 36px 32px;
+  text-align: center;
+  border-radius: calc(var(--radius-lg) + 4px);
+  border: 1px solid var(--border);
+  background: rgba(16, 20, 28, 0.82);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.download-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: calc(var(--radius-lg) + 4px) calc(var(--radius-lg) + 4px) 0 0;
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
+}
+
+.download-panel__tagline {
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.download-panel__lead {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.download-panel__sub {
+  margin: 0 0 20px;
+  color: var(--muted);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.download-panel__error {
+  margin: 0 0 8px;
+  color: #f87171;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.download-state p {
+  color: var(--muted);
+  margin: 12px 0 0;
+}
+
+.download-spinner {
+  width: 36px;
+  height: 36px;
+  margin: 0 auto;
+  border: 3px solid rgba(255, 255, 255, 0.08);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: download-spin 0.8s linear infinite;
+}
+
+@keyframes download-spin {
+  to { transform: rotate(360deg); }
+}
+
+.download-footnote {
+  margin: 14px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 .pin-download-link:hover {

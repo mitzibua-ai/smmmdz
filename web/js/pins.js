@@ -89,22 +89,47 @@ function pinResultClass(result) {
   return "pin-tag--pending";
 }
 
-function getPcCheckToolDownloadUrl() {
-  const path = window.SITE_CONFIG?.pcCheckToolUrl || "/downloads/dotx-pc-check.exe";
-  const base = apiBaseUrl() || window.location.origin;
-  const rel = path.startsWith("/") ? path : `/${path}`;
-  return `${base.replace(/\/$/, "")}${rel}`;
+function getPinShareUrl(pinCode) {
+  const base = window.location.origin.replace(/\/$/, "");
+  const code = String(pinCode || "").trim();
+  if (!/^\d{6}$/.test(code)) return `${base}/downloads/`;
+  return `${base}/downloads/?pin=${encodeURIComponent(code)}`;
 }
 
-function copyPinCode(pin) {
+function getPcCheckToolDownloadUrl(pinCode) {
+  const code = String(pinCode || "").trim();
+  if (/^\d{6}$/.test(code)) {
+    return getPinShareUrl(code);
+  }
+  return getPinShareUrl("");
+}
+
+function getPcCheckToolDirectUrl(pinCode) {
+  const code = String(pinCode || "").trim();
+  const base = apiBaseUrl();
+  if (base && /^\d{6}$/.test(code)) {
+    return `${base.replace(/\/$/, "")}/api/download/${encodeURIComponent(code)}`;
+  }
+  return getPinShareUrl(code);
+}
+
+function copyText(text) {
   if (navigator.clipboard?.writeText) {
-    return navigator.clipboard.writeText(pin);
+    return navigator.clipboard.writeText(text);
   }
   const ta = document.createElement("textarea");
-  ta.value = pin;
+  ta.value = text;
   document.body.appendChild(ta);
   ta.select();
   document.execCommand("copy");
   ta.remove();
   return Promise.resolve();
+}
+
+function copyPinCode(pin) {
+  return copyText(pin);
+}
+
+function copyPinShareLink(pinCode) {
+  return copyText(getPinShareUrl(pinCode));
 }

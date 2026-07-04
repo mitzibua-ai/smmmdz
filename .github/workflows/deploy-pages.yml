@@ -40,7 +40,7 @@ jobs:
 
           # Assets
           cp -r web/css web/js web/static _site/
-          cp -r web/login web/callback web/dashboard _site/
+          cp -r web/login web/callback web/dashboard web/downloads _site/
 
           # Downloads (exe only — no Python bundle)
           mkdir -p _site/downloads

@@ -23,12 +23,13 @@ function refreshViewIfAllowed(view = currentView) {
   renderView(view);
 }
 
-function updatePinModalDownloadUrl() {
-  const url = getPcCheckToolDownloadUrl();
+function updatePinModalDownloadUrl(pinCode) {
+  const shareUrl = getPinShareUrl(pinCode || lastGeneratedPin?.pin || "");
   const link = $("pin-modal-download");
-  const urlEl = $("pin-modal-download-url");
-  if (link) link.href = url;
-  if (urlEl) urlEl.textContent = url;
+  if (link) {
+    link.href = shareUrl;
+    link.textContent = shareUrl.replace(/^https?:\/\//, "");
+  }
 }
 
 function openPinModal() {
@@ -89,9 +90,9 @@ function bindPinModalEvents() {
     $("pin-modal-create")?.classList.add("hidden");
     if ($("pin-modal-title")) $("pin-modal-title").textContent = "New PIN generated";
     if ($("pin-modal-sub")) {
-      $("pin-modal-sub").textContent = "Send the player the download link and PIN below.";
+      $("pin-modal-sub").textContent = "Send the player this download link. It only works with this PIN.";
     }
-    updatePinModalDownloadUrl();
+    updatePinModalDownloadUrl(pin.pin);
   });
 
   $("pin-modal-copy")?.addEventListener("click", () => {
@@ -99,6 +100,14 @@ function bindPinModalEvents() {
     copyPinCode(lastGeneratedPin.pin).then(() => {
       $("pin-modal-copy").textContent = "Copied!";
       setTimeout(() => { $("pin-modal-copy").textContent = "Copy PIN"; }, 1500);
+    });
+  });
+
+  $("pin-modal-copy-link")?.addEventListener("click", () => {
+    if (!lastGeneratedPin) return;
+    copyPinShareLink(lastGeneratedPin.pin).then(() => {
+      $("pin-modal-copy-link").textContent = "Copied!";
+      setTimeout(() => { $("pin-modal-copy-link").textContent = "Copy link"; }, 1500);
     });
   });
 }
@@ -606,7 +615,7 @@ function renderChecks() {
             <div class="pin-detail__actions">
               <button type="button" class="btn btn--ghost btn--small" id="pin-copy-btn">Copy PIN</button>
               <button type="button" class="btn btn--primary btn--small hidden" id="pin-view-result-btn">View result</button>
-              <a class="btn btn--small pin-download-link" id="pin-download-btn" href="${escapeHtml(getPcCheckToolDownloadUrl())}" download="dotx-pc-check.exe">Download tool</a>
+              <a class="btn btn--small pin-download-link" id="pin-download-btn" href="/downloads/" target="_blank" rel="noopener">Open download link</a>
             </div>
           </div>
         </div>
@@ -619,7 +628,7 @@ function renderChecks() {
 }
 
 function renderPinRow(pin) {
-  const toolUrl = getPcCheckToolDownloadUrl();
+  const shareUrl = getPinShareUrl(pin.pin);
   const resultItem = pin.scanId
     ? `<button type="button" class="action-menu__item pin-result-action" data-scan-id="${escapeHtml(pin.scanId)}" role="menuitem">View result</button>`
     : "";
@@ -637,7 +646,7 @@ function renderPinRow(pin) {
           </button>
           <div class="action-menu__dropdown hidden" role="menu">
             <button type="button" class="action-menu__item pin-copy-action" data-pin="${escapeHtml(pin.pin)}" role="menuitem">Copy PIN</button>
-            <a class="action-menu__item pin-download-link" href="${escapeHtml(toolUrl)}" download="dotx-pc-check.exe" role="menuitem">Download tool</a>
+            <a class="action-menu__item pin-download-link" href="${escapeHtml(shareUrl)}" target="_blank" rel="noopener" role="menuitem">Open download link</a>
             ${resultItem}
             <div class="action-menu__sep"></div>
             <button type="button" class="action-menu__item action-menu__item--danger pin-delete-action" data-pin-id="${escapeHtml(pin.id)}" role="menuitem">Delete</button>
@@ -864,6 +873,10 @@ function bindChecksEvents() {
         resultBtn.classList.add("hidden");
         delete resultBtn.dataset.scanId;
       }
+    }
+    const downloadBtn = $("pin-download-btn");
+    if (downloadBtn) {
+      downloadBtn.href = getPinShareUrl(pin.pin);
     }
   }
 

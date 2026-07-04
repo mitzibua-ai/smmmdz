@@ -15,6 +15,7 @@ from data_store import (
     ROLE_RANK,
     build_role_dashboard,
     delete_pin,
+    find_pin_by_code,
     get_active_site_license,
     get_site_user,
     list_pins,
@@ -69,6 +70,22 @@ SITE_TOKEN_EXEMPT_PATHS = {
     "/api/tool-config",
     "/api/site-config",
 }
+
+
+def _site_token_exempt(path: str) -> bool:
+    route = path.rstrip("/") or path
+    if route in SITE_TOKEN_EXEMPT_PATHS:
+        return True
+    if route.startswith("/api/download/"):
+        return True
+    if route.startswith("/api/pins/verify/"):
+        return True
+    return False
+
+
+def _valid_pin_code(pin_code: str) -> bool:
+    value = str(pin_code or "").strip()
+    return value.isdigit() and len(value) == 6
 
 
 def get_bot_token() -> str:
@@ -417,7 +434,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
         if not required:
             return True
         route = path or self._api_path()
-        if route in SITE_TOKEN_EXEMPT_PATHS:
+        if _site_token_exempt(route):
             return True
         provided = self.headers.get("X-Site-Token", "").strip()
         if not provided and body:
@@ -665,6 +682,29 @@ class DotxHandler(SimpleHTTPRequestHandler):
             self._send_json({"serverUrl": self._public_base_url()})
             return True
 
+        if path.startswith("/api/pins/verify/") and self.command == "GET":
+            pin_code = path.split("/")[-1].strip()
+            if not _valid_pin_code(pin_code):
+                self._send_error_json("invalid_pin", 404)
+                return True
+            pin_entry = find_pin_by_code(pin_code)
+            if not pin_entry:
+                self._send_error_json("invalid_pin", 404)
+                return True
+            self._send_json({"ok": True, "pin": pin_code, "game": pin_entry.get("game", "FiveM")})
+            return True
+
+        if path.startswith("/api/download/") and self.command == "GET":
+            pin_code = path.split("/")[-1].strip()
+            if not _valid_pin_code(pin_code):
+                self._send_error_json("invalid_pin", 404)
+                return True
+            if not find_pin_by_code(pin_code):
+                self._send_error_json("invalid_pin", 404)
+                return True
+            self._send_tool_exe()
+            return True
+
         if path == "/api/site-config" and self.command == "GET":
             base = self._public_base_url()
             self._send_json(
@@ -844,7 +884,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
         if self._handle_api():
             return
         if self.path.split("?")[0] in {"/downloads/dotx-pc-check.exe", "/downloads/dotx-pc-check.zip"}:
-            self._send_tool_exe()
+            self.send_error(403, "Download requires a valid PIN link from dotx.")
             return
         if api_only():
             self.send_error(404)

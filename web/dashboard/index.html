@@ -73,10 +73,12 @@
             <button type="button" class="btn btn--ghost" id="pin-modal-copy">Copy PIN</button>
           </div>
           <div class="pin-download-link-box">
-            <div class="pin-download-link-box__label">Download link</div>
-            <a class="pin-download-link" id="pin-modal-download" href="/downloads/dotx-pc-check.exe" download="dotx-pc-check.exe">Download</a>
-            <div class="pin-download-url" id="pin-modal-download-url"></div>
-            <p class="pin-download-hint">Player steps: download dotx-pc-check.exe → run it → enter PIN.</p>
+            <div class="pin-download-link-box__label">Player download link</div>
+            <div class="pin-share-row">
+              <a class="pin-download-link" id="pin-modal-download" href="/downloads/" target="_blank" rel="noopener">dotx.store/downloads/?pin=000000</a>
+              <button type="button" class="btn btn--ghost btn--small" id="pin-modal-copy-link">Copy link</button>
+            </div>
+            <p class="pin-download-hint">Share this link with the player. It only downloads when the PIN is valid on dotx.</p>
           </div>
         </div>
         <div class="pin-modal__footer">
