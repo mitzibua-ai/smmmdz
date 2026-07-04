@@ -81,20 +81,39 @@ def _set_variable(service_id: str, key: str, value: str) -> int:
     return result.returncode
 
 
-def _github_cors_origin() -> str:
+def _origin_from_url(raw: str) -> str:
+    value = str(raw or "").strip().rstrip("/")
+    if not value:
+        return ""
+    parsed = urlparse(value if "://" in value else f"https://{value}")
+    if parsed.scheme and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return value
+
+
+def _site_cors_origins() -> str:
+    origins: list[str] = []
     if not DEPLOY_CONFIG_PATH.is_file():
         return ""
     try:
         data = json.loads(DEPLOY_CONFIG_PATH.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return ""
-    raw = str(data.get("githubPagesUrl", "")).strip().rstrip("/")
-    if not raw:
-        return ""
-    parsed = urlparse(raw if "://" in raw else f"https://{raw}")
-    if parsed.scheme and parsed.netloc:
-        return f"{parsed.scheme}://{parsed.netloc}"
-    return raw
+
+    for key in ("githubPagesUrl", "customSiteUrl", "siteUrl"):
+        origin = _origin_from_url(str(data.get(key, "")).strip())
+        if origin and origin not in origins:
+            origins.append(origin)
+        if origin.startswith("https://") and not origin.startswith("https://www."):
+            www = origin.replace("https://", "https://www.", 1)
+            if www not in origins:
+                origins.append(www)
+
+    return ",".join(origins)
+
+
+def _github_cors_origin() -> str:
+    return _site_cors_origins()
 
 
 def _deploy_site_token() -> str:

@@ -378,16 +378,26 @@ class DotxHandler(SimpleHTTPRequestHandler):
         return self._server_base_url()
 
     def _cors_origin(self) -> str:
-        allowed = env_list("CORS_ORIGINS")
-        origin = self.headers.get("Origin", "").strip()
+        allowed = [self._normalize_origin(x) for x in env_list("CORS_ORIGINS")]
+        origin = self._normalize_origin(self.headers.get("Origin", ""))
         if not allowed:
             return origin or "*"
-        if origin:
-            if origin in allowed:
-                return origin
-            if origin.endswith(".github.io") and any("github.io" in item for item in allowed):
-                return origin
+        if not origin:
+            return allowed[0]
+        candidates = {origin}
+        if origin.startswith("https://www."):
+            candidates.add(origin.replace("https://www.", "https://", 1))
+        elif origin.startswith("https://"):
+            candidates.add(origin.replace("https://", "https://www.", 1))
+        if origin.endswith(".github.io") and any("github.io" in item for item in allowed):
+            return origin
+        if candidates.intersection(allowed):
+            return origin
         return allowed[0]
+
+    @staticmethod
+    def _normalize_origin(value: str) -> str:
+        return str(value or "").strip().rstrip("/")
 
     def _cors_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", self._cors_origin())
