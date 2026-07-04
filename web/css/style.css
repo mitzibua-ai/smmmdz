@@ -480,8 +480,38 @@ body {
 }
 
 .team-toolbar {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.team-user-count {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.team-token-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn--tiny {
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  min-height: 24px;
+}
+
+.team-actions-cell {
+  width: 48px;
+  text-align: right;
+}
+
+.team-table--users td:last-child {
+  width: 48px;
 }
 
 .team-search {

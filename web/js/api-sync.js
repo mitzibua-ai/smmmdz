@@ -16,6 +16,10 @@ function apiAuthHeaders(extra = {}) {
 function apiAuthBody(payload = {}) {
   const acc = getAccount();
   const body = { ...payload };
+  const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
+  if (siteToken && !body.siteToken) {
+    body.siteToken = siteToken;
+  }
   if (acc?.discordId && !body.discordId) {
     body.discordId = acc.discordId;
   }
@@ -39,7 +43,8 @@ async function apiRequest(path, options = {}) {
     delete init.body;
   }
 
-  const res = await fetch(`${API_BASE()}${path}`, init);
+  const url = typeof apiUrlWithToken === "function" ? apiUrlWithToken(path) : `${API_BASE()}${path}`;
+  const res = await fetch(url, init);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const err = new Error(data.error || data.message || `Request failed (${res.status})`);

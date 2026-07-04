@@ -63,8 +63,10 @@ def site_api_token() -> str:
 
 
 SITE_TOKEN_EXEMPT_PATHS = {
+    "/api/health",
     "/api/scans/submit",
     "/api/tool-config",
+    "/api/site-config",
 }
 
 
@@ -388,7 +390,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
     def _api_path(self) -> str:
         return self.path.split("?")[0].rstrip("/")
 
-    def _site_token_ok(self, path: str | None = None) -> bool:
+    def _site_token_ok(self, path: str | None = None, body: dict | None = None) -> bool:
         required = site_api_token()
         if not required:
             return True
@@ -396,14 +398,16 @@ class DotxHandler(SimpleHTTPRequestHandler):
         if route in SITE_TOKEN_EXEMPT_PATHS:
             return True
         provided = self.headers.get("X-Site-Token", "").strip()
+        if not provided and body:
+            provided = str(body.get("siteToken", "")).strip()
         if not provided and "?" in self.path:
             from urllib.parse import parse_qs, urlparse
 
             provided = (parse_qs(urlparse(self.path).query).get("siteToken") or [""])[0].strip()
         return provided == required
 
-    def _reject_site_token(self, path: str | None = None) -> bool:
-        if self._site_token_ok(path):
+    def _reject_site_token(self, path: str | None = None, body: dict | None = None) -> bool:
+        if self._site_token_ok(path, body):
             return False
         self._send_error_json("invalid_site_token", 401)
         return True
@@ -553,6 +557,10 @@ class DotxHandler(SimpleHTTPRequestHandler):
     def _handle_api(self) -> bool:
         path = self._api_path()
         if self._reject_site_token(path):
+            return True
+
+        if path == "/api/health" and self.command == "GET":
+            self._send_json({"ok": True, "service": "dotx-api"})
             return True
 
         if path == "/api/pins" and self.command == "POST":

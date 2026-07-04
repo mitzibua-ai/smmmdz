@@ -73,7 +73,9 @@ def _hash_license_code(code: str) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
-def generate_license_code() -> str:
+def generate_user_token() -> str:
+    raw = secrets.token_hex(4).upper()
+    return f"DX-{raw[:4]}-{raw[4:8]}"
     part = lambda: "".join(secrets.choice(KEY_ALPHABET) for _ in range(4))
     return f"SMKY-{part()}-{part()}"
 
@@ -290,6 +292,8 @@ def register_site_user(payload: dict) -> dict:
 
         existing = _find_site_user(store, discord_id)
         if existing:
+            if not str(existing.get("userToken") or "").strip():
+                existing["userToken"] = generate_user_token()
             existing.update(
                 {
                     "username": username,
@@ -313,6 +317,7 @@ def register_site_user(payload: dict) -> dict:
             "discordId": discord_id,
             "username": username,
             "avatarHash": avatar_hash,
+            "userToken": generate_user_token(),
             "panelRole": "member",
             "licensedStatus": licensed_status,
             "firstSeen": now,
@@ -349,6 +354,7 @@ def set_site_user_role(target_id: str, role: str) -> dict | None:
                 "discordId": str(target_id).strip(),
                 "username": "Unknown",
                 "avatarHash": "",
+                "userToken": generate_user_token(),
                 "panelRole": role,
                 "licensedStatus": "Standard",
                 "firstSeen": now,

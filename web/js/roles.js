@@ -101,7 +101,7 @@ async function fetchTeamDashboard(kind) {
   }
 
   const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
-  const res = await fetch(apiUrl(`/api/${kind}/overview`), {
+  const res = await fetch(apiUrlWithToken(`/api/${kind}/overview`), {
     method: "POST",
     mode: "cors",
     cache: "no-store",
@@ -135,7 +135,7 @@ async function promoteUser(kind, targetId, role) {
   const acc = getAccount();
   const endpoint = kind === "owner" ? "/api/owner/users/role" : "/api/admin/users/role";
   const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
-  const res = await fetch(apiUrl(endpoint), {
+  const res = await fetch(apiUrlWithToken(endpoint), {
     method: "POST",
     mode: "cors",
     headers: {
@@ -281,14 +281,20 @@ function renderUserActions(user, kind) {
   `;
 }
 
+function userDisplayToken(user) {
+  return user?.userToken || user?.discordId || "—";
+}
+
 function renderTeamUsersTable(users, kind) {
   if (!users?.length) {
-    return `<div class="empty-state">No users have joined yet. They appear here after Discord login.</div>`;
+    return `<div class="empty-state team-empty">No users yet. They appear here after Discord login.</div>`;
   }
 
+  const isOwnerView = kind === "owner";
   const rows = users
     .map((user) => {
       const avatar = avatarUrlForUser(user);
+      const token = userDisplayToken(user);
       return `
         <tr class="team-user-row" data-discord-id="${escapeHtml(user.discordId)}">
           <td>
@@ -296,36 +302,43 @@ function renderTeamUsersTable(users, kind) {
               <img class="team-user__avatar" src="${avatar}" alt="" width="40" height="40" loading="lazy" />
               <div>
                 <div class="team-user__name">${escapeHtml(user.username || "Unknown")}</div>
+                ${isOwnerView ? `<div class="team-user__id">${escapeHtml(user.discordId || "")}</div>` : ""}
               </div>
             </div>
           </td>
-          <td><code class="team-user__token" title="Discord user ID">${escapeHtml(user.discordId)}</code></td>
+          <td>
+            <div class="team-token-cell">
+              <code class="team-user__token" title="User token">${escapeHtml(token)}</code>
+              <button type="button" class="btn btn--ghost btn--tiny team-copy-token" data-token="${escapeHtml(token)}" title="Copy token">Copy</button>
+            </div>
+          </td>
           <td><span class="${roleBadgeClass(user.panelRole)}">${roleLabel(user.panelRole)}</span></td>
           <td><span class="license-pill license-pill--${(user.licensedStatus || "standard").toLowerCase()}">${escapeHtml(user.licensedStatus || "Standard")}</span></td>
-          <td>${user.pins || 0}</td>
-          <td>${user.scans || 0}</td>
-          <td>${formatDate(user.lastSeen || user.firstSeen)}</td>
-          <td>${renderUserActions(user, kind)}</td>
+          ${isOwnerView ? "" : `<td>${user.pins || 0}</td><td>${user.scans || 0}</td><td>${formatDate(user.lastSeen || user.firstSeen)}</td>`}
+          <td class="team-actions-cell">${renderUserActions(user, kind)}</td>
         </tr>`;
     })
     .join("");
 
+  const extraCols = isOwnerView
+    ? ""
+    : `<th>Pins</th><th>Scans</th><th>Last seen</th>`;
+
   return `
     <div class="team-toolbar">
-      <input type="search" class="form__input team-search" id="team-user-search" placeholder="Search users by name or Discord ID…" />
+      <input type="search" class="form__input team-search" id="team-user-search" placeholder="Search by username or token…" />
+      <span class="team-user-count">${users.length} user${users.length === 1 ? "" : "s"}</span>
     </div>
     <div class="owner-table-wrap">
-      <table class="owner-table team-table">
+      <table class="owner-table team-table team-table--users">
         <thead>
           <tr>
-            <th>User</th>
-            <th>Discord ID</th>
+            <th>Username</th>
+            <th>Token</th>
             <th>Role</th>
             <th>License</th>
-            <th>Pins</th>
-            <th>Scans</th>
-            <th>Last seen</th>
-            <th></th>
+            ${extraCols}
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="team-users-tbody">${rows}</tbody>
@@ -382,6 +395,7 @@ function renderTeamData(data, kind) {
     </section>`;
 
   return `
+    ${userSection}
     <section class="metrics metrics--team">
       <div class="metric metric--team"><div class="metric__label">Site users</div><div class="metric__value">${totals.siteUsers || 0}</div></div>
       <div class="metric metric--team"><div class="metric__label">Staff</div><div class="metric__value">${totals.staff || 0}</div></div>
@@ -389,8 +403,7 @@ function renderTeamData(data, kind) {
       <div class="metric metric--team"><div class="metric__label">Total scans</div><div class="metric__value">${totals.scans || 0}</div></div>
       <div class="metric metric--team"><div class="metric__label">Flagged</div><div class="metric__value">${(verdicts.failed || 0) + (verdicts.suspicious || 0)}</div></div>
     </section>
-    ${userSection}
-    <section class="panels panels--bottom">
+    ${kind === "owner" ? "" : `<section class="panels panels--bottom">
       <div class="panel">
         <div class="panel__head"><div><div class="panel__title">Recent scans</div><div class="panel__sub">Platform-wide</div></div></div>
         <div class="scan-table">${renderActivityList(data.recentScans, "scans")}</div>
@@ -399,7 +412,7 @@ function renderTeamData(data, kind) {
         <div class="panel__head"><div><div class="panel__title">Recent pins</div><div class="panel__sub">Platform-wide</div></div></div>
         <div class="scan-table">${renderActivityList(data.recentPins, "pins")}</div>
       </div>
-    </section>
+    </section>`}
     <p class="team-footnote">${meta.badge} dashboard does not auto-refresh. Click <strong>Refresh</strong> to update.</p>
   `;
 }
@@ -409,7 +422,14 @@ async function loadTeamDashboard(kind, { silent = false } = {}) {
   if (!body) return;
   if (!silent) body.innerHTML = `<div class="empty-state">Loading…</div>`;
   try {
-    const data = await fetchTeamDashboard(kind);
+    await registerUserOnServer(getAccount());
+    let data;
+    try {
+      data = await fetchTeamDashboard(kind);
+    } catch (firstErr) {
+      await new Promise((r) => setTimeout(r, 600));
+      data = await fetchTeamDashboard(kind);
+    }
     body.innerHTML = renderTeamData(data, kind);
     bindTeamDashboardEvents(kind);
   } catch (err) {
@@ -494,6 +514,22 @@ function bindTeamDashboardEvents(kind) {
       if (!wasOpen && dropdown) {
         dropdown.classList.remove("hidden");
         btn.setAttribute("aria-expanded", "true");
+      }
+    });
+  });
+
+  document.querySelectorAll(".team-copy-token").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const token = btn.dataset.token || "";
+      try {
+        await navigator.clipboard.writeText(token);
+        btn.textContent = "Copied";
+        setTimeout(() => {
+          btn.textContent = "Copy";
+        }, 1200);
+      } catch {
+        alert(token);
       }
     });
   });

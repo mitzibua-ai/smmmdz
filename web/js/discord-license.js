@@ -94,7 +94,7 @@ async function fetchLicenseFromServer(discordId) {
 
   try {
     const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
-    const res = await fetch(apiUrl(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
+    const res = await fetch(apiUrlWithToken(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
       method: accessToken ? "POST" : "GET",
       mode: "cors",
       cache: "no-store",

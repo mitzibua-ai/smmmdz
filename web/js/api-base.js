@@ -26,3 +26,11 @@ function apiUrl(path) {
   const p = path.startsWith("/") ? path : `/${path}`;
   return base ? `${base}${p}` : p;
 }
+
+function apiUrlWithToken(path) {
+  const url = apiUrl(path);
+  const token = siteApiToken();
+  if (!token) return url;
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}siteToken=${encodeURIComponent(token)}`;
+}
