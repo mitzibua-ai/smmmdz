@@ -70,6 +70,7 @@ async function initDownloadPage() {
 
   hide("download-loading");
   show("download-ready");
+  show("download-smartscreen");
 
   // Start download automatically after a short pause so the user sees confirmation.
   window.setTimeout(() => {

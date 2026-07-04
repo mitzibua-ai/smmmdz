@@ -356,6 +356,7 @@ class DotxApp(tk.Tk):
         self._bind_window_drag()
         self.bind("<FocusIn>", self._on_window_focus)
         self.bind("<Map>", self._on_window_focus)
+        self._apply_window_icon()
 
         self.show_pin_screen()
         self.after(80, self._apply_window_style)
@@ -489,7 +490,32 @@ class DotxApp(tk.Tk):
         self.canvas.tag_bind(close, "<Enter>", lambda _e: self.canvas.itemconfig(close, fill=WHITE))
         self.canvas.tag_bind(close, "<Leave>", lambda _e: self.canvas.itemconfig(close, fill=WHITE_SOFT))
 
+    def _apply_window_icon(self) -> None:
+        ico = find_asset("dotx.ico")
+        if ico and sys.platform == "win32":
+            try:
+                self.iconbitmap(str(ico))
+            except tk.TclError:
+                pass
+        logo = self._load_photo("logo.png")
+        if logo:
+            try:
+                self.iconphoto(True, logo)
+            except tk.TclError:
+                pass
+
+    def _logo_photo(self, max_size: int = 140) -> tk.PhotoImage | None:
+        logo = self._load_photo("logo.png")
+        if not logo:
+            return None
+        return self._fit_photo(logo, max_size, max_size)
+
     def _draw_logo(self, cx: int, cy: int) -> None:
+        logo = self._logo_photo(140)
+        if logo:
+            self.canvas.create_image(cx, cy, image=logo, anchor="center")
+            return
+
         dot_x = cx - 54
         x_x = cx + 50
 

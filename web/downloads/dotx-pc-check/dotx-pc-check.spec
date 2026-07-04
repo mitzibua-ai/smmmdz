@@ -39,4 +39,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version='C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\assets\\version_info.txt',
+    icon=['C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\assets\\dotx.ico'],
 )
