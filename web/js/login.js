@@ -1,4 +1,4 @@
-const cfg = window.SITE_CONFIG || { name: "dotx", tagline: "FiveM PC Check Tool", version: "1.0" };
+const cfg = window.SITE_CONFIG || { name: "dotx", tagline: "High-quality Tools", version: "1.0" };
 
 function $(id) {
   return document.getElementById(id);
