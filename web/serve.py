@@ -21,6 +21,7 @@ from data_store import (
     list_scans,
     register_pin,
     register_site_user,
+    revoke_site_license,
     set_site_user_role,
     submit_scan,
 )
@@ -392,9 +393,11 @@ class DotxHandler(SimpleHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", self._cors_origin())
         self.send_header(
             "Access-Control-Allow-Headers",
-            "Content-Type, X-Discord-Token, X-Site-Token",
+            "Content-Type, X-Discord-Token, X-Site-Token, Accept, Cache-Control, Pragma",
         )
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.send_header("Vary", "Origin")
 
     def _api_path(self) -> str:
         return self.path.split("?")[0].rstrip("/")
@@ -714,6 +717,31 @@ class DotxHandler(SimpleHTTPRequestHandler):
                 self._send_error_json("user_not_found", 404)
                 return True
             self._send_json({"ok": True, "user": updated, "panelRole": new_role})
+            return True
+
+        if path == "/api/owner/users/revoke-license" and self.command == "POST":
+            body = self._read_json_body()
+            ctx = self._owner_context(body)
+            if not ctx:
+                self._send_error_json("forbidden", 403)
+                return True
+            target_id = str(body.get("targetId", "")).strip()
+            actor_id = ctx[0]
+            if not target_id:
+                self._send_error_json("invalid_target", 400)
+                return True
+            if is_owner(target_id, check_license(target_id).get("roles", [])):
+                self._send_error_json("forbidden", 403)
+                return True
+            try:
+                updated = revoke_site_license(discord_id=target_id, staff_id=actor_id)
+            except LookupError:
+                self._send_error_json("user_not_found", 404)
+                return True
+            except ValueError:
+                self._send_error_json("invalid_target", 400)
+                return True
+            self._send_json({"ok": True, "user": updated, "licenseActive": False})
             return True
 
         if path == "/api/admin/users/role" and self.command == "POST":

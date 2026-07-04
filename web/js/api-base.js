@@ -34,3 +34,20 @@ function apiUrlWithToken(path) {
   const sep = url.includes("?") ? "&" : "?";
   return `${url}${sep}siteToken=${encodeURIComponent(token)}`;
 }
+
+/** Simple GET — no custom headers, avoids CORS preflight from GitHub Pages. */
+async function apiGet(path) {
+  const res = await fetch(apiUrlWithToken(path), {
+    method: "GET",
+    mode: "cors",
+    cache: "no-store",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.error || data.message || `Request failed (${res.status})`);
+    err.code = data.error || null;
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
