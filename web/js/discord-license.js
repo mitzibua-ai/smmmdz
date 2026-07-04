@@ -99,6 +99,8 @@ function licensedStatusFromMember(member, customerRoleId) {
 async function fetchLicenseFromServer(discordId) {
   if (!window.location.protocol.startsWith("http")) return null;
 
+  const stored = getAccount();
+
   try {
     const res = await fetch(apiUrlWithToken(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
       method: "GET",

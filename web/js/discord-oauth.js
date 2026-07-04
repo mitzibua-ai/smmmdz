@@ -204,5 +204,6 @@ async function completeDiscordOAuth(code, state) {
   }
 
   const account = createDiscordAccount(profile);
-  return applyLicensedStatus(account);
+  const licensed = await applyLicensedStatus(account);
+  return licensed;
 }
