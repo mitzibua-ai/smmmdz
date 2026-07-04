@@ -6,6 +6,7 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/deploy-pages.yml"
+      - "scripts/push_github.py"
   workflow_dispatch:
 
 permissions:
