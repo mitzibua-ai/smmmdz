@@ -619,6 +619,29 @@ class DotxHandler(SimpleHTTPRequestHandler):
                 self._send_error_json(str(err), 400)
             return True
 
+        if path.startswith("/api/pins/verify/") and self.command == "GET":
+            pin_code = path.split("/")[-1].strip()
+            if not _valid_pin_code(pin_code):
+                self._send_error_json("invalid_pin", 404)
+                return True
+            pin_entry = find_pin_by_code(pin_code)
+            if not pin_entry:
+                self._send_error_json("invalid_pin", 404)
+                return True
+            self._send_json({"ok": True, "pin": pin_code, "game": pin_entry.get("game", "FiveM")})
+            return True
+
+        if path.startswith("/api/download/") and self.command == "GET":
+            pin_code = path.split("/")[-1].strip()
+            if not _valid_pin_code(pin_code):
+                self._send_error_json("invalid_pin", 404)
+                return True
+            if not find_pin_by_code(pin_code):
+                self._send_error_json("invalid_pin", 404)
+                return True
+            self._send_tool_exe()
+            return True
+
         if path.startswith("/api/pins/") and self.command == "GET":
             discord_id = path.split("/")[-1]
             ctx = self._customer_context(discord_id=discord_id)
@@ -680,29 +703,6 @@ class DotxHandler(SimpleHTTPRequestHandler):
 
         if path == "/api/tool-config" and self.command == "GET":
             self._send_json({"serverUrl": self._public_base_url()})
-            return True
-
-        if path.startswith("/api/pins/verify/") and self.command == "GET":
-            pin_code = path.split("/")[-1].strip()
-            if not _valid_pin_code(pin_code):
-                self._send_error_json("invalid_pin", 404)
-                return True
-            pin_entry = find_pin_by_code(pin_code)
-            if not pin_entry:
-                self._send_error_json("invalid_pin", 404)
-                return True
-            self._send_json({"ok": True, "pin": pin_code, "game": pin_entry.get("game", "FiveM")})
-            return True
-
-        if path.startswith("/api/download/") and self.command == "GET":
-            pin_code = path.split("/")[-1].strip()
-            if not _valid_pin_code(pin_code):
-                self._send_error_json("invalid_pin", 404)
-                return True
-            if not find_pin_by_code(pin_code):
-                self._send_error_json("invalid_pin", 404)
-                return True
-            self._send_tool_exe()
             return True
 
         if path == "/api/site-config" and self.command == "GET":
