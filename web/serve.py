@@ -365,6 +365,14 @@ def check_license(user_id: str, access_token: str | None = None) -> dict:
     return finalize_license(user_id, result)
 
 
+def resolve_tool_exe() -> Path | None:
+    for name in ("dotx-pc-check.exe", "dotx.exe"):
+        path = TOOL_DIR / name
+        if path.is_file():
+            return path
+    return None
+
+
 class DotxHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
@@ -472,10 +480,16 @@ class DotxHandler(SimpleHTTPRequestHandler):
         config = json.dumps({"serverUrl": server_url}, separators=(",", ":")).encode("utf-8")
         return base + DOTX_CONFIG_MARKER + config
 
+    def _resolve_tool_exe(self) -> Path | None:
+        return resolve_tool_exe()
+
     def _send_tool_exe(self) -> None:
-        exe_path = TOOL_DIR / "dotx-pc-check.exe"
-        if not exe_path.exists():
-            self.send_error(404, "dotx-pc-check.exe not found. Run build_exe.py first.")
+        exe_path = self._resolve_tool_exe()
+        if not exe_path:
+            if self._api_path().startswith("/api/download/"):
+                self._send_error_json("tool_not_built", 503)
+                return
+            self.send_error(503, "PC Check tool not available on server.")
             return
 
         data = self._stamp_exe(exe_path.read_bytes(), self._public_base_url())
@@ -484,6 +498,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
         self.send_header("Content-Disposition", 'attachment; filename="dotx-pc-check.exe"')
         self.send_header("Content-Length", str(len(data)))
         self.send_header("Cache-Control", "no-store")
+        self._cors_headers()
         self.end_headers()
         self.wfile.write(data)
 
@@ -929,7 +944,11 @@ def main() -> None:
     if env("RAILWAY_PUBLIC_DOMAIN"):
         print(f"Public URL: https://{env('RAILWAY_PUBLIC_DOMAIN')}")
     print("API: /api/pins, /api/scans, /api/license/<id>, /api/owner|admin|staff/overview")
-    print("Download: /downloads/dotx-pc-check.exe")
+    tool = resolve_tool_exe()
+    if tool:
+        print(f"PC Check tool: {tool.name} ({tool.stat().st_size // 1024 // 1024} MB)")
+    else:
+        print("WARNING: PC Check tool exe missing — add web/downloads/dotx-pc-check/dotx.exe")
     if not get_bot_token():
         print("NOTE: Add DISCORD_BOT_TOKEN to .env for role sync.")
     server.serve_forever()
