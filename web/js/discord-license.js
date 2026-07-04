@@ -99,25 +99,11 @@ function licensedStatusFromMember(member, customerRoleId) {
 async function fetchLicenseFromServer(discordId) {
   if (!window.location.protocol.startsWith("http")) return null;
 
-  const stored = getAccount();
-  const accessToken = stored?.discordAccessToken || null;
-  const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
-
   try {
     const res = await fetch(apiUrlWithToken(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
-      method: accessToken ? "POST" : "GET",
+      method: "GET",
       mode: "cors",
       cache: "no-store",
-      headers: {
-        Accept: "application/json",
-        "Cache-Control": "no-cache, no-store",
-        Pragma: "no-cache",
-        ...(siteToken ? { "X-Site-Token": siteToken } : {}),
-        ...(accessToken ? { "Content-Type": "application/json" } : {}),
-      },
-      body: accessToken
-        ? JSON.stringify({ accessToken, ...(siteToken ? { siteToken } : {}) })
-        : undefined,
     });
 
     if (res.status === 404) {
@@ -406,22 +392,22 @@ function formatLicenseExpiry(acc = getAccount()) {
 
 function startLicenseSync(onUpdate) {
   let busy = false;
-  let burstTimer = null;
+  let lastTick = 0;
+  const minGapMs = 1200;
 
   async function tick() {
     if (busy) return;
+    const now = Date.now();
+    if (now - lastTick < minGapMs) return;
+
     const current = getAccount();
-    if (!current?.oauthLinked) return;
+    if (!current?.oauthLinked || !current?.discordId) return;
 
     busy = true;
+    lastTick = now;
     try {
       const updated = await applyLicensedStatus(current);
       if (onUpdate) onUpdate(updated);
-
-      if (isCustomerAccount(updated) && burstTimer) {
-        clearInterval(burstTimer);
-        burstTimer = null;
-      }
     } catch {
       // keep last known status
     } finally {
@@ -429,42 +415,20 @@ function startLicenseSync(onUpdate) {
     }
   }
 
-  function startBurst() {
-    if (burstTimer || isCustomerAccount(getAccount())) return;
-    const burstMs = getLicenseBurstMs();
-    burstTimer = setInterval(tick, burstMs);
-    setTimeout(() => {
-      if (burstTimer) {
-        clearInterval(burstTimer);
-        burstTimer = null;
-      }
-    }, 120_000);
-  }
-
-  const intervalMs = getLicensePollMs();
+  const intervalMs = Math.max(getLicensePollMs(), 1500);
   const timer = setInterval(tick, intervalMs);
 
   function onVisible() {
-    if (!document.hidden) {
-      tick();
-      startBurst();
-    }
+    if (!document.hidden) tick();
   }
 
   document.addEventListener("visibilitychange", onVisible);
-  window.addEventListener("focus", () => {
-    tick();
-    startBurst();
-  });
+  window.addEventListener("focus", tick);
 
   tick();
-  startBurst();
-  setTimeout(tick, 300);
-  setTimeout(tick, 800);
 
   return function stopLicenseSync() {
     clearInterval(timer);
-    if (burstTimer) clearInterval(burstTimer);
     document.removeEventListener("visibilitychange", onVisible);
     window.removeEventListener("focus", tick);
   };

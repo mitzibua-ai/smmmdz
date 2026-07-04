@@ -779,7 +779,8 @@ class DotxHandler(SimpleHTTPRequestHandler):
             return True
 
         if path == "/api/owner/overview" and self.command in {"GET", "POST"}:
-            ctx = self._owner_context()
+            body = self._read_json_body() if self.command == "POST" else None
+            ctx = self._owner_context(body)
             if not ctx:
                 self._send_error_json("forbidden", 403)
                 return True
@@ -793,7 +794,8 @@ class DotxHandler(SimpleHTTPRequestHandler):
             return True
 
         if path == "/api/admin/overview" and self.command in {"GET", "POST"}:
-            ctx = self._admin_context()
+            body = self._read_json_body() if self.command == "POST" else None
+            ctx = self._admin_context(body)
             if not ctx:
                 self._send_error_json("forbidden", 403)
                 return True
@@ -807,7 +809,8 @@ class DotxHandler(SimpleHTTPRequestHandler):
             return True
 
         if path == "/api/staff/overview" and self.command in {"GET", "POST"}:
-            ctx = self._staff_context()
+            body = self._read_json_body() if self.command == "POST" else None
+            ctx = self._staff_context(body)
             if not ctx:
                 self._send_error_json("forbidden", 403)
                 return True

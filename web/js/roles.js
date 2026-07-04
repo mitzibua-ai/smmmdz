@@ -79,45 +79,52 @@ async function fetchTeamDashboard(kind) {
   const acc = getAccount();
   if (!acc?.discordId) throw new Error("Sign in with Discord first.");
 
-  if (typeof getValidAccessToken === "function") {
-    await getValidAccessToken(acc);
+  const path = `/api/${kind}/overview?discordId=${encodeURIComponent(acc.discordId)}`;
+
+  function mapDashboardError(err) {
+    if (err?.status === 403) {
+      throw new Error("Access denied — you need Owner permissions on the API.");
+    }
+    if (typeof apiFetchErrorMessage === "function") {
+      throw new Error(apiFetchErrorMessage(err));
+    }
+    throw new Error(err?.message || "Could not load dashboard.");
+  }
+
+  if (typeof apiGet === "function") {
+    try {
+      return await apiGet(path);
+    } catch (err) {
+      mapDashboardError(err);
+    }
   }
 
   if (typeof apiRequest === "function") {
     try {
-      return await apiRequest(`/api/${kind}/overview`, { method: "POST", body: {} });
+      return await apiRequest(path, { method: "GET" });
     } catch (err) {
-      if (err.status === 403) {
-        throw new Error("Access denied — you need Owner permissions on the API.");
-      }
-      if (typeof apiFetchErrorMessage === "function") {
-        throw new Error(apiFetchErrorMessage(err));
-      }
-      if (typeof isExternalApiConfigured === "function" && !isExternalApiConfigured() && /\.github\.io$/i.test(window.location.hostname)) {
-        throw new Error("API not linked. Set apiBaseUrl in config.js to your Railway URL, then redeploy.");
-      }
-      throw new Error(err.message || "Could not load dashboard.");
+      mapDashboardError(err);
     }
   }
 
-  const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
-  const res = await fetch(apiUrlWithToken(`/api/${kind}/overview`), {
-    method: "POST",
+  const res = await fetch(apiUrlWithToken(path), {
+    method: "GET",
     mode: "cors",
     cache: "no-store",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(siteToken ? { "X-Site-Token": siteToken } : {}),
-    },
-    body: JSON.stringify({
-      discordId: getAccount().discordId,
-      accessToken: getAccount().discordAccessToken || null,
-    }),
   });
   if (res.status === 403) throw new Error("Access denied.");
   if (!res.ok) throw new Error("Could not load dashboard.");
   return res.json();
+}
+
+async function revokeLicense(targetId) {
+  if (typeof apiRequest === "function") {
+    return apiRequest("/api/owner/users/revoke-license", {
+      method: "POST",
+      body: { targetId },
+    });
+  }
+  throw new Error("API not available.");
 }
 
 async function promoteUser(kind, targetId, role) {
@@ -243,18 +250,20 @@ function closeTeamActionMenus() {
 function renderUserActions(user, kind) {
   const meta = teamDashboardMeta(kind);
   const role = user.panelRole || "member";
+  const isCustomer = (user.licensedStatus || "").toLowerCase() === "customer" || user.licenseActive === true;
+
   if (role === "owner") return `<span class="team-muted">Protected</span>`;
   if (user.discordId === getAccount()?.discordId) return `<span class="team-muted">You</span>`;
 
   const items = [];
   if (meta.canPromoteStaff && role !== "staff") {
     items.push(
-      `<button type="button" class="action-menu__item team-promote" data-target="${escapeHtml(user.discordId)}" data-role="staff" role="menuitem">Make Staff</button>`
+      `<button type="button" class="action-menu__item team-promote" data-target="${escapeHtml(user.discordId)}" data-role="staff" role="menuitem">Promote to Staff</button>`
     );
   }
   if (meta.canPromoteAdmin && role !== "admin") {
     items.push(
-      `<button type="button" class="action-menu__item team-promote" data-target="${escapeHtml(user.discordId)}" data-role="admin" role="menuitem">Make Admin</button>`
+      `<button type="button" class="action-menu__item team-promote" data-target="${escapeHtml(user.discordId)}" data-role="admin" role="menuitem">Promote to Admin</button>`
     );
   }
   if (role !== "member" && (meta.canPromoteAdmin || (meta.canPromoteStaff && role === "staff"))) {
@@ -262,12 +271,17 @@ function renderUserActions(user, kind) {
       `<button type="button" class="action-menu__item action-menu__item--danger team-promote" data-target="${escapeHtml(user.discordId)}" data-role="member" role="menuitem">Demote to Member</button>`
     );
   }
+  if (kind === "owner" && isCustomer) {
+    items.push(
+      `<button type="button" class="action-menu__item action-menu__item--danger team-revoke-license" data-target="${escapeHtml(user.discordId)}" role="menuitem">Revoke License</button>`
+    );
+  }
+  if (items.length) {
+    items.push(`<div class="action-menu__sep"></div>`);
+  }
   items.push(
-    `<div class="action-menu__sep"></div>`,
     `<button type="button" class="action-menu__item team-copy-id" data-id="${escapeHtml(user.discordId)}" role="menuitem">Copy Discord ID</button>`
   );
-
-  if (!items.length) return `<span class="team-muted">—</span>`;
 
   return `
     <div class="action-menu">
@@ -300,15 +314,13 @@ function renderTeamUsersTable(users, kind) {
           <td>
             <div class="team-user">
               <img class="team-user__avatar" src="${avatar}" alt="" width="40" height="40" loading="lazy" />
-              <div>
-                <div class="team-user__name">${escapeHtml(user.username || "Unknown")}</div>
-                ${isOwnerView ? `<div class="team-user__id">${escapeHtml(user.discordId || "")}</div>` : ""}
-              </div>
+              <div class="team-user__name">${escapeHtml(user.username || "Unknown")}</div>
             </div>
           </td>
+          <td><code class="team-user__id">${escapeHtml(user.discordId || "—")}</code></td>
           <td>
             <div class="team-token-cell">
-              <code class="team-user__token" title="User token">${escapeHtml(token)}</code>
+              <code class="team-user__token" title="Site token">${escapeHtml(token)}</code>
               <button type="button" class="btn btn--ghost btn--tiny team-copy-token" data-token="${escapeHtml(token)}" title="Copy token">Copy</button>
             </div>
           </td>
@@ -326,7 +338,7 @@ function renderTeamUsersTable(users, kind) {
 
   return `
     <div class="team-toolbar">
-      <input type="search" class="form__input team-search" id="team-user-search" placeholder="Search by username or token…" />
+      <input type="search" class="form__input team-search" id="team-user-search" placeholder="Search username, Discord ID, or token…" />
       <span class="team-user-count">${users.length} user${users.length === 1 ? "" : "s"}</span>
     </div>
     <div class="owner-table-wrap">
@@ -334,6 +346,7 @@ function renderTeamUsersTable(users, kind) {
         <thead>
           <tr>
             <th>Username</th>
+            <th>Discord ID</th>
             <th>Token</th>
             <th>Role</th>
             <th>License</th>
@@ -499,6 +512,26 @@ function bindTeamDashboardEvents(kind) {
         }
       } catch (err) {
         alert(err.message || "Could not update role.");
+        btn.disabled = false;
+        btn.textContent = prev;
+      }
+    });
+  });
+
+  document.querySelectorAll(".team-revoke-license").forEach((btn) => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      closeTeamActionMenus();
+      const targetId = btn.dataset.target;
+      if (!targetId || !confirm("Revoke this customer's license? They will lose Pins and Reports access.")) return;
+      btn.disabled = true;
+      const prev = btn.textContent;
+      btn.textContent = "…";
+      try {
+        await revokeLicense(targetId);
+        await loadTeamDashboard(kind, { silent: true });
+      } catch (err) {
+        alert(err.message || "Could not revoke license.");
         btn.disabled = false;
         btn.textContent = prev;
       }

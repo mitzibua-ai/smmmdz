@@ -1,8 +1,11 @@
 const API_BASE = apiBaseUrl;
 
-function apiAuthHeaders(extra = {}) {
+function apiAuthHeaders(extra = {}, method = "GET") {
   const acc = getAccount();
-  const headers = { "Content-Type": "application/json", ...extra };
+  const headers = { ...extra };
+  if (String(method).toUpperCase() !== "GET") {
+    headers["Content-Type"] = "application/json";
+  }
   const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
   if (siteToken) {
     headers["X-Site-Token"] = siteToken;
@@ -30,7 +33,8 @@ function apiAuthBody(payload = {}) {
 }
 
 async function apiRequest(path, options = {}) {
-  const headers = apiAuthHeaders(options.headers || {});
+  const method = String(options.method || "GET").toUpperCase();
+  const headers = apiAuthHeaders(options.headers || {}, method);
   let body = options.body;
   if (body && typeof body === "object" && !(body instanceof FormData)) {
     body = JSON.stringify(apiAuthBody(body));
