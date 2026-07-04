@@ -13,8 +13,13 @@ CONFIG_JS = ROOT / "web" / "js" / "config.js"
 
 WEB_PATHS = [
     "web",
-    ".github/workflows/deploy-pages.yml",
+    ".github/workflows",
+    "DEPLOY.md",
     "deploy.config.json.example",
+    "scripts/push_github.py",
+    "scripts/push_all.py",
+    "scripts/push_railway.py",
+    "scripts/railway_sync_env.py",
 ]
 
 
@@ -29,19 +34,35 @@ def _sync_api_url() -> None:
         data = json.loads(DEPLOY_CONFIG.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return
-    api_url = str(data.get("railwayApiUrl", "")).strip().rstrip("/")
-    if not api_url or "YOUR-RAILWAY" in api_url:
-        return
     text = CONFIG_JS.read_text(encoding="utf-8")
-    updated, count = re.subn(
-        r'(apiBaseUrl:\s*")[^"]*(")',
-        rf'\1{api_url}\2',
-        text,
-        count=1,
-    )
-    if count:
-        CONFIG_JS.write_text(updated, encoding="utf-8")
-        print(f"Updated web/js/config.js apiBaseUrl -> {api_url}")
+    api_url = str(data.get("railwayApiUrl", "")).strip().rstrip("/")
+    if api_url and "YOUR-RAILWAY" not in api_url:
+        text, count = re.subn(
+            r'(apiBaseUrl:\s*")[^"]*(")',
+            rf'\1{api_url}\2',
+            text,
+            count=1,
+        )
+        if count:
+            print(f"Updated web/js/config.js apiBaseUrl -> {api_url}")
+    site_token = str(data.get("siteApiToken", "")).strip()
+    if site_token and not site_token.startswith("YOUR_"):
+        text, count = re.subn(
+            r'(apiToken:\s*")[^"]*(")',
+            rf'\1{site_token}\2',
+            text,
+            count=1,
+        )
+        if count:
+            print("Updated web/js/config.js apiToken")
+        elif 'apiToken:' not in text:
+            text = text.replace(
+                'apiBaseUrl:',
+                f'apiToken: "{site_token}",\n\n  apiBaseUrl:',
+                1,
+            )
+            print("Added web/js/config.js apiToken")
+    CONFIG_JS.write_text(text, encoding="utf-8")
 
 
 def _git_available() -> bool:
@@ -82,10 +103,14 @@ def main() -> int:
         if path.exists():
             _run(["git", "add", rel], check=False)
 
-    status = _run(["git", "status", "--porcelain"], check=False)
-    if not status.stdout.strip():
+    staged = _run(["git", "diff", "--cached", "--name-only"], check=False)
+    if not staged.stdout.strip():
         print("[OK] Nothing new to push (website already up to date).")
         return 0
+
+    print("Committing:")
+    for line in staged.stdout.strip().splitlines():
+        print(f"  {line}")
 
     commit = _run(
         ["git", "commit", "-m", "Update dotx website (GitHub Pages)"],

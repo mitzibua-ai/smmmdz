@@ -17,10 +17,16 @@ After you change code, run **`push-all.bat`** to update both.
 ### 1. GitHub repo + Pages
 
 1. Create a repo on GitHub and push this project.
-2. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. Copy `deploy.config.json.example` → `deploy.config.json` and fill in:
-   - `githubPagesUrl` — your live site URL (e.g. `https://you.github.io/fivem-pc-check`)
+2. Repo **Settings → Pages → Build and deployment → Source: GitHub Actions** (required — deploy fails without this).
+3. Your site URL will be: `https://mitzibua-ai.github.io/smmmdz/`
+4. Copy `deploy.config.json.example` → `deploy.config.json` and fill in:
+   - `githubPagesUrl` — `https://mitzibua-ai.github.io/smmmdz`
    - `railwayApiUrl` — your Railway API domain (step 2 below)
+
+**If deploy fails with "Deployment failed, try again later":**
+- Confirm step 2 above (Source must be **GitHub Actions**, not "Deploy from branch").
+- Open **Actions** → failed run → **Re-run all jobs**.
+- First deploy sometimes needs one manual re-run after enabling Pages.
 
 ### 2. Railway (API + bot only)
 
@@ -49,6 +55,21 @@ apiBaseUrl: "https://YOUR-RAILWAY-DOMAIN.up.railway.app",
 ```
 
 PC Check tool downloads also come from Railway (`/downloads/dotx-pc-check.exe`).
+
+---
+
+## Discord license commands (staff only)
+
+| Command | What it does |
+|---------|----------------|
+| `smky key` | Bot asks unit (months/days/hours/minutes), then amount → generates `SMKY-XXXX-XXXX` key |
+| `smky license` | Bot asks customer Discord ID → key → ticket ID → grants Customer + posts receipt in ticket |
+| `smky revoke` | Cancel a customer license — removes website access + Discord Customer role |
+| `/smky key` | Slash version with amount + unit in one step |
+| `/smky license` | Slash version with discord_id, key, and ticket in one step |
+| `/smky revoke` | Slash version — pass the customer's Discord user ID |
+
+After `smky license`, the user gets **Customer** on the website (Pins + Reports unlock). Keys are time-limited; expiry is enforced server-side. Use `smky revoke` anytime to cancel access.
 
 ---
 

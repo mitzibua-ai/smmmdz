@@ -97,6 +97,16 @@ def _github_cors_origin() -> str:
     return raw
 
 
+def _deploy_site_token() -> str:
+    if not DEPLOY_CONFIG_PATH.is_file():
+        return ""
+    try:
+        data = json.loads(DEPLOY_CONFIG_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return ""
+    return str(data.get("siteApiToken", "")).strip()
+
+
 def main() -> int:
     _extend_path()
 
@@ -119,6 +129,12 @@ def main() -> int:
         auto_value = ",".join(str(x) for x in auto_ids)
     else:
         auto_value = str(auto_ids)
+
+    owner_ids = raw.get("owner_discord_ids") or []
+    if isinstance(owner_ids, list):
+        owner_value = ",".join(str(x) for x in owner_ids)
+    else:
+        owner_value = str(owner_ids)
 
     brand = raw.get("brand", {}) or {}
     banner_url = str(brand.get("banner_url", "")).strip()
@@ -149,6 +165,7 @@ def main() -> int:
         "BRAND_LOGO_URL": logo_url,
         "DISCORD_CLIENT_ID": "1519618635054841867",
         "DISCORD_CUSTOMER_ROLE_ID": "1519527288503275641",
+        "OWNER_DISCORD_IDS": owner_value,
         "HOST": "0.0.0.0",
         "DATA_DIR": "/data",
         "DATA_PATH": "/data/store.json",
@@ -158,6 +175,10 @@ def main() -> int:
     cors_origin = _github_cors_origin()
     if cors_origin:
         pairs["CORS_ORIGINS"] = cors_origin
+
+    site_token = _deploy_site_token()
+    if site_token and not site_token.startswith("YOUR_"):
+        pairs["SITE_API_TOKEN"] = site_token
 
     missing = [
         k
@@ -171,6 +192,8 @@ def main() -> int:
             "DISCORD_AUTO_ROLE_IDS",
             "API_ONLY",
             "CORS_ORIGINS",
+            "OWNER_DISCORD_IDS",
+            "SITE_API_TOKEN",
         }
         and not v
     ]
@@ -180,7 +203,14 @@ def main() -> int:
 
     service = _linked_service_id()
 
-    optional_keys = {"BRAND_BANNER_URL", "BRAND_LOGO_URL", "DISCORD_AUTO_ROLE_IDS", "CORS_ORIGINS"}
+    optional_keys = {
+        "BRAND_BANNER_URL",
+        "BRAND_LOGO_URL",
+        "DISCORD_AUTO_ROLE_IDS",
+        "CORS_ORIGINS",
+        "OWNER_DISCORD_IDS",
+        "SITE_API_TOKEN",
+    }
 
     for key, value in pairs.items():
         if not value and key in optional_keys:

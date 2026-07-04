@@ -10,6 +10,17 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "discord_bot" / "config.json"
+RAILWAY_PATHS = [
+    "web/serve.py",
+    "web/data_store.py",
+    "web/data",
+    "discord_bot",
+    "start_dotx.py",
+    "Procfile",
+    "nixpacks.toml",
+    "requirements.txt",
+    "scripts/railway_sync_env.py",
+]
 SERVICE_NAME = "proactive-nourishment"
 PROJECT_ID = "1913f1ed-7bb3-443a-a7ec-8d9fc5c88d4f"
 

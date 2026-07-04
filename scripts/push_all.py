@@ -19,7 +19,8 @@ def main() -> int:
 
     github = subprocess.call([sys.executable, str(ROOT / "scripts" / "push_github.py")])
     if github != 0:
-        return github
+        print()
+        print("[WARN] GitHub push had issues; continuing with Railway deploy...")
 
     print()
     railway = subprocess.call([sys.executable, str(ROOT / "scripts" / "push_railway.py")])
