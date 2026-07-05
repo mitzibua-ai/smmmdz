@@ -3597,6 +3597,10 @@ a.btn.pin-download-link {
 .account-panel__head {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .account-panel__title {
