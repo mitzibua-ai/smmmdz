@@ -69,6 +69,7 @@ SITE_TOKEN_EXEMPT_PATHS = {
     "/api/scans/submit",
     "/api/tool-config",
     "/api/site-config",
+    "/api/users/register",
 }
 
 

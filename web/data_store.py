@@ -14,6 +14,7 @@ STORE_PATH = Path(os.getenv("DATA_PATH", str(DATA_DIR / "store.json")))
 
 _lock = threading.RLock()
 _store_cache: dict | None = None
+_store_mtime: float = -1.0
 PANEL_ROLES = {"member", "staff", "admin", "owner"}
 ROLE_RANK = {"member": 1, "staff": 2, "admin": 3, "owner": 4}
 KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -44,23 +45,104 @@ def _read_store_from_disk() -> dict:
         return _default_store()
 
 
+def _store_file_mtime() -> float:
+    try:
+        return STORE_PATH.stat().st_mtime if STORE_PATH.exists() else 0.0
+    except OSError:
+        return 0.0
+
+
+def _merge_site_users(disk_users: list, mem_users: list) -> list:
+    by_id: dict[str, dict] = {}
+    for user in disk_users:
+        did = str(user.get("discordId", "")).strip()
+        if did:
+            by_id[did] = dict(user)
+    for user in mem_users:
+        did = str(user.get("discordId", "")).strip()
+        if not did:
+            continue
+        if did in by_id:
+            old = by_id[did]
+            merged = {**old, **user}
+            merged["firstSeen"] = old.get("firstSeen") or user.get("firstSeen")
+            merged["joinedAt"] = merged.get("firstSeen")
+            if old.get("userToken") and not str(user.get("userToken") or "").strip():
+                merged["userToken"] = old["userToken"]
+            by_id[did] = merged
+        else:
+            entry = dict(user)
+            entry.setdefault("joinedAt", entry.get("firstSeen"))
+            by_id[did] = entry
+    return list(by_id.values())
+
+
+def _merge_license_keys(disk_keys: list, mem_keys: list) -> list:
+    by_id: dict[str, dict] = {}
+    for item in disk_keys:
+        key_id = str(item.get("id", "")).strip()
+        if key_id:
+            by_id[key_id] = dict(item)
+    for item in mem_keys:
+        key_id = str(item.get("id", "")).strip()
+        if key_id:
+            by_id[key_id] = {**by_id.get(key_id, {}), **item}
+    return list(by_id.values())
+
+
+def _merge_pins(disk_pins: list, mem_pins: list) -> list:
+    by_key: dict[str, dict] = {}
+    for item in disk_pins:
+        key = str(item.get("pin") or item.get("id") or "").strip()
+        if key:
+            by_key[key] = dict(item)
+    for item in mem_pins:
+        key = str(item.get("pin") or item.get("id") or "").strip()
+        if key:
+            by_key[key] = {**by_key.get(key, {}), **item}
+    return list(by_key.values())
+
+
+def _merge_scans(disk_scans: list, mem_scans: list) -> list:
+    by_id: dict[str, dict] = {}
+    for item in disk_scans:
+        scan_id = str(item.get("id", "")).strip()
+        if scan_id:
+            by_id[scan_id] = dict(item)
+    for item in mem_scans:
+        scan_id = str(item.get("id", "")).strip()
+        if scan_id:
+            by_id[scan_id] = {**by_id.get(scan_id, {}), **item}
+    return list(by_id.values())
+
+
 def load_store() -> dict:
-    global _store_cache
+    global _store_cache, _store_mtime
     with _lock:
-        if _store_cache is None:
+        mtime = _store_file_mtime()
+        if _store_cache is None or mtime != _store_mtime:
             _store_cache = _read_store_from_disk()
+            _store_mtime = mtime
         return _store_cache
 
 
 def save_store(data: dict) -> None:
-    global _store_cache
+    global _store_cache, _store_mtime
     STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    payload = json.dumps(data, separators=(",", ":"))
-    tmp_path = STORE_PATH.with_suffix(".json.tmp")
     with _lock:
-        _store_cache = data
+        disk = _read_store_from_disk()
+        outgoing = {
+            "pins": _merge_pins(disk.get("pins", []), data.get("pins", [])),
+            "scans": _merge_scans(disk.get("scans", []), data.get("scans", [])),
+            "siteUsers": _merge_site_users(disk.get("siteUsers", []), data.get("siteUsers", [])),
+            "licenseKeys": _merge_license_keys(disk.get("licenseKeys", []), data.get("licenseKeys", [])),
+        }
+        payload = json.dumps(outgoing, separators=(",", ":"))
+        tmp_path = STORE_PATH.with_suffix(".json.tmp")
         tmp_path.write_text(payload, encoding="utf-8")
         tmp_path.replace(STORE_PATH)
+        _store_cache = outgoing
+        _store_mtime = _store_file_mtime()
 
 
 def _find_site_user(store: dict, discord_id: str) -> dict | None:
@@ -231,12 +313,14 @@ def redeem_license_key(
                     "discordId": target_id,
                     "username": "Unknown",
                     "avatarHash": "",
+                    "userToken": generate_user_token(),
                     "panelRole": "member",
                     "licensedStatus": "Customer",
                     "licenseExpiresAt": expires_iso,
                     "licenseKeyId": key_entry.get("id"),
                     "licenseGrantedAt": now.isoformat(),
                     "firstSeen": now.isoformat(),
+                    "joinedAt": now.isoformat(),
                     "lastSeen": now.isoformat(),
                     "loginCount": 0,
                 },
@@ -313,6 +397,7 @@ def register_site_user(payload: dict) -> dict:
         if existing:
             if not str(existing.get("userToken") or "").strip():
                 existing["userToken"] = generate_user_token()
+            preserved_first_seen = existing.get("firstSeen")
             existing.update(
                 {
                     "username": username,
@@ -322,6 +407,9 @@ def register_site_user(payload: dict) -> dict:
                     "loginCount": int(existing.get("loginCount") or 0) + 1,
                 }
             )
+            if preserved_first_seen:
+                existing["firstSeen"] = preserved_first_seen
+                existing["joinedAt"] = preserved_first_seen
             if active:
                 existing["licenseExpiresAt"] = active["licenseExpiresAt"]
                 if active.get("licenseKeyId"):
@@ -340,6 +428,7 @@ def register_site_user(payload: dict) -> dict:
             "panelRole": "member",
             "licensedStatus": licensed_status,
             "firstSeen": now,
+            "joinedAt": now,
             "lastSeen": now,
             "loginCount": 1,
         }
@@ -403,10 +492,13 @@ def _activity_for_user(discord_id: str, pins: list, scans: list) -> dict:
 
 def _enrich_site_user(user: dict, pins: list, scans: list, effective_role: str) -> dict:
     activity = _activity_for_user(user.get("discordId", ""), pins, scans)
+    first_seen = user.get("firstSeen") or user.get("joinedAt")
     return {
         **user,
         "panelRole": effective_role,
         "storedRole": user.get("panelRole", "member"),
+        "firstSeen": first_seen,
+        "joinedAt": first_seen,
         "pins": activity["pins"],
         "scans": activity["scans"],
     }
@@ -567,7 +659,7 @@ def build_role_dashboard(
             enriched_users.append(_enrich_site_user(user, pins, scans, effective))
 
     enriched_users.sort(
-        key=lambda u: (ROLE_RANK.get(u.get("panelRole", "member"), 0), u.get("lastSeen", "")),
+        key=lambda u: (ROLE_RANK.get(u.get("panelRole", "member"), 0), u.get("firstSeen", "")),
         reverse=True,
     )
 

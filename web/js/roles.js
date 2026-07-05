@@ -299,9 +299,15 @@ function userDisplayToken(user) {
   return user?.userToken || user?.discordId || "—";
 }
 
+function userJoinDate(user) {
+  const raw = user?.firstSeen || user?.joinedAt;
+  if (!raw) return "—";
+  return formatDate(raw);
+}
+
 function renderTeamUsersTable(users, kind) {
   if (!users?.length) {
-    return `<div class="empty-state team-empty">No users yet. They appear here after Discord login.</div>`;
+    return `<div class="empty-state team-empty">No users yet. They appear here permanently after Discord login.</div>`;
   }
 
   const isOwnerView = kind === "owner";
@@ -326,7 +332,8 @@ function renderTeamUsersTable(users, kind) {
           </td>
           <td><span class="${roleBadgeClass(user.panelRole)}">${roleLabel(user.panelRole)}</span></td>
           <td><span class="license-pill license-pill--${(user.licensedStatus || "standard").toLowerCase()}">${escapeHtml(user.licensedStatus || "Standard")}</span></td>
-          ${isOwnerView ? "" : `<td>${user.pins || 0}</td><td>${user.scans || 0}</td><td>${formatDate(user.lastSeen || user.firstSeen)}</td>`}
+          <td class="team-join-cell"><time datetime="${escapeHtml(user.firstSeen || user.joinedAt || "")}">${escapeHtml(userJoinDate(user))}</time></td>
+          ${isOwnerView ? "" : `<td>${user.pins || 0}</td><td>${user.scans || 0}</td>`}
           <td class="team-actions-cell">${renderUserActions(user, kind)}</td>
         </tr>`;
     })
@@ -334,12 +341,12 @@ function renderTeamUsersTable(users, kind) {
 
   const extraCols = isOwnerView
     ? ""
-    : `<th>Pins</th><th>Scans</th><th>Last seen</th>`;
+    : `<th>Pins</th><th>Scans</th>`;
 
   return `
     <div class="team-toolbar">
       <input type="search" class="form__input team-search" id="team-user-search" placeholder="Search username, Discord ID, or token…" />
-      <span class="team-user-count">${users.length} user${users.length === 1 ? "" : "s"}</span>
+      <span class="team-user-count">${users.length} user${users.length === 1 ? "" : "s"} · permanent registry</span>
     </div>
     <div class="owner-table-wrap">
       <table class="owner-table team-table team-table--users">
@@ -350,6 +357,7 @@ function renderTeamUsersTable(users, kind) {
             <th>Token</th>
             <th>Role</th>
             <th>License</th>
+            <th>Join</th>
             ${extraCols}
             <th>Actions</th>
           </tr>

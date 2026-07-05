@@ -758,6 +758,16 @@ body {
   max-width: 11rem;
 }
 
+.team-join-cell {
+  font-size: 0.8125rem;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.team-join-cell time {
+  font-variant-numeric: tabular-nums;
+}
+
 .role-badge {
   display: inline-flex;
   padding: 4px 10px;
@@ -3648,6 +3658,62 @@ a.btn.pin-download-link {
 
 .account-kv__ok {
   color: #4ade80;
+}
+
+.account-kv__v--join {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.account-kv__countdown {
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.account-kv__countdown--idle {
+  color: var(--muted);
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: normal;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.account-kv__countdown.is-live {
+  color: #5eead4;
+  border-color: rgba(0, 212, 170, 0.35);
+  background: rgba(0, 212, 170, 0.08);
+  box-shadow: 0 0 16px rgba(0, 212, 170, 0.12);
+}
+
+.account-kv__countdown.is-urgent {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.account-kv__countdown.is-critical {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(248, 113, 113, 0.08);
+  animation: account-countdown-pulse 1.6s ease-in-out infinite;
+}
+
+.account-kv__countdown.is-expired {
+  color: var(--danger);
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+@keyframes account-countdown-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.65; }
 }
 
 @media (max-width: 960px) {

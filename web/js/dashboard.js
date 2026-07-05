@@ -873,8 +873,6 @@ function renderAccount() {
         </div>
       </section>
 
-      ${buildLicenseTimerHtml(acc)}
-
       ${buildAccountUnlocksHtml(acc, isCustomer)}
 
       <section class="account-stats account-stats--premium">
@@ -931,19 +929,15 @@ function renderAccount() {
                 <span class="account-kv__v mono" id="account-discord-id">${escapeHtml(acc.discordId)}</span>
               </div>
               <div class="account-kv__row">
-                <span class="account-kv__k">OAuth</span>
-                <span class="account-kv__v"><span class="account-kv__ok">Connected</span></span>
+                <span class="account-kv__k">Join</span>
+                <span class="account-kv__v account-kv__v--join">${escapeHtml(formatJoinDate(acc))}</span>
               </div>
               <div class="account-kv__row">
-                <span class="account-kv__k">License sync</span>
-                <span class="account-kv__v">${acc.licenseSyncedAt ? escapeHtml(new Date(acc.licenseSyncedAt).toLocaleString()) : "—"}</span>
-              </div>
-              <div class="account-kv__row">
-                <span class="account-kv__k">Timer storage</span>
-                <span class="account-kv__v"><span class="account-kv__ok">Device + server expiry</span></span>
+                <span class="account-kv__k">License expire in</span>
+                <span class="account-kv__v">${buildLicenseExpireCountdownHtml(acc)}</span>
               </div>
             </div>
-            <p class="account-panel__note">The license timer uses your server expiry timestamp — it never pauses when you close the browser. Come back anytime and the countdown is still accurate.</p>
+            <p class="account-panel__note">Join date is permanent from your first login. The license countdown runs in real time from the server expiry — close the browser and it stays accurate when you return.</p>
           </div>
         </div>
       </section>
