@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = Path(os.getenv("DATA_DIR", str(ROOT / "data")))
 STORE_PATH = Path(os.getenv("DATA_PATH", str(DATA_DIR / "store.json")))
 
-_lock = threading.Lock()
+_lock = threading.RLock()
+_store_cache: dict | None = None
 PANEL_ROLES = {"member", "staff", "admin", "owner"}
 ROLE_RANK = {"member": 1, "staff": 2, "admin": 3, "owner": 4}
 KEY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
@@ -26,7 +27,7 @@ def _default_store() -> dict:
     return {"pins": [], "scans": [], "siteUsers": [], "licenseKeys": []}
 
 
-def load_store() -> dict:
+def _read_store_from_disk() -> dict:
     STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
     if not STORE_PATH.exists():
         return _default_store()
@@ -43,9 +44,23 @@ def load_store() -> dict:
         return _default_store()
 
 
+def load_store() -> dict:
+    global _store_cache
+    with _lock:
+        if _store_cache is None:
+            _store_cache = _read_store_from_disk()
+        return _store_cache
+
+
 def save_store(data: dict) -> None:
+    global _store_cache
     STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
-    STORE_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    payload = json.dumps(data, separators=(",", ":"))
+    tmp_path = STORE_PATH.with_suffix(".json.tmp")
+    with _lock:
+        _store_cache = data
+        tmp_path.write_text(payload, encoding="utf-8")
+        tmp_path.replace(STORE_PATH)
 
 
 def _find_site_user(store: dict, discord_id: str) -> dict | None:
@@ -76,6 +91,9 @@ def _hash_license_code(code: str) -> str:
 def generate_user_token() -> str:
     raw = secrets.token_hex(4).upper()
     return f"DX-{raw[:4]}-{raw[4:8]}"
+
+
+def generate_license_code() -> str:
     part = lambda: "".join(secrets.choice(KEY_ALPHABET) for _ in range(4))
     return f"SMKY-{part()}-{part()}"
 
@@ -128,6 +146,7 @@ def get_active_site_license(discord_id: str) -> dict | None:
     return {
         "discordId": str(discord_id),
         "licenseExpiresAt": expires.isoformat(),
+        "licenseGrantedAt": user.get("licenseGrantedAt"),
         "licenseKeyId": user.get("licenseKeyId"),
         "licensedStatus": "Customer",
     }

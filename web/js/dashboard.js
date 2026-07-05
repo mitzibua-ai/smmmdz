@@ -263,7 +263,11 @@ function handleLicenseUpdate(updated) {
   const lostCustomer = !isCustomerNow && wasCustomer;
 
   if (becameCustomer) {
+    if (typeof syncLicenseTimerMeta === "function") syncLicenseTimerMeta(account);
     showLicenseActivatedToast(formatLicenseExpiry(account));
+    if (currentView === "account" && typeof startAccountLicenseTimer === "function") {
+      startAccountLicenseTimer();
+    }
     syncDashboardData(account.discordId)
       .then(() => {
         if (!isPinModalOpen()) renderView(currentView);
@@ -273,8 +277,10 @@ function handleLicenseUpdate(updated) {
 
   if (lostCustomer && updated._licenseRevoked && account?.discordId) {
     account.licenseExpiresAt = null;
+    account.licenseGrantedAt = null;
     account.licenseActive = false;
     saveAccount(account);
+    localStorage.removeItem("dotx_license_timer_meta_v1");
     savePins(account.discordId, []);
     saveScans(account.discordId, []);
   }
@@ -753,26 +759,195 @@ function renderReports() {
   });
 }
 
-function renderAccount() {
-  return `
-    <header class="page-header">
-      <div>
-        <h1>Account</h1>
-        <p>Your Discord-linked dotx profile.</p>
-      </div>
-    </header>
+function formatMemberSince(acc) {
+  const ts = acc?.createdAt;
+  if (!ts) return "—";
+  const date = new Date(ts);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
 
-    <section class="panels panels--single">
-      <div class="panel panel--profile panel--wide">
-        <div class="panel__head">
-          <div><div class="panel__title">Discord profile</div><div class="panel__sub">Permanently linked</div></div>
-          <button type="button" class="btn btn--ghost btn--small" id="refresh-profile">Refresh</button>
+function accountRoleLabel(acc = account) {
+  const role = typeof panelRole === "function" ? panelRole(acc) : acc?.panelRole || "member";
+  const map = {
+    owner: "Owner",
+    admin: "Admin",
+    staff: "Staff",
+    member: "Member",
+  };
+  return map[role] || "Member";
+}
+
+function buildAccountUnlocksHtml(acc, isCustomer) {
+  const items = [
+    {
+      icon: "📌",
+      title: "PIN generator",
+      desc: "Create player download links",
+      unlocked: isCustomer,
+    },
+    {
+      icon: "📊",
+      title: "Scan reports",
+      desc: "Full PC check history",
+      unlocked: isCustomer,
+    },
+    {
+      icon: "⬇",
+      title: "PC Check tool",
+      desc: "Licensed exe downloads",
+      unlocked: isCustomer,
+    },
+  ];
+
+  return `
+    <section class="account-unlocks">
+      <div class="account-unlocks__head">
+        <div>
+          <div class="account-unlocks__eyebrow">Your perks</div>
+          <h2 class="account-unlocks__title">${isCustomer ? "Everything is live" : "Unlock with a license"}</h2>
         </div>
-        <div class="panel__body panel__body--flush">
-          ${buildDiscordProfileCard(account)}
-        </div>
+        <span class="account-unlocks__status ${isCustomer ? "is-live" : ""}">
+          ${isCustomer ? "● Customer active" : "○ Standard plan"}
+        </span>
+      </div>
+      <div class="account-unlocks__grid">
+        ${items
+          .map(
+            (item) => `
+          <article class="account-unlock ${item.unlocked ? "is-unlocked" : "is-locked"}">
+            <div class="account-unlock__glow" aria-hidden="true"></div>
+            <span class="account-unlock__icon">${item.icon}</span>
+            <h3 class="account-unlock__name">${item.title}</h3>
+            <p class="account-unlock__desc">${item.desc}</p>
+            <span class="account-unlock__badge">${item.unlocked ? "Unlocked" : "Locked"}</span>
+          </article>
+        `,
+          )
+          .join("")}
       </div>
     </section>
+  `;
+}
+
+function renderAccount() {
+  const acc = account;
+  const isCustomer = isCustomerAccount(acc);
+  const scans = isCustomer ? getScans(acc.discordId) : [];
+  const pins = isCustomer ? getPins(acc.discordId) : [];
+  const bannerStyle = acc.banner
+    ? `background-image:url('${acc.banner}')`
+    : acc.accentColor
+      ? `background:linear-gradient(135deg,#${Number(acc.accentColor).toString(16).padStart(6, "0")},#0d121c)`
+      : "background:linear-gradient(135deg,#1a2230 0%,#0a0e16 55%,#14101c 100%)";
+
+  return `
+    <div class="account-page account-page--premium">
+      <div class="account-page__ambient" aria-hidden="true"></div>
+
+      <section class="account-hero account-hero--premium">
+        <div class="account-hero__bg" style="${bannerStyle}"></div>
+        <div class="account-hero__overlay"></div>
+        <div class="account-hero__mesh" aria-hidden="true"></div>
+        <div class="account-hero__content">
+          <div class="account-hero__avatar-wrap">
+            ${buildDiscordAvatarHtml(acc, "xl")}
+            <span class="account-hero__status-ring ${isCustomer ? "is-customer" : ""}"></span>
+            ${isCustomer ? '<span class="account-hero__live-chip">LIVE</span>' : ""}
+          </div>
+          <div class="account-hero__info">
+            <div class="account-hero__eyebrow">dotx identity · account hub</div>
+            <h1 class="account-hero__name">${escapeHtml(acc.username)}</h1>
+            <p class="account-hero__tag">${escapeHtml(acc.tag || `@${acc.discordUsername || "user"}`)}</p>
+            <div class="account-hero__badges">
+              <span class="account-hero__badge account-hero__badge--plan ${isCustomer ? "is-customer" : "is-standard"}">${escapeHtml(acc.licensedStatus || acc.plan || "Standard")}</span>
+              <span class="account-hero__badge account-hero__badge--role">${escapeHtml(accountRoleLabel(acc))}</span>
+              <span class="account-hero__badge account-hero__badge--locked">Discord locked</span>
+            </div>
+          </div>
+          <div class="account-hero__actions">
+            <button type="button" class="btn btn--ghost btn--small" id="refresh-profile">Refresh profile</button>
+            <button type="button" class="btn btn--ghost btn--small" id="copy-discord-id">Copy Discord ID</button>
+            ${isCustomer ? '<button type="button" class="btn btn--primary btn--small" data-goto="checks">Open PINs</button>' : ""}
+          </div>
+        </div>
+      </section>
+
+      ${buildLicenseTimerHtml(acc)}
+
+      ${buildAccountUnlocksHtml(acc, isCustomer)}
+
+      <section class="account-stats account-stats--premium">
+        <article class="account-stat account-stat--glow">
+          <span class="account-stat__icon">◎</span>
+          <span class="account-stat__label">Total scans</span>
+          <span class="account-stat__value">${scans.length}</span>
+          <span class="account-stat__hint">PC checks run</span>
+        </article>
+        <article class="account-stat account-stat--glow">
+          <span class="account-stat__icon">◈</span>
+          <span class="account-stat__label">Active PINs</span>
+          <span class="account-stat__value">${pins.length}</span>
+          <span class="account-stat__hint">Download links</span>
+        </article>
+        <article class="account-stat account-stat--glow">
+          <span class="account-stat__icon">◆</span>
+          <span class="account-stat__label">Panel role</span>
+          <span class="account-stat__value account-stat__value--text">${escapeHtml(accountRoleLabel(acc))}</span>
+          <span class="account-stat__hint">Dashboard access</span>
+        </article>
+        <article class="account-stat account-stat--glow">
+          <span class="account-stat__icon">◇</span>
+          <span class="account-stat__label">Member since</span>
+          <span class="account-stat__value account-stat__value--text">${escapeHtml(formatMemberSince(acc))}</span>
+          <span class="account-stat__hint">Account created</span>
+        </article>
+      </section>
+
+      <section class="account-panels account-panels--premium">
+        <div class="account-panel account-panel--profile">
+          <div class="account-panel__head">
+            <div>
+              <div class="account-panel__title">Discord profile</div>
+              <div class="account-panel__sub">Live avatar, banner, and decoration</div>
+            </div>
+          </div>
+          <div class="account-panel__body account-panel__body--flush">
+            ${buildDiscordProfileCard(acc)}
+          </div>
+        </div>
+
+        <div class="account-panel account-panel--security">
+          <div class="account-panel__head">
+            <div>
+              <div class="account-panel__title">Security & sync</div>
+              <div class="account-panel__sub">One Discord · server-backed license</div>
+            </div>
+          </div>
+          <div class="account-panel__body">
+            <div class="account-kv">
+              <div class="account-kv__row">
+                <span class="account-kv__k">Discord ID</span>
+                <span class="account-kv__v mono" id="account-discord-id">${escapeHtml(acc.discordId)}</span>
+              </div>
+              <div class="account-kv__row">
+                <span class="account-kv__k">OAuth</span>
+                <span class="account-kv__v"><span class="account-kv__ok">Connected</span></span>
+              </div>
+              <div class="account-kv__row">
+                <span class="account-kv__k">License sync</span>
+                <span class="account-kv__v">${acc.licenseSyncedAt ? escapeHtml(new Date(acc.licenseSyncedAt).toLocaleString()) : "—"}</span>
+              </div>
+              <div class="account-kv__row">
+                <span class="account-kv__k">Timer storage</span>
+                <span class="account-kv__v"><span class="account-kv__ok">Device + server expiry</span></span>
+              </div>
+            </div>
+            <p class="account-panel__note">The license timer uses your server expiry timestamp — it never pauses when you close the browser. Come back anytime and the countdown is still accurate.</p>
+          </div>
+        </div>
+      </section>
+    </div>
   `;
 }
 
@@ -786,6 +961,10 @@ function renderPlaceholder(title, desc) {
 }
 
 function renderView(view) {
+  if (currentView === "account" && view !== "account") {
+    stopAccountLicenseTimer();
+  }
+
   if (!canAccessView(view, account)) {
     view = "overview";
     window.location.hash = "overview";
@@ -817,6 +996,10 @@ function renderView(view) {
   if (view === "account" || view === "overview") {
     applyLicensedStatus(getAccount()).then(handleLicenseUpdate).catch(() => {});
   }
+
+  if (view === "account") {
+    startAccountLicenseTimer();
+  }
 }
 
 function bindViewEvents(view) {
@@ -844,7 +1027,22 @@ function bindAccountEvents() {
     } catch (err) {
       alert(err.message || "Could not refresh profile.");
       btn.disabled = false;
-      btn.textContent = "Refresh";
+      btn.textContent = "Refresh profile";
+    }
+  });
+
+  $("copy-discord-id")?.addEventListener("click", async () => {
+    const id = account?.discordId;
+    if (!id) return;
+    try {
+      await navigator.clipboard.writeText(id);
+      const btn = $("copy-discord-id");
+      if (btn) {
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy Discord ID"; }, 1500);
+      }
+    } catch {
+      alert(id);
     }
   });
 }
@@ -1035,6 +1233,9 @@ function bindReportsEvents() {
 async function init() {
   document.title = `${cfg.name} — Panel`;
   account = getAccount();
+  if (typeof hydrateLicenseTimerFromAccount === "function") {
+    hydrateLicenseTimerFromAccount(account);
+  }
 
   if (!account || !account.oauthLinked) {
     window.location.href = "/login/";

@@ -154,6 +154,7 @@ async function fetchLicenseFromServer(discordId) {
       isStaff: data.isStaff === true,
       panelRole: data.panelRole || (data.isOwner ? "owner" : data.isAdmin ? "admin" : data.isStaff ? "staff" : "member"),
       licenseExpiresAt: data.licenseExpiresAt || null,
+      licenseGrantedAt: data.licenseGrantedAt || null,
       licenseSource: data.licenseSource || data.method || null,
       error: data.error || null,
       message: data.message || null,
@@ -275,6 +276,9 @@ function applyServerLicense(account, server, previous) {
   const licenseActive = server.licenseActive === true;
   const status = licenseActive ? "Customer" : "Standard";
   const expiresAt = licenseActive ? server.licenseExpiresAt || account.licenseExpiresAt || null : null;
+  const grantedAt = licenseActive
+    ? server.licenseGrantedAt || account.licenseGrantedAt || null
+    : null;
 
   const updated = {
     ...account,
@@ -293,9 +297,13 @@ function applyServerLicense(account, server, previous) {
     licenseMessage: server.message || null,
     licenseSource: server.licenseSource || server.source || null,
     licenseExpiresAt: expiresAt,
+    licenseGrantedAt: grantedAt,
   };
 
   saveAccount(updated);
+  if (licenseActive && typeof syncLicenseTimerMeta === "function") {
+    syncLicenseTimerMeta(updated);
+  }
   const becameCustomer = licenseActive && previous !== "Customer";
   const lostCustomer = !licenseActive && previous === "Customer";
   updated._licenseChanged = previous !== status || becameCustomer || lostCustomer;

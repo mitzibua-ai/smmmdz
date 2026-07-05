@@ -236,6 +236,7 @@ def finalize_license(user_id: str, payload: dict) -> dict:
             **payload,
             "status": "Customer",
             "licenseExpiresAt": active.get("licenseExpiresAt"),
+            "licenseGrantedAt": active.get("licenseGrantedAt"),
             "licenseSource": "site_key",
             "licenseActive": True,
         }
@@ -269,6 +270,7 @@ def check_license_oauth(user_id: str, access_token: str) -> dict:
         }
         if active:
             payload["licenseExpiresAt"] = active.get("licenseExpiresAt")
+            payload["licenseGrantedAt"] = active.get("licenseGrantedAt")
             payload["licenseSource"] = "site_key"
         return payload
     if code == 401:
@@ -297,6 +299,7 @@ def check_license_bot(user_id: str) -> dict:
                 "roles": [],
                 "method": "site_key",
                 "licenseExpiresAt": active.get("licenseExpiresAt"),
+                "licenseGrantedAt": active.get("licenseGrantedAt"),
                 "licenseSource": "site_key",
             }
         return {
@@ -318,6 +321,7 @@ def check_license_bot(user_id: str) -> dict:
         }
         if active:
             payload["licenseExpiresAt"] = active.get("licenseExpiresAt")
+            payload["licenseGrantedAt"] = active.get("licenseGrantedAt")
             payload["licenseSource"] = "site_key"
         return payload
     if code == 404:
@@ -343,6 +347,7 @@ def check_license(user_id: str, access_token: str | None = None) -> dict:
         payload = {
             "status": "Customer",
             "licenseExpiresAt": active.get("licenseExpiresAt"),
+            "licenseGrantedAt": active.get("licenseGrantedAt"),
             "licenseSource": "site_key",
             "licenseActive": True,
             "method": "site_key",
