@@ -20,6 +20,7 @@ from pccheck.scanners import (
     ProcessScanner,
     RegistryScanner,
     RpfScanner,
+    TraceScanner,
 )
 
 ALL_SCANNERS = [
@@ -29,6 +30,7 @@ ALL_SCANNERS = [
     PEScanner(),
     RpfScanner(),
     FileScanner(),
+    TraceScanner(),
     FiveMScanner(),
     BrowserScanner(),
     CleanerScanner(),

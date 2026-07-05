@@ -7,6 +7,7 @@ from pccheck.scanners.prefetch_scanner import PrefetchScanner
 from pccheck.scanners.process_scanner import ProcessScanner
 from pccheck.scanners.registry_scanner import RegistryScanner
 from pccheck.scanners.rpf_scanner import RpfScanner
+from pccheck.scanners.trace_scanner import TraceScanner
 
 __all__ = [
     "BrowserScanner",
@@ -18,4 +19,5 @@ __all__ = [
     "ProcessScanner",
     "RegistryScanner",
     "RpfScanner",
+    "TraceScanner",
 ]

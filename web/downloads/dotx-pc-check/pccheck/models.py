@@ -56,13 +56,45 @@ class ScanResult:
 
     @property
     def verdict(self) -> str:
-        severities = {f.severity for f in self.findings}
-        if Severity.CRITICAL in severities:
+        if not self.findings:
+            return "CLEAN"
+
+        # Ignore INFO-only noise
+        actionable = [f for f in self.findings if f.severity != Severity.INFO]
+        if not actionable:
+            return "CLEAN"
+
+        severities = {f.severity for f in actionable}
+        criticals = [f for f in actionable if f.severity == Severity.CRITICAL]
+
+        # Strong cheat / known cleaner brand hits
+        strong = [
+            f
+            for f in criticals
+            if f.category in {Category.CHEAT, Category.INJECTION}
+            or any(
+                tok in (f.signature or "").lower() + (f.evidence or "").lower()
+                for tok in ("9zcleaner", "susano", "eulen", "macho", "skript", "gosth", "redengine")
+            )
+        ]
+
+        if strong:
             return "CHEATING LIKELY"
+
+        # Multiple independent critical signals
+        if len(criticals) >= 2:
+            return "CHEATING LIKELY"
+
+        # Single critical cleaner heuristic without brand proof → suspicious not cheating
+        if Severity.CRITICAL in severities:
+            return "SUSPICIOUS"
+
         if Severity.HIGH in severities:
             return "SUSPICIOUS"
+
         if Severity.MEDIUM in severities:
             return "REVIEW NEEDED"
+
         return "CLEAN"
 
     @property

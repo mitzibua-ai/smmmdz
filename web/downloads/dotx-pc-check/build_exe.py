@@ -10,6 +10,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+REPO_ROOT = ROOT.parents[2]
+PCCHECK_SRC = REPO_ROOT / "pccheck"
+PCCHECK_DST = ROOT / "pccheck"
+BUILD_SIGNATURES = REPO_ROOT / "scripts" / "build_signature_db.py"
 DIST_EXE = ROOT / "dist" / "dotx-pc-check.exe"
 OUTPUT_EXE = ROOT / "dotx-pc-check.exe"
 DEPLOY_EXE = ROOT / "dotx.exe"
@@ -36,7 +40,31 @@ def ensure_icon() -> None:
     )
 
 
+def sync_pccheck() -> None:
+    """Copy root pccheck package into the exe bundle folder."""
+    if not PCCHECK_SRC.is_dir():
+        print(f"Warning: source pccheck not found at {PCCHECK_SRC}")
+        return
+    if PCCHECK_DST.exists():
+        shutil.rmtree(PCCHECK_DST)
+    shutil.copytree(
+        PCCHECK_SRC,
+        PCCHECK_DST,
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc", ".pytest_cache"),
+    )
+    print(f"Synced pccheck -> {PCCHECK_DST}")
+
+
+def build_trace_db() -> None:
+    if BUILD_SIGNATURES.is_file():
+        subprocess.check_call([sys.executable, str(BUILD_SIGNATURES)])
+    else:
+        print("Warning: build_signature_db.py not found — trace DB may be missing")
+
+
 def main() -> int:
+    sync_pccheck()
+    build_trace_db()
     ensure_icon()
     try:
         import PyInstaller  # noqa: F401
@@ -73,6 +101,10 @@ def main() -> int:
         cmd.extend(["--version-file", str(VERSION_FILE)])
     if assets.exists():
         cmd.extend(["--add-data", f"{assets}{';' if sys.platform == 'win32' else ':'}assets"])
+    traces = ROOT / "pccheck" / "data" / "traces.jsonl"
+    if traces.exists():
+        sep = ";" if sys.platform == "win32" else ":"
+        cmd.extend(["--add-data", f"{traces}{sep}pccheck/data"])
     cmd.append(str(ROOT / "gui_app.py"))
     print("Building dotx-pc-check.exe...")
     subprocess.check_call(cmd, cwd=ROOT)

@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 
 from pccheck.models import Category, Finding, ScanResult, Severity
-from pccheck.signatures import CHEAT_WEBSITE_DOMAINS
+from pccheck.signatures import BROWSER_FORUM_DOMAINS, CHEAT_WEBSITE_DOMAINS
 
 CHROME_HISTORY = Path(os.environ.get("LOCALAPPDATA", "")) / "Google/Chrome/User Data/Default/History"
 EDGE_HISTORY = Path(os.environ.get("LOCALAPPDATA", "")) / "Microsoft/Edge/User Data/Default/History"
@@ -72,7 +72,6 @@ class BrowserScanner:
     for domain in CHEAT_WEBSITE_DOMAINS:
       if domain.lower() in combined and domain not in seen:
         seen.add(domain)
-        # Find example URL
         example = next((u for u in all_urls if domain.lower() in u.lower()), domain)
         result.add(
           Finding(
@@ -80,6 +79,22 @@ class BrowserScanner:
             description="Browser history shows visit to known cheat provider site",
             severity=Severity.HIGH,
             category=Category.CHEAT,
+            evidence=example[:200],
+            path="Browser History",
+            signature=domain,
+          )
+        )
+
+    for domain in BROWSER_FORUM_DOMAINS:
+      if domain.lower() in combined and domain not in seen:
+        seen.add(domain)
+        example = next((u for u in all_urls if domain.lower() in u.lower()), domain)
+        result.add(
+          Finding(
+            title=f"Cheat forum visit: {domain}",
+            description="Browser history shows visit to cheat forum (review context — not proof alone)",
+            severity=Severity.LOW,
+            category=Category.SUSPICIOUS,
             evidence=example[:200],
             path="Browser History",
             signature=domain,
