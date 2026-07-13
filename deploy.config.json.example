@@ -2,5 +2,7 @@
   "githubPagesUrl": "https://mitzibua-ai.github.io/smmmdz",
   "customSiteUrl": "https://dotx.store",
   "railwayApiUrl": "https://YOUR-RAILWAY-DOMAIN.up.railway.app",
-  "siteApiToken": "YOUR_RANDOM_SECRET_TOKEN"
+  "siteApiToken": "YOUR_RANDOM_SECRET_TOKEN",
+  "supabaseUrl": "https://bumuisxrzbteeymzeidh.supabase.co",
+  "supabaseServiceRoleKey": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
 }

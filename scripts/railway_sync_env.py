@@ -124,6 +124,26 @@ def _github_cors_origin() -> str:
     return _site_cors_origins()
 
 
+def _deploy_supabase_url() -> str:
+    if not DEPLOY_CONFIG_PATH.is_file():
+        return "https://bumuisxrzbteeymzeidh.supabase.co"
+    try:
+        data = json.loads(DEPLOY_CONFIG_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return "https://bumuisxrzbteeymzeidh.supabase.co"
+    return str(data.get("supabaseUrl", "https://bumuisxrzbteeymzeidh.supabase.co")).strip()
+
+
+def _deploy_supabase_service_key() -> str:
+    if not DEPLOY_CONFIG_PATH.is_file():
+        return ""
+    try:
+        data = json.loads(DEPLOY_CONFIG_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return ""
+    return str(data.get("supabaseServiceRoleKey", "")).strip()
+
+
 def _deploy_site_token() -> str:
     if not DEPLOY_CONFIG_PATH.is_file():
         return ""
@@ -194,10 +214,13 @@ def main() -> int:
         "DISCORD_CUSTOMER_ROLE_ID": "1519527288503275641",
         "OWNER_DISCORD_IDS": owner_value,
         "HOST": "0.0.0.0",
-        "DATA_DIR": "/data",
-        "DATA_PATH": "/data/store.json",
+        "SUPABASE_URL": _deploy_supabase_url(),
         "API_ONLY": "1",
     }
+
+    supabase_key = _deploy_supabase_service_key()
+    if supabase_key and not supabase_key.startswith("YOUR_"):
+        pairs["SUPABASE_SERVICE_ROLE_KEY"] = supabase_key
 
     cors_origin = _github_cors_origin()
     if cors_origin:
@@ -221,6 +244,7 @@ def main() -> int:
             "CORS_ORIGINS",
             "OWNER_DISCORD_IDS",
             "SITE_API_TOKEN",
+            "SUPABASE_SERVICE_ROLE_KEY",
         }
         and not v
     ]
@@ -237,6 +261,7 @@ def main() -> int:
         "CORS_ORIGINS",
         "OWNER_DISCORD_IDS",
         "SITE_API_TOKEN",
+        "SUPABASE_SERVICE_ROLE_KEY",
     }
 
     for key, value in pairs.items():
