@@ -1117,8 +1117,8 @@ function showApiOfflineBanner() {
   banner.id = "api-offline-banner";
   banner.className = "alert";
   banner.innerHTML =
-    "<strong>Supabase API is offline.</strong> Pins, scans, and downloads will not work until the Edge Function is deployed. " +
-    "Run <code>push-supabase.bat</code> to deploy the API and sync your database." +
+    "<strong>Supabase API is offline.</strong> Run <code>supabase/schema.sql</code> and <code>supabase/rpc.sql</code> in Supabase SQL Editor. " +
+    "Add <code>supabaseAnonKey</code> to deploy.config.json, then run <code>push-supabase.bat</code>." +
     (api ? `<br><span style="opacity:0.85">API: ${api}</span>` : "");
   main.prepend(banner);
 }

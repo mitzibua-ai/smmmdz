@@ -49,23 +49,30 @@ def _sync_config_js() -> None:
         return
     deploy = _load_deploy()
     text = CONFIG_JS.read_text(encoding="utf-8")
+    supabase_url = str(deploy.get("supabaseUrl", DEFAULT_SUPABASE_URL)).strip().rstrip("/")
+    if supabase_url:
+        if "supabaseUrl:" in text:
+            text, _ = re.subn(r'(supabaseUrl:\s*")[^"]*(")', rf'\1{supabase_url}\2', text, count=1)
+        else:
+            text = text.replace("apiBaseUrl:", f'supabaseUrl: "{supabase_url}",\n\n  apiBaseUrl:', 1)
+        print(f"Updated web/js/config.js supabaseUrl -> {supabase_url}")
+    anon_key = str(deploy.get("supabaseAnonKey", "")).strip()
+    if anon_key and not anon_key.startswith("YOUR_"):
+        if "supabaseAnonKey:" in text:
+            text, _ = re.subn(r'(supabaseAnonKey:\s*")[^"]*(")', rf'\1{anon_key}\2', text, count=1)
+        else:
+            text = text.replace(
+                "supabaseUrl:",
+                f'supabaseAnonKey: "{anon_key}",\n\n  supabaseUrl:',
+                1,
+            )
+        print("Updated web/js/config.js supabaseAnonKey")
     api_url = api_base_url(deploy)
     text, _ = re.subn(r'(apiBaseUrl:\s*")[^"]*(")', rf'\1{api_url}\2', text, count=1)
     site_token = str(deploy.get("siteApiToken", "")).strip()
     if site_token and not site_token.startswith("YOUR_"):
         text, _ = re.subn(r'(apiToken:\s*")[^"]*(")', rf'\1{site_token}\2', text, count=1)
-    text = re.sub(
-        r"// Railway API URL.*?\n\s*//.*?\n\s*//.*?\n",
-        "// Supabase Edge API (pins, scans, licenses, stamped exe download)\n",
-        text,
-        count=1,
-    )
-    text = text.replace(
-        "// Site API security token — must match Railway SITE_API_TOKEN",
-        "// Site API security token — must match Supabase secret SITE_API_TOKEN",
-    )
     CONFIG_JS.write_text(text, encoding="utf-8")
-    print(f"Updated web/js/config.js apiBaseUrl -> {api_url}")
 
 
 def _export_supabase_env(deploy: dict) -> None:

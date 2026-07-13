@@ -101,6 +101,30 @@ async function fetchLicenseFromServer(discordId) {
 
   const stored = getAccount();
 
+  if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
+    try {
+      const data = await supabaseRpc("get_license_rpc", { p_discord_id: String(discordId) });
+      if (data?.licenseActive === true) {
+        return {
+          status: "Customer",
+          licenseActive: true,
+          isOwner: data.isOwner === true,
+          isAdmin: data.isAdmin === true,
+          isStaff: data.isStaff === true,
+          panelRole: data.panelRole || "member",
+          licenseExpiresAt: data.licenseExpiresAt || null,
+          licenseGrantedAt: data.licenseGrantedAt || null,
+          licenseSource: data.licenseSource || data.method || null,
+          source: data.method || "supabase",
+          unreachable: false,
+        };
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   try {
     const res = await fetch(apiUrlWithToken(`/api/license/${encodeURIComponent(discordId)}?t=${Date.now()}`), {
       method: "GET",

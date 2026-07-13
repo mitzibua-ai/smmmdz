@@ -11,6 +11,9 @@ function apiBaseUrl() {
 }
 
 function isExternalApiConfigured() {
+  if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
+    return true;
+  }
   const configured = window.SITE_CONFIG?.apiBaseUrl;
   return !!(configured && String(configured).trim());
 }
@@ -52,8 +55,16 @@ async function apiGet(path) {
   return data;
 }
 
-/** Returns true when the Supabase API responds to /api/health. */
+/** Returns true when Supabase API responds. */
 async function checkApiOnline() {
+  if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
+    try {
+      const data = await supabaseRpc("api_health");
+      return data?.ok === true;
+    } catch {
+      return false;
+    }
+  }
   if (!isExternalApiConfigured()) return false;
   try {
     const controller = new AbortController();

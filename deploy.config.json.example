@@ -3,5 +3,6 @@
   "customSiteUrl": "https://dotx.store",
   "siteApiToken": "YOUR_RANDOM_SECRET_TOKEN",
   "supabaseUrl": "https://bumuisxrzbteeymzeidh.supabase.co",
+  "supabaseAnonKey": "YOUR_SUPABASE_ANON_KEY",
   "supabaseServiceRoleKey": "YOUR_SUPABASE_SERVICE_ROLE_KEY"
 }

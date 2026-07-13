@@ -26,6 +26,9 @@ function apiDownloadUrl(pin) {
 }
 
 async function verifyPin(pin) {
+  if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
+    return supabaseRpc("verify_pin_rpc", { p_pin: pin });
+  }
   const base = typeof apiBaseUrl === "function" ? apiBaseUrl() : "";
   if (!base) throw new Error("API not configured");
   const url = `${base.replace(/\/$/, "")}/api/pins/verify/${encodeURIComponent(pin)}`;
@@ -35,6 +38,11 @@ async function verifyPin(pin) {
     throw new Error(data.error || "invalid_pin");
   }
   return res.json();
+}
+
+function staticExeDownloadUrl() {
+  const rel = window.SITE_CONFIG?.pcCheckToolUrl || "/downloads/dotx-pc-check.exe";
+  return new URL(rel, window.location.origin).href;
 }
 
 async function initDownloadPage() {
@@ -63,7 +71,10 @@ async function initDownloadPage() {
     return;
   }
 
-  const fileUrl = apiDownloadUrl(pin);
+  const fileUrl =
+    typeof useSupabaseDirect === "function" && useSupabaseDirect()
+      ? staticExeDownloadUrl()
+      : apiDownloadUrl(pin);
   $("download-pin-label").textContent = pin;
   const btn = $("download-btn");
   if (btn) btn.href = fileUrl;

@@ -14,11 +14,15 @@ After code changes, run **`push-all.bat`** (or **`push-supabase.bat`**) to updat
 
 ## One-time setup
 
-### 1. Supabase database
+### 1. Supabase database + API
 
 1. Open [your Supabase project](https://supabase.com/dashboard/project/bumuisxrzbteeymzeidh).
-2. **SQL Editor** → run `supabase/schema.sql`.
-3. **Settings → API** → copy the **service_role** key.
+2. **SQL Editor** → run **`supabase/schema.sql`**, then **`supabase/rpc.sql`**.
+3. **Settings → API** → copy:
+   - **anon public** key → `deploy.config.json` → `supabaseAnonKey`
+   - **service_role** key → `deploy.config.json` → `supabaseServiceRoleKey`
+
+Or double-click **`setup-supabase.bat`** — it opens the SQL Editor and API settings.
 
 ### 2. `deploy.config.json`
 

@@ -49,6 +49,7 @@ async function registerUserOnServer(acc) {
           discordId: acc.discordId,
           username: acc.username,
           avatarHash: acc.avatarHash || null,
+          licensedStatus: acc.licensedStatus || acc.plan || "Standard",
         },
       });
     }
@@ -65,6 +66,7 @@ async function registerUserOnServer(acc) {
         discordId: acc.discordId,
         username: acc.username,
         avatarHash: acc.avatarHash || null,
+        licensedStatus: acc.licensedStatus || acc.plan || "Standard",
         accessToken: acc.discordAccessToken || null,
       }),
     });

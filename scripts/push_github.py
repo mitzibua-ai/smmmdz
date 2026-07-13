@@ -23,6 +23,7 @@ WEB_PATHS = [
     "scripts/push_all.py",
     "scripts/push_supabase.py",
     "scripts/migrate_store_to_supabase.py",
+    "setup-supabase.bat",
 ]
 
 
@@ -43,6 +44,26 @@ def _sync_api_url() -> None:
     except (json.JSONDecodeError, OSError):
         return
     text = CONFIG_JS.read_text(encoding="utf-8")
+    supabase_url = str(data.get("supabaseUrl", DEFAULT_SUPABASE_URL)).strip().rstrip("/")
+    if supabase_url and "supabaseUrl:" in text:
+        text, count = re.subn(
+            r'(supabaseUrl:\s*")[^"]*(")',
+            rf'\1{supabase_url}\2',
+            text,
+            count=1,
+        )
+        if count:
+            print(f"Updated web/js/config.js supabaseUrl -> {supabase_url}")
+    anon_key = str(data.get("supabaseAnonKey", "")).strip()
+    if anon_key and not anon_key.startswith("YOUR_") and "supabaseAnonKey:" in text:
+        text, count = re.subn(
+            r'(supabaseAnonKey:\s*")[^"]*(")',
+            rf'\1{anon_key}\2',
+            text,
+            count=1,
+        )
+        if count:
+            print("Updated web/js/config.js supabaseAnonKey")
     api_url = _api_base_url(data)
     text, count = re.subn(
         r'(apiBaseUrl:\s*")[^"]*(")',

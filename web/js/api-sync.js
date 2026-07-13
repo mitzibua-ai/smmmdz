@@ -33,6 +33,10 @@ function apiAuthBody(payload = {}) {
 }
 
 async function apiRequest(path, options = {}) {
+  if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
+    return supabaseApiRequest(path, options);
+  }
+
   const method = String(options.method || "GET").toUpperCase();
   const headers = apiAuthHeaders(options.headers || {}, method);
   let body = options.body;
@@ -62,8 +66,11 @@ async function apiRequest(path, options = {}) {
 function apiFetchErrorMessage(err) {
   const msg = String(err?.message || "");
   if (msg === "Failed to fetch" || err?.name === "TypeError" || err?.name === "AbortError") {
-    if (typeof isExternalApiConfigured === "function" && !isExternalApiConfigured()) {
-      return "API not linked. Set apiBaseUrl in config.js to your Supabase API URL, then redeploy.";
+    if (typeof useSupabaseDirect === "function" && !useSupabaseDirect()) {
+      return "Add supabaseAnonKey to config.js (Supabase → Settings → API → anon public key), then run push-supabase.bat.";
+    }
+    if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
+      return "Could not reach Supabase. Run supabase/schema.sql and supabase/rpc.sql in your Supabase SQL Editor.";
     }
     if (typeof siteApiToken === "function" && !siteApiToken()) {
       return "Could not reach the API. Set apiToken in config.js (must match Supabase SITE_API_TOKEN).";
