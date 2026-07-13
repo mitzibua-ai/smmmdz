@@ -17,7 +17,7 @@ window.SITE_CONFIG = {
   // Supabase anon public key (Settings → API → anon) — required for pins
   supabaseAnonKey: "sb_publishable_5LcJi95hPiL-tontab7y_w_IETuThJs",
 
-  // Optional Edge Function fallback (not required if supabaseAnonKey is set)
+  // Legacy Edge Function URL (optional — not used when supabaseAnonKey is set)
   apiBaseUrl: "https://bumuisxrzbteeymzeidh.supabase.co/functions/v1/dotx",
 
   apiToken: "CghI7o7bKeoevRU074_kPm08OrDq6EqcQVsCGX3xBnQ",
