@@ -64,15 +64,9 @@ def _sync_api_url() -> None:
         )
         if count:
             print("Updated web/js/config.js supabaseAnonKey")
-    api_url = _api_base_url(data)
-    text, count = re.subn(
-        r'(apiBaseUrl:\s*")[^"]*(")',
-        rf'\1{api_url}\2',
-        text,
-        count=1,
-    )
-    if count:
-        print(f"Updated web/js/config.js apiBaseUrl -> {api_url}")
+        text, count = re.subn(r'(apiBaseUrl:\s*")[^"]*(")', r'\1\2', text, count=1)
+        if count:
+            print("Cleared web/js/config.js apiBaseUrl (using Supabase direct)")
     site_token = str(data.get("siteApiToken", "")).strip()
     if site_token and not site_token.startswith("YOUR_"):
         text, count = re.subn(

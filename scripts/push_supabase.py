@@ -45,6 +45,8 @@ def _sync_config_js() -> None:
                 1,
             )
         print("Updated web/js/config.js supabaseAnonKey")
+        text, _ = re.subn(r'(apiBaseUrl:\s*")[^"]*(")', r'\1\2', text, count=1)
+        print("Cleared web/js/config.js apiBaseUrl (using Supabase direct)")
     site_token = str(deploy.get("siteApiToken", "")).strip()
     if site_token and not site_token.startswith("YOUR_"):
         text, _ = re.subn(r'(apiToken:\s*")[^"]*(")', rf'\1{site_token}\2', text, count=1)

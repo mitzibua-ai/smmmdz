@@ -18,7 +18,7 @@ window.SITE_CONFIG = {
   supabaseAnonKey: "sb_publishable_5LcJi95hPiL-tontab7y_w_IETuThJs",
 
   // Legacy Edge Function URL (optional — not used when supabaseAnonKey is set)
-  apiBaseUrl: "https://bumuisxrzbteeymzeidh.supabase.co/functions/v1/dotx",
+  apiBaseUrl: "",
 
   apiToken: "CghI7o7bKeoevRU074_kPm08OrDq6EqcQVsCGX3xBnQ",
 
