@@ -51,3 +51,24 @@ async function apiGet(path) {
   }
   return data;
 }
+
+/** Returns true when the Railway API responds to /api/health. */
+async function checkApiOnline() {
+  if (!isExternalApiConfigured()) return false;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(apiUrlWithToken("/api/health"), {
+      method: "GET",
+      mode: "cors",
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return false;
+    const data = await res.json().catch(() => ({}));
+    return data.ok === true;
+  } catch {
+    return false;
+  }
+}

@@ -61,14 +61,19 @@ async function apiRequest(path, options = {}) {
 
 function apiFetchErrorMessage(err) {
   const msg = String(err?.message || "");
-  if (msg === "Failed to fetch" || err?.name === "TypeError") {
+  if (msg === "Failed to fetch" || err?.name === "TypeError" || err?.name === "AbortError") {
     if (typeof isExternalApiConfigured === "function" && !isExternalApiConfigured()) {
       return "API not linked. Set apiBaseUrl in config.js to your Railway URL, then redeploy.";
     }
     if (typeof siteApiToken === "function" && !siteApiToken()) {
       return "Could not reach the API. Set apiToken in config.js (must match Railway SITE_API_TOKEN).";
     }
-    return "Could not reach the API. Check Railway is online and CORS_ORIGINS includes your GitHub Pages URL.";
+    const api = typeof apiBaseUrl === "function" ? apiBaseUrl() : "";
+    return (
+      "Railway API is offline. Open railway.app, upgrade your plan if the trial expired, " +
+      "then run push-railway.bat to redeploy. " +
+      (api ? `API: ${api}` : "")
+    );
   }
   if (err?.code === "invalid_site_token" || err?.status === 401) {
     return "API security token mismatch. Update apiToken in config.js to match Railway SITE_API_TOKEN.";

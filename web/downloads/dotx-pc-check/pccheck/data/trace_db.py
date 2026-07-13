@@ -26,6 +26,13 @@ def _traces_file() -> Path:
     return Path(__file__).resolve().parent / "traces.jsonl"
 
 
+def _bundled_data_file(name: str) -> Path:
+    bundled = Path(getattr(sys, "_MEIPASS", "")) / "pccheck" / "data" / name
+    if bundled.is_file():
+        return bundled
+    return Path(__file__).resolve().parent / name
+
+
 def _parse_category(raw: str) -> Category:
     try:
         return Category(str(raw).lower())

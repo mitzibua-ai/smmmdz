@@ -81,6 +81,8 @@ function bindPinModalEvents() {
       deletePin(account.discordId, pin.id);
       if (err?.code === "license_required") {
         alert("Customer license required to generate PINs.");
+      } else {
+        alert(apiFetchErrorMessage(err));
       }
       return;
     }
@@ -1107,6 +1109,34 @@ function bindReportsEvents() {
   });
 }
 
+function showApiOfflineBanner() {
+  const main = $("main-content");
+  if (!main || document.getElementById("api-offline-banner")) return;
+  const api = typeof apiBaseUrl === "function" ? apiBaseUrl() : "";
+  const banner = document.createElement("div");
+  banner.id = "api-offline-banner";
+  banner.className = "alert";
+  banner.innerHTML =
+    "<strong>Railway API is offline.</strong> Pins, scans, and downloads will not work until the API is running. " +
+    "If your Railway trial expired, upgrade your plan at railway.app, then run <code>push-railway.bat</code> to redeploy." +
+    (api ? `<br><span style="opacity:0.85">API: ${api}</span>` : "");
+  main.prepend(banner);
+}
+
+function hideApiOfflineBanner() {
+  document.getElementById("api-offline-banner")?.remove();
+}
+
+async function verifyApiStatus() {
+  if (typeof checkApiOnline !== "function" || !isExternalApiConfigured()) return;
+  const online = await checkApiOnline();
+  if (online) {
+    hideApiOfflineBanner();
+  } else {
+    showApiOfflineBanner();
+  }
+}
+
 async function init() {
   document.title = `${cfg.name} — Panel`;
   account = getAccount();
@@ -1148,6 +1178,7 @@ async function init() {
   });
   refreshDashboardData().catch(() => {});
   registerUserOnServer(account).catch(() => {});
+  verifyApiStatus();
   startDataSync();
   startLicenseSync(handleLicenseUpdate);
 }

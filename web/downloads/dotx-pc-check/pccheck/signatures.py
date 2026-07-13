@@ -107,6 +107,39 @@ CHEAT_FILE_SIGNATURES: list[FileSignature] = [
         "Brutan / Project cheat family",
     ),
     FileSignature(
+        "Degeo / Project Family",
+        (
+            "degeo", "degeo cracked", "projectyx", "project loader", "projectloader",
+            "combatproject", "astaroth", "lunacy", "cutie external", "stringless",
+            "katana", "asgard", "monster menu", "monkeyware",
+        ),
+        Severity.CRITICAL,
+        Category.CHEAT,
+        "Degeo / Project / community DPS cheat family",
+    ),
+    FileSignature(
+        "Community DPS Cheats",
+        (
+            "88cheats", "88-cheats", "testo.gg", "mindselling", "sicario", "ciapak",
+            "nightware", "hammafia", "ov projekt", "cfx mafia", "sylace loader",
+            "byte cleaner", "stringcleaner", "ravenx", "khub", "tdpremium",
+        ),
+        Severity.HIGH,
+        Category.CHEAT,
+        "Additional cheats from imported DPS detection lists",
+    ),
+    FileSignature(
+        "DPS Cleaner Tools",
+        (
+            "iObit unlocker", "iobit unlocker", "veracrypt bypass", "imdisk",
+            "usb oblivion", "bleach bit", "phantom string cleaner", "eventvwr clear",
+            "osf mount", "usbdeview", "ccleaner",
+        ),
+        Severity.CRITICAL,
+        Category.CLEANER,
+        "Cleaner / anti-forensic tools from DPS detection lists",
+    ),
+    FileSignature(
         "Generic Lua Executor",
         (
             "lua executor",
@@ -309,6 +342,36 @@ CHEAT_WEBSITE_DOMAINS: tuple[str, ...] = (
     "redengine",
     "tzproject",
 )
+
+
+def load_cheat_domains() -> tuple[str, ...]:
+    """Extra cheat/cleaner domains from imported detection lists."""
+    from functools import lru_cache
+    from pathlib import Path
+
+    @lru_cache(maxsize=1)
+    def _load() -> tuple[str, ...]:
+        candidates = [
+            Path(__file__).resolve().parent / "data" / "cheat_domains.txt",
+            Path(__file__).resolve().parent / "cheat_domains.txt",
+        ]
+        try:
+            from pccheck.data.trace_db import _bundled_data_file
+
+            candidates.insert(0, _bundled_data_file("cheat_domains.txt"))
+        except ImportError:
+            pass
+        path = next((p for p in candidates if p.is_file()), None)
+        if path is None:
+            return ()
+        domains: list[str] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            d = line.strip().lower()
+            if d and d not in domains:
+                domains.append(d)
+        return tuple(domains)
+
+    return _load()
 
 CHEAT_PROCESS_SIGNATURES: list[ProcessSignature] = [
     ProcessSignature(

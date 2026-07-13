@@ -60,6 +60,9 @@ def build_trace_db() -> None:
         subprocess.check_call([sys.executable, str(BUILD_SIGNATURES)])
     else:
         print("Warning: build_signature_db.py not found — trace DB may be missing")
+    import_script = REPO_ROOT / "scripts" / "import_detections.py"
+    if import_script.is_file():
+        subprocess.check_call([sys.executable, str(import_script)])
 
 
 def main() -> int:
@@ -105,6 +108,10 @@ def main() -> int:
     if traces.exists():
         sep = ";" if sys.platform == "win32" else ":"
         cmd.extend(["--add-data", f"{traces}{sep}pccheck/data"])
+    domains = ROOT / "pccheck" / "data" / "cheat_domains.txt"
+    if domains.exists():
+        sep = ";" if sys.platform == "win32" else ":"
+        cmd.extend(["--add-data", f"{domains}{sep}pccheck/data"])
     cmd.append(str(ROOT / "gui_app.py"))
     print("Building dotx-pc-check.exe...")
     subprocess.check_call(cmd, cwd=ROOT)

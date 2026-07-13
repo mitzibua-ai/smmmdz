@@ -93,21 +93,29 @@ def _origin_from_url(raw: str) -> str:
 
 def _site_cors_origins() -> str:
     origins: list[str] = []
-    if not DEPLOY_CONFIG_PATH.is_file():
-        return ""
-    try:
-        data = json.loads(DEPLOY_CONFIG_PATH.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return ""
+    if DEPLOY_CONFIG_PATH.is_file():
+        try:
+            data = json.loads(DEPLOY_CONFIG_PATH.read_text(encoding="utf-8"))
+            for key in ("githubPagesUrl", "customSiteUrl", "siteUrl"):
+                origin = _origin_from_url(str(data.get(key, "")).strip())
+                if origin and origin not in origins:
+                    origins.append(origin)
+                if origin.startswith("https://") and not origin.startswith("https://www."):
+                    www = origin.replace("https://", "https://www.", 1)
+                    if www not in origins:
+                        origins.append(www)
+        except (json.JSONDecodeError, OSError):
+            pass
 
-    for key in ("githubPagesUrl", "customSiteUrl", "siteUrl"):
-        origin = _origin_from_url(str(data.get(key, "")).strip())
-        if origin and origin not in origins:
-            origins.append(origin)
-        if origin.startswith("https://") and not origin.startswith("https://www."):
-            www = origin.replace("https://", "https://www.", 1)
-            if www not in origins:
-                origins.append(www)
+    # Always allow dotx.store even if deploy.config.json is missing.
+    for fallback in (
+        "https://dotx.store",
+        "https://www.dotx.store",
+        "https://mitzibua-ai.github.io",
+        "https://www.mitzibua-ai.github.io",
+    ):
+        if fallback not in origins:
+            origins.append(fallback)
 
     return ",".join(origins)
 
