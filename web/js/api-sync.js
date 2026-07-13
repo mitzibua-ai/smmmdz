@@ -63,20 +63,19 @@ function apiFetchErrorMessage(err) {
   const msg = String(err?.message || "");
   if (msg === "Failed to fetch" || err?.name === "TypeError" || err?.name === "AbortError") {
     if (typeof isExternalApiConfigured === "function" && !isExternalApiConfigured()) {
-      return "API not linked. Set apiBaseUrl in config.js to your Railway URL, then redeploy.";
+      return "API not linked. Set apiBaseUrl in config.js to your Supabase API URL, then redeploy.";
     }
     if (typeof siteApiToken === "function" && !siteApiToken()) {
-      return "Could not reach the API. Set apiToken in config.js (must match Railway SITE_API_TOKEN).";
+      return "Could not reach the API. Set apiToken in config.js (must match Supabase SITE_API_TOKEN).";
     }
     const api = typeof apiBaseUrl === "function" ? apiBaseUrl() : "";
     return (
-      "Railway API is offline. Open railway.app, upgrade your plan if the trial expired, " +
-      "then run push-railway.bat to redeploy. " +
+      "Supabase API is offline. Check your Edge Function is deployed (push-supabase.bat). " +
       (api ? `API: ${api}` : "")
     );
   }
   if (err?.code === "invalid_site_token" || err?.status === 401) {
-    return "API security token mismatch. Update apiToken in config.js to match Railway SITE_API_TOKEN.";
+    return "API security token mismatch. Update apiToken in config.js to match Supabase SITE_API_TOKEN.";
   }
   return msg || "Request failed.";
 }

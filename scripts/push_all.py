@@ -1,4 +1,4 @@
-"""Push website to GitHub and API+bot to Railway."""
+"""Push website to GitHub and sync Supabase database + API."""
 from __future__ import annotations
 
 import subprocess
@@ -13,18 +13,10 @@ def main() -> int:
     print(" dotx - Push Everything")
     print(" ======================")
     print()
-    print(" GitHub  = website (pages)")
-    print(" Railway = API data + Discord bot")
+    print(" GitHub  = website + exe (GitHub Pages)")
+    print(" Supabase = database + API")
     print()
-
-    github = subprocess.call([sys.executable, str(ROOT / "scripts" / "push_github.py")])
-    if github != 0:
-        print()
-        print("[WARN] GitHub push had issues; continuing with Railway deploy...")
-
-    print()
-    railway = subprocess.call([sys.executable, str(ROOT / "scripts" / "push_railway.py")])
-    return railway
+    return subprocess.call([sys.executable, str(ROOT / "scripts" / "push_supabase.py")])
 
 
 if __name__ == "__main__":

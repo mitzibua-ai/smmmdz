@@ -10,21 +10,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEPLOY_CONFIG = ROOT / "deploy.config.json"
 CONFIG_JS = ROOT / "web" / "js" / "config.js"
+DEFAULT_API_SUFFIX = "/functions/v1/dotx"
+DEFAULT_SUPABASE_URL = "https://bumuisxrzbteeymzeidh.supabase.co"
 
 WEB_PATHS = [
     "web",
+    "supabase",
     ".github/workflows",
     "DEPLOY.md",
     "deploy.config.json.example",
     "scripts/push_github.py",
     "scripts/push_all.py",
-    "scripts/push_railway.py",
-    "scripts/railway_sync_env.py",
+    "scripts/push_supabase.py",
+    "scripts/migrate_store_to_supabase.py",
 ]
 
 
 def _run(cmd: list[str], *, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True, check=check)
+
+
+def _api_base_url(data: dict) -> str:
+    supabase = str(data.get("supabaseUrl", DEFAULT_SUPABASE_URL)).strip().rstrip("/")
+    return f"{supabase or DEFAULT_SUPABASE_URL}{DEFAULT_API_SUFFIX}"
 
 
 def _sync_api_url() -> None:
@@ -35,16 +43,15 @@ def _sync_api_url() -> None:
     except (json.JSONDecodeError, OSError):
         return
     text = CONFIG_JS.read_text(encoding="utf-8")
-    api_url = str(data.get("railwayApiUrl", "")).strip().rstrip("/")
-    if api_url and "YOUR-RAILWAY" not in api_url:
-        text, count = re.subn(
-            r'(apiBaseUrl:\s*")[^"]*(")',
-            rf'\1{api_url}\2',
-            text,
-            count=1,
-        )
-        if count:
-            print(f"Updated web/js/config.js apiBaseUrl -> {api_url}")
+    api_url = _api_base_url(data)
+    text, count = re.subn(
+        r'(apiBaseUrl:\s*")[^"]*(")',
+        rf'\1{api_url}\2',
+        text,
+        count=1,
+    )
+    if count:
+        print(f"Updated web/js/config.js apiBaseUrl -> {api_url}")
     site_token = str(data.get("siteApiToken", "")).strip()
     if site_token and not site_token.startswith("YOUR_"):
         text, count = re.subn(
@@ -55,13 +62,6 @@ def _sync_api_url() -> None:
         )
         if count:
             print("Updated web/js/config.js apiToken")
-        elif 'apiToken:' not in text:
-            text = text.replace(
-                'apiBaseUrl:',
-                f'apiToken: "{site_token}",\n\n  apiBaseUrl:',
-                1,
-            )
-            print("Added web/js/config.js apiToken")
     CONFIG_JS.write_text(text, encoding="utf-8")
 
 
@@ -84,10 +84,6 @@ def main() -> int:
 
     if not (ROOT / ".git").is_dir():
         print("[ERROR] This folder is not a git repo yet.")
-        print("  1. Create a repo on github.com")
-        print("  2. Run: git init")
-        print("  3. Run: git remote add origin https://github.com/YOU/REPO.git")
-        print("  4. Run: git branch -M main")
         return 1
 
     _sync_api_url()
@@ -95,7 +91,6 @@ def main() -> int:
     remote = _run(["git", "remote", "get-url", "origin"], check=False)
     if remote.returncode != 0:
         print("[ERROR] No git remote named 'origin'.")
-        print("  git remote add origin https://github.com/YOU/REPO.git")
         return 1
 
     for rel in WEB_PATHS:
@@ -133,8 +128,7 @@ def main() -> int:
 
     print()
     print("[OK] Pushed to GitHub.")
-    print("    GitHub Actions will deploy the site from the web/ folder.")
-    print("    Repo -> Settings -> Pages -> Source: GitHub Actions")
+    print("    GitHub Actions deploys web/ to Pages (dotx.store).")
     return 0
 
 

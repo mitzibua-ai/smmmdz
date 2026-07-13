@@ -1117,8 +1117,8 @@ function showApiOfflineBanner() {
   banner.id = "api-offline-banner";
   banner.className = "alert";
   banner.innerHTML =
-    "<strong>Railway API is offline.</strong> Pins, scans, and downloads will not work until the API is running. " +
-    "If your Railway trial expired, upgrade your plan at railway.app, then run <code>push-railway.bat</code> to redeploy." +
+    "<strong>Supabase API is offline.</strong> Pins, scans, and downloads will not work until the Edge Function is deployed. " +
+    "Run <code>push-supabase.bat</code> to deploy the API and sync your database." +
     (api ? `<br><span style="opacity:0.85">API: ${api}</span>` : "");
   main.prepend(banner);
 }

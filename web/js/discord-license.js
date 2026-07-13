@@ -116,7 +116,7 @@ async function fetchLicenseFromServer(discordId) {
         status: "Standard",
         licenseActive: false,
         error: "wrong_server",
-        message: "Set apiBaseUrl in config.js to your Railway API domain.",
+        message: "Set apiBaseUrl in config.js to your Supabase API URL.",
         source: "none",
       };
     }

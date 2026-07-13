@@ -15,12 +15,10 @@ window.SITE_CONFIG = {
   ownerDiscordIds: ["1284140942764539985"],
   ownerRoleIds: [],
 
-  // Railway API URL (data: pins, scans, users, roles) + PC Check download
-  // Leave empty to serve downloads from the site origin (GitHub Pages).
-  // Set to a Railway domain only if you host the API there.
-  apiBaseUrl: "https://proactive-nourishment-production-0d4e.up.railway.app",
+  // Supabase Edge API (pins, scans, licenses, stamped exe download)
+  apiBaseUrl: "https://bumuisxrzbteeymzeidh.supabase.co/functions/v1/dotx",
 
-  // Site API security token — must match Railway SITE_API_TOKEN
+  // Site API security token — must match Supabase secret SITE_API_TOKEN
   apiToken: "CghI7o7bKeoevRU074_kPm08OrDq6EqcQVsCGX3xBnQ",
 
   // Leave empty — OAuth uses your GitHub Pages domain automatically

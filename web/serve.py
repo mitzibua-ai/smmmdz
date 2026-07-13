@@ -403,9 +403,9 @@ class DotxHandler(SimpleHTTPRequestHandler):
         configured = env("PUBLIC_URL", "").strip().rstrip("/")
         if configured:
             return configured
-        railway_domain = env("RAILWAY_PUBLIC_DOMAIN", "").strip()
-        if railway_domain:
-            return f"https://{railway_domain}"
+        custom = env("CUSTOM_SITE_URL", "").strip().rstrip("/")
+        if custom:
+            return custom
         return self._server_base_url()
 
     def _cors_origin(self) -> str:
@@ -942,13 +942,13 @@ class DotxHandler(SimpleHTTPRequestHandler):
 def main() -> None:
     load_env()
     port = int(env("PORT", "8080"))
-    default_host = "0.0.0.0" if env("PORT") or env("RAILWAY_ENVIRONMENT") else "127.0.0.1"
+    default_host = "0.0.0.0" if env("PORT") else "127.0.0.1"
     host = env("HOST", default_host)
     server = ThreadingHTTPServer((host, port), DotxHandler)
     mode = "API only (data + downloads)" if api_only() else "static site + API"
     print(f"dotx server [{mode}] at http://{host}:{port}")
-    if env("RAILWAY_PUBLIC_DOMAIN"):
-        print(f"Public URL: https://{env('RAILWAY_PUBLIC_DOMAIN')}")
+    if env("PUBLIC_URL"):
+        print(f"Public URL: {env('PUBLIC_URL')}")
     print("API: /api/pins, /api/scans, /api/license/<id>, /api/owner|admin|staff/overview")
     tool = resolve_tool_exe()
     if tool:

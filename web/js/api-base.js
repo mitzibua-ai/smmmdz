@@ -1,4 +1,4 @@
-/** API base URL — Railway stores data; GitHub Pages hosts the site. */
+/** API base URL — Supabase Edge Function; GitHub Pages hosts the site. */
 function apiBaseUrl() {
   const configured = window.SITE_CONFIG?.apiBaseUrl;
   if (configured && String(configured).trim()) {
@@ -52,7 +52,7 @@ async function apiGet(path) {
   return data;
 }
 
-/** Returns true when the Railway API responds to /api/health. */
+/** Returns true when the Supabase API responds to /api/health. */
 async function checkApiOnline() {
   if (!isExternalApiConfigured()) return false;
   try {
