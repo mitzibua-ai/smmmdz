@@ -124,21 +124,44 @@ def load_embedded_server_url() -> str | None:
         return None
 
 
-def load_server_url() -> str:
-    embedded = load_embedded_server_url()
-    if embedded:
-        return embedded
+DEFAULT_SUPABASE_URL = "https://bumuisxrzbteeymzeidh.supabase.co"
+DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_5LcJi95hPiL-tontab7y_w_IETuThJs"
+
+
+def load_supabase_config() -> tuple[str, str]:
+    """Return (supabase_url, anon_key) for scan upload."""
+    url = DEFAULT_SUPABASE_URL
+    key = DEFAULT_SUPABASE_ANON_KEY
 
     config_path = app_dir() / "dotx.config.json"
     if config_path.exists():
         try:
             data = json.loads(config_path.read_text(encoding="utf-8"))
-            url = str(data.get("serverUrl", "")).strip().rstrip("/")
-            if url:
-                return url
+            url = str(data.get("supabaseUrl") or data.get("serverUrl") or url).strip().rstrip("/")
+            key = str(data.get("supabaseAnonKey") or key).strip()
         except (json.JSONDecodeError, OSError):
             pass
-    return "http://127.0.0.1:8080"
+
+    # Embedded stamp may contain supabaseUrl, or legacy serverUrl (ignored for submit).
+    if getattr(sys, "frozen", False):
+        try:
+            data = Path(sys.executable).read_bytes()
+            idx = data.rfind(DOTX_CONFIG_MARKER)
+            if idx != -1:
+                payload = data[idx + len(DOTX_CONFIG_MARKER) :].decode("utf-8")
+                config = json.loads(payload)
+                url = str(config.get("supabaseUrl") or url).strip().rstrip("/")
+                key = str(config.get("supabaseAnonKey") or key).strip()
+        except (UnicodeDecodeError, json.JSONDecodeError, OSError):
+            pass
+
+    return url or DEFAULT_SUPABASE_URL, key or DEFAULT_SUPABASE_ANON_KEY
+
+
+def load_server_url() -> str:
+    """Legacy helper — upload now uses Supabase RPC via load_supabase_config()."""
+    url, _ = load_supabase_config()
+    return url
 
 
 def find_asset(name: str) -> Path | None:
@@ -162,36 +185,43 @@ def count_severities(result) -> tuple[int, int]:
 
 def upload_scan(server_url: str, pin: str, result, report_text: str) -> tuple[bool, str]:
     threats, warnings = count_severities(result)
-    payload = {
-        "pin": pin,
-        "verdict": result.verdict,
-        "threats": threats,
-        "warnings": warnings,
-        "summary": f"{result.verdict} — {len(result.findings)} findings",
-        "reportText": report_text,
-        "hostname": result.hostname,
-        "username": result.username,
+    supabase_url, anon_key = load_supabase_config()
+    body = json.dumps(
+        {
+            "p_pin": pin,
+            "p_verdict": result.verdict,
+            "p_threats": threats,
+            "p_warnings": warnings,
+            "p_summary": f"{result.verdict} — {len(result.findings)} findings",
+            "p_report_text": report_text,
+            "p_hostname": result.hostname,
+            "p_username": result.username,
+            "p_player_name": None,
+        }
+    ).encode("utf-8")
+    endpoint = f"{supabase_url.rstrip('/')}/rest/v1/rpc/submit_scan_rpc"
+    headers = {
+        "Content-Type": "application/json",
+        "User-Agent": "dotx-pc-check/1.0",
+        "apikey": anon_key,
+        "Authorization": f"Bearer {anon_key}",
     }
-    body = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        f"{server_url}/api/scans/submit",
-        data=body,
-        headers={"Content-Type": "application/json", "User-Agent": "dotx-pc-check/1.0"},
-        method="POST",
-    )
+    req = urllib.request.Request(endpoint, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with urllib.request.urlopen(req, timeout=45) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             if data.get("ok"):
                 return True, "Report sent to dotx panel."
-            return False, data.get("error") or "Upload failed."
+            return False, data.get("error") or data.get("message") or "Upload failed."
     except urllib.error.HTTPError as err:
         try:
-            data = json.loads(err.read().decode("utf-8"))
-            message = data.get("error") or err.reason
+            raw = err.read().decode("utf-8")
+            data = json.loads(raw)
+            message = data.get("message") or data.get("error") or err.reason
         except (json.JSONDecodeError, OSError):
             message = err.reason
-        if err.code == 404:
+        msg_lower = str(message).lower()
+        if err.code == 404 or "invalid_pin" in msg_lower:
             return False, "Invalid PIN. Ask staff for a new PIN from the dotx panel."
         return False, f"Upload failed ({message})."
     except urllib.error.URLError:
