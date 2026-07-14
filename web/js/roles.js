@@ -39,42 +39,74 @@ function avatarUrlForUser(user) {
   return "";
 }
 
-async function registerUserOnServer(acc) {
+function mergeRegisteredUserIntoAccount(acc, serverUser) {
+  if (!acc || !serverUser) return acc;
+  const merged = {
+    ...acc,
+    userToken: serverUser.userToken || acc.userToken,
+    firstSeen: serverUser.firstSeen || acc.firstSeen,
+    joinedAt: serverUser.joinedAt || serverUser.firstSeen || acc.joinedAt,
+    panelRole: serverUser.panelRole || acc.panelRole,
+    licensedStatus: serverUser.licensedStatus || acc.licensedStatus,
+    plan: serverUser.licensedStatus || acc.plan,
+    loginCount: serverUser.loginCount ?? acc.loginCount,
+    lastSeen: serverUser.lastSeen || acc.lastSeen,
+  };
+  if (typeof saveAccount === "function") saveAccount(merged);
+  if (typeof window !== "undefined") window.account = merged;
+  return merged;
+}
+
+async function registerUserOnServer(acc, { retries = 2 } = {}) {
   if (!acc?.discordId || !window.location.protocol.startsWith("http")) return null;
-  try {
-    if (typeof apiRequest === "function") {
-      return await apiRequest("/api/users/register", {
-        method: "POST",
-        body: {
-          discordId: acc.discordId,
-          username: acc.username,
-          avatarHash: acc.avatarHash || null,
-          licensedStatus: acc.licensedStatus || acc.plan || "Standard",
-        },
-      });
+
+  const payload = {
+    discordId: acc.discordId,
+    username: acc.username,
+    avatarHash: acc.avatarHash || null,
+    licensedStatus: acc.licensedStatus || acc.plan || "Standard",
+  };
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      let data = null;
+      if (typeof apiRequest === "function") {
+        data = await apiRequest("/api/users/register", {
+          method: "POST",
+          body: payload,
+        });
+      } else {
+        const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
+        const res = await fetch(apiUrl("/api/users/register"), {
+          method: "POST",
+          mode: "cors",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...(siteToken ? { "X-Site-Token": siteToken } : {}),
+          },
+          body: JSON.stringify({
+            ...payload,
+            accessToken: acc.discordAccessToken || null,
+          }),
+        });
+        if (!res.ok) throw new Error(`register failed (${res.status})`);
+        data = await res.json();
+      }
+
+      if (data?.user) {
+        return mergeRegisteredUserIntoAccount(acc, data.user);
+      }
+      return data;
+    } catch (err) {
+      if (attempt >= retries) {
+        console.warn("registerUserOnServer failed:", err);
+        return null;
+      }
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
     }
-    const siteToken = typeof siteApiToken === "function" ? siteApiToken() : "";
-    const res = await fetch(apiUrl("/api/users/register"), {
-      method: "POST",
-      mode: "cors",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...(siteToken ? { "X-Site-Token": siteToken } : {}),
-      },
-      body: JSON.stringify({
-        discordId: acc.discordId,
-        username: acc.username,
-        avatarHash: acc.avatarHash || null,
-        licensedStatus: acc.licensedStatus || acc.plan || "Standard",
-        accessToken: acc.discordAccessToken || null,
-      }),
-    });
-    if (!res.ok) return null;
-    return res.json();
-  } catch {
-    return null;
   }
+  return null;
 }
 
 async function fetchTeamDashboard(kind) {
@@ -408,8 +440,8 @@ function renderTeamData(data, kind) {
     kind === "staff"
       ? ""
       : `
-    <section class="panels">
-      <div class="panel panel--wide team-panel">
+    <section class="panels panels--full">
+      <div class="panel panel--wide team-panel team-panel--users">
         <div class="panel__head">
           <div>
             <div class="panel__title">Registered users</div>
@@ -448,7 +480,10 @@ async function loadTeamDashboard(kind, { silent = false } = {}) {
   if (!body) return;
   if (!silent) body.innerHTML = `<div class="empty-state">Loading…</div>`;
   try {
-    await registerUserOnServer(getAccount());
+    const registered = await registerUserOnServer(getAccount());
+    if (registered?.discordId && typeof window !== "undefined") {
+      window.account = registered;
+    }
     let data;
     try {
       data = await fetchTeamDashboard(kind);

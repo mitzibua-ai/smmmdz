@@ -207,7 +207,8 @@ async function completeDiscordOAuth(code, state) {
   const licensed = await applyLicensedStatus(account);
   if (typeof registerUserOnServer === "function") {
     try {
-      await registerUserOnServer(licensed);
+      const registered = await registerUserOnServer(licensed);
+      return registered?.discordId ? registered : licensed;
     } catch {
       // dashboard init will retry registration
     }

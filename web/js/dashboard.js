@@ -1177,7 +1177,11 @@ async function init() {
     if (!e.target.closest(".action-menu")) closeAllActionMenus();
   });
   refreshDashboardData().catch(() => {});
-  registerUserOnServer(account).catch(() => {});
+  registerUserOnServer(account)
+    .then((registered) => {
+      if (registered?.discordId) account = registered;
+    })
+    .catch(() => {});
   verifyApiStatus();
   startDataSync();
   startLicenseSync(handleLicenseUpdate);
@@ -1199,6 +1203,13 @@ async function refreshDashboardData() {
     handleLicenseUpdate(await applyLicensedStatus(account));
   } catch {
     // keep cached license status
+  }
+
+  try {
+    const registered = await registerUserOnServer(account);
+    if (registered?.discordId) account = registered;
+  } catch {
+    // registration retried on next refresh
   }
 
   await syncDashboardData(account.discordId);
