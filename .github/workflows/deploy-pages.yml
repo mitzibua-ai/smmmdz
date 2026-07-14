@@ -42,11 +42,18 @@ jobs:
           cp -r web/css web/js web/static _site/
           cp -r web/login web/callback web/dashboard web/downloads _site/
 
-          # Downloads (exe only — no Python bundle)
+          # Downloads (exe only — no Python source tree for public download)
           mkdir -p _site/downloads
           if [ -f web/downloads/dotx-pc-check.exe ]; then
             cp web/downloads/dotx-pc-check.exe _site/downloads/
+          elif [ -f web/downloads/dotx-pc-check/dotx-pc-check.exe ]; then
+            cp web/downloads/dotx-pc-check/dotx-pc-check.exe _site/downloads/dotx-pc-check.exe
+          elif [ -f web/downloads/dotx-pc-check/dotx.exe ]; then
+            cp web/downloads/dotx-pc-check/dotx.exe _site/downloads/dotx-pc-check.exe
           fi
+          # Don't serve the Python source package as a download folder dump
+          rm -rf _site/downloads/dotx-pc-check
+          ls -la _site/downloads/ || true
 
           # GitHub Pages: skip Jekyll processing
           cp web/.nojekyll _site/.nojekyll

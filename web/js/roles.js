@@ -93,17 +93,20 @@ async function fetchTeamDashboard(kind) {
     throw new Error(err?.message || "Could not load dashboard.");
   }
 
-  if (typeof apiGet === "function") {
+  if (typeof apiRequest === "function") {
     try {
-      return await apiGet(path);
+      return await apiRequest(path, {
+        method: "GET",
+        body: { discordId: acc.discordId },
+      });
     } catch (err) {
       mapDashboardError(err);
     }
   }
 
-  if (typeof apiRequest === "function") {
+  if (typeof apiGet === "function") {
     try {
-      return await apiRequest(path, { method: "GET" });
+      return await apiGet(path);
     } catch (err) {
       mapDashboardError(err);
     }

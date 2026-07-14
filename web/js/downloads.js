@@ -71,10 +71,7 @@ async function initDownloadPage() {
     return;
   }
 
-  const fileUrl =
-    typeof useSupabaseDirect === "function" && useSupabaseDirect()
-      ? staticExeDownloadUrl()
-      : apiDownloadUrl(pin);
+  const fileUrl = staticExeDownloadUrl();
   $("download-pin-label").textContent = pin;
   const btn = $("download-btn");
   if (btn) btn.href = fileUrl;

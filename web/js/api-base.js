@@ -38,8 +38,11 @@ function apiUrlWithToken(path) {
   return `${url}${sep}siteToken=${encodeURIComponent(token)}`;
 }
 
-/** Simple GET — no custom headers, avoids CORS preflight from GitHub Pages. */
+/** Simple GET — routes through Supabase when configured. */
 async function apiGet(path) {
+  if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
+    return supabaseApiRequest(path, { method: "GET" });
+  }
   const res = await fetch(apiUrlWithToken(path), {
     method: "GET",
     mode: "cors",
