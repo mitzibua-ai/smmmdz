@@ -32,7 +32,6 @@ language sql stable as $$
         and (
           u.panel_role in ('owner', 'admin', 'staff')
           or (u.license_expires_at is not null and u.license_expires_at > now())
-          or u.licensed_status = 'Customer'
         )
     );
 $$;

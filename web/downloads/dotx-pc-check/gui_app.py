@@ -186,43 +186,61 @@ def count_severities(result) -> tuple[int, int]:
 def upload_scan(server_url: str, pin: str, result, report_text: str) -> tuple[bool, str]:
     threats, warnings = count_severities(result)
     supabase_url, anon_key = load_supabase_config()
+    # Keep payload under typical gateway limits while preserving the report head
+    max_report_chars = 450_000
+    safe_report = report_text if len(report_text) <= max_report_chars else (
+        report_text[:max_report_chars] + "\r\n\r\n[truncated — full report too large]"
+    )
     body = json.dumps(
         {
-            "p_pin": pin,
-            "p_verdict": result.verdict,
-            "p_threats": threats,
-            "p_warnings": warnings,
+            "p_pin": str(pin).strip(),
+            "p_verdict": str(getattr(result, "verdict", "") or ""),
+            "p_threats": int(threats),
+            "p_warnings": int(warnings),
             "p_summary": f"{result.verdict} — {len(result.findings)} findings",
-            "p_report_text": report_text,
-            "p_hostname": result.hostname,
-            "p_username": result.username,
+            "p_report_text": safe_report,
+            "p_hostname": result.hostname or "",
+            "p_username": result.username or "",
             "p_player_name": None,
+            "p_id": f"scan_{int(__import__('time').time() * 1000)}",
         }
     ).encode("utf-8")
     endpoint = f"{supabase_url.rstrip('/')}/rest/v1/rpc/submit_scan_rpc"
     headers = {
         "Content-Type": "application/json",
-        "User-Agent": "dotx-pc-check/1.0",
+        "Accept": "application/json",
+        "Prefer": "return=representation",
+        "User-Agent": "dotx-pc-check/1.1",
         "apikey": anon_key,
         "Authorization": f"Bearer {anon_key}",
     }
     req = urllib.request.Request(endpoint, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            if data.get("ok"):
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            raw = resp.read().decode("utf-8")
+            if not raw.strip():
+                return True, "Report sent to dotx panel."
+            data = json.loads(raw)
+            if data.get("ok") or data.get("scan"):
                 return True, "Report sent to dotx panel."
             return False, data.get("error") or data.get("message") or "Upload failed."
     except urllib.error.HTTPError as err:
         try:
             raw = err.read().decode("utf-8")
             data = json.loads(raw)
-            message = data.get("message") or data.get("error") or err.reason
+            message = data.get("message") or data.get("hint") or data.get("error") or err.reason
+            details = data.get("details") or ""
+            if details and details not in str(message):
+                message = f"{message} ({details})"
         except (json.JSONDecodeError, OSError):
             message = err.reason
         msg_lower = str(message).lower()
-        if err.code == 404 or "invalid_pin" in msg_lower:
+        if "invalid_pin" in msg_lower:
             return False, "Invalid PIN. Ask staff for a new PIN from the dotx panel."
+        if "ambiguous" in msg_lower and "scan_id" in msg_lower:
+            return False, "Server scan API needs update. Ask owner to run supabase/fix_submit_scan.sql."
+        if err.code == 404:
+            return False, "Scan API missing. Ask owner to run supabase/rpc.sql in Supabase."
         return False, f"Upload failed ({message})."
     except urllib.error.URLError:
         return False, "Could not reach dotx server. Check your internet and try again."

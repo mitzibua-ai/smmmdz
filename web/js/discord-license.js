@@ -57,8 +57,11 @@ function hasValidLicenseExpiry(expiresAt) {
 
 function isLicenseActive(acc = getAccount()) {
   if (!acc) return false;
+  // Timed licenses: expiry always wins (expired = no Pins/Reports, same as no license)
+  if (acc.licenseExpiresAt) {
+    return hasValidLicenseExpiry(acc.licenseExpiresAt);
+  }
   if (acc.licenseActive === true) return true;
-  if (hasValidLicenseExpiry(acc.licenseExpiresAt)) return true;
   return (acc.licensedStatus || acc.plan) === "Customer";
 }
 

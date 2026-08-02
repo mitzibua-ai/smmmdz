@@ -181,6 +181,32 @@ def get_active_site_license(discord_id: str) -> dict | None:
     }
 
 
+def expire_site_licenses() -> list[dict]:
+    """Mark expired timed licenses as Standard. Returns cleared user records."""
+    now = datetime.now(timezone.utc)
+    expired: list[dict] = []
+    with _lock:
+        store = load_store()
+        changed = False
+        for user in store.get("siteUsers", []):
+            expires = parse_iso(str(user.get("licenseExpiresAt", "")))
+            if not expires:
+                continue
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            if expires > now:
+                continue
+            user["licensedStatus"] = "Standard"
+            user["licenseExpiresAt"] = None
+            user["licenseKeyId"] = None
+            user["licenseExpiredAt"] = now.isoformat()
+            expired.append(dict(user))
+            changed = True
+        if changed:
+            save_store(store)
+    return expired
+
+
 def create_license_key(*, created_by: str, amount: int, unit: str) -> dict:
     seconds = duration_to_seconds(amount, unit)
     code = generate_license_code()

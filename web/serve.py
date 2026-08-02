@@ -231,7 +231,6 @@ def finalize_license(user_id: str, payload: dict) -> dict:
     """Site key licenses always win — unlocks panel right after staff redeems."""
     active = get_active_site_license(user_id)
     payload = dict(payload)
-    payload["licenseActive"] = active is not None
     if active:
         payload = {
             **payload,
@@ -241,16 +240,21 @@ def finalize_license(user_id: str, payload: dict) -> dict:
             "licenseSource": "site_key",
             "licenseActive": True,
         }
-    elif payload.get("status") == "Customer" and not active:
-        payload["licenseActive"] = True
+    else:
+        # Expired (or never redeemed): leftover Discord Customer role must not keep Pins/Reports
+        if payload.get("status") == "Customer":
+            payload["status"] = "Standard"
+        payload["licenseActive"] = False
     return enrich_license(user_id, payload)
 
 
 def is_customer_license(info: dict) -> bool:
-    if str(info.get("status", "")) == "Customer":
+    if info.get("licenseActive") is True:
         return True
     panel = str(info.get("panelRole", "member")).lower()
-    return panel in {"owner", "admin", "staff"}
+    if panel in {"owner", "admin", "staff"}:
+        return True
+    return False
 
 
 def check_license_oauth(user_id: str, access_token: str) -> dict:

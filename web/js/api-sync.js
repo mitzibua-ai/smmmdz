@@ -120,13 +120,49 @@ async function fetchScansFromServer(discordId) {
   return data.scans || [];
 }
 
+function pinCodeKey(pin) {
+  return String(pin?.pin || "").trim();
+}
+
+function verdictToPinFields(verdict) {
+  const v = String(verdict || "").toLowerCase();
+  if (v === "failed" || v === "suspicious") {
+    return {
+      status: "cheated",
+      result: v === "failed" ? "Cheated" : "Suspicious",
+    };
+  }
+  if (v === "passed") return { status: "finished", result: "Clean" };
+  if (v === "review") return { status: "finished", result: "Review" };
+  return { status: "finished", result: "Review" };
+}
+
 function mergePinsLocal(discordId, serverPins) {
   const local = getPins(discordId);
-  const byId = new Map(local.map((p) => [p.id, p]));
-  for (const pin of serverPins) {
-    byId.set(pin.id, { ...byId.get(pin.id), ...pin });
+  const byCode = new Map();
+
+  for (const pin of local) {
+    const code = pinCodeKey(pin);
+    if (!code) continue;
+    byCode.set(code, { ...pin });
   }
-  const merged = Array.from(byId.values()).sort(
+
+  for (const pin of serverPins || []) {
+    const code = pinCodeKey(pin);
+    if (!code) continue;
+    const prev = byCode.get(code) || {};
+    byCode.set(code, {
+      ...prev,
+      ...pin,
+      // Server row is source of truth for result linkage after a scan uploads
+      id: pin.id || prev.id,
+      status: pin.status || prev.status || "pending",
+      result: pin.result || prev.result || "Pending",
+      scanId: pin.scanId || pin.scan_id || prev.scanId || null,
+    });
+  }
+
+  const merged = Array.from(byCode.values()).sort(
     (a, b) => new Date(b.date) - new Date(a.date)
   );
   savePins(discordId, merged);
@@ -136,31 +172,66 @@ function mergePinsLocal(discordId, serverPins) {
 function mergeScansLocal(discordId, serverScans) {
   const local = getScans(discordId);
   const byId = new Map(local.map((s) => [s.id, s]));
-  for (const scan of serverScans) {
+  for (const scan of serverScans || []) {
     byId.set(scan.id, { ...byId.get(scan.id), ...scan });
   }
   const merged = Array.from(byId.values()).sort(
     (a, b) => new Date(b.date) - new Date(a.date)
   );
   saveScans(discordId, merged);
+  applyScansToPins(discordId, merged);
   return merged;
+}
+
+function applyScansToPins(discordId, scans) {
+  const pins = getPins(discordId);
+  let changed = false;
+  for (const scan of scans || []) {
+    const code = String(scan.pin || "").trim();
+    if (!code || !scan.id) continue;
+    const idx = pins.findIndex((p) => pinCodeKey(p) === code);
+    if (idx === -1) continue;
+    const mapped = verdictToPinFields(scan.verdict);
+    const next = {
+      ...pins[idx],
+      scanId: scan.id,
+      status:
+        pins[idx].status && pins[idx].status !== "pending"
+          ? pins[idx].status
+          : mapped.status,
+      result:
+        pins[idx].result && String(pins[idx].result).toLowerCase() !== "pending"
+          ? pins[idx].result
+          : mapped.result,
+    };
+    if (
+      next.scanId !== pins[idx].scanId ||
+      next.status !== pins[idx].status ||
+      next.result !== pins[idx].result
+    ) {
+      pins[idx] = next;
+      changed = true;
+    }
+  }
+  if (changed) savePins(discordId, pins);
+  return pins;
 }
 
 async function syncDashboardData(discordId) {
   if (!isCustomerAccount(getAccount())) {
-    return { pins: [], scans: [] };
+    return { pins: getPins(discordId), scans: getScans(discordId) };
   }
   try {
     const [pins, scans] = await Promise.all([
       fetchPinsFromServer(discordId),
       fetchScansFromServer(discordId),
     ]);
-    mergePinsLocal(discordId, pins);
-    mergeScansLocal(discordId, scans);
-    return { pins, scans };
+    const mergedPins = mergePinsLocal(discordId, pins);
+    const mergedScans = mergeScansLocal(discordId, scans);
+    return { pins: mergedPins, scans: mergedScans };
   } catch (err) {
     if (err?.code === "license_required" || err?.status === 403) {
-      return { pins: [], scans: [] };
+      return { pins: getPins(discordId), scans: getScans(discordId) };
     }
     return { pins: getPins(discordId), scans: getScans(discordId) };
   }

@@ -69,7 +69,7 @@ function bindPinModalEvents() {
     lastGeneratedPin = pin;
 
     try {
-      await registerPinOnServer({
+      const registered = await registerPinOnServer({
         id: pin.id,
         pin: pin.pin,
         discordId: account.discordId,
@@ -77,6 +77,21 @@ function bindPinModalEvents() {
         game: pin.game,
         date: pin.date,
       });
+      if (registered?.pin) {
+        const serverPin = registered.pin;
+        const pins = getPins(account.discordId).filter(
+          (p) => p.id !== pin.id && String(p.pin) !== String(serverPin.pin)
+        );
+        const synced = {
+          ...pin,
+          ...serverPin,
+          id: serverPin.id || pin.id,
+          scanId: serverPin.scanId || serverPin.scan_id || null,
+        };
+        pins.unshift(synced);
+        savePins(account.discordId, pins);
+        lastGeneratedPin = synced;
+      }
     } catch (err) {
       deletePin(account.discordId, pin.id);
       if (err?.code === "license_required") {
@@ -87,7 +102,7 @@ function bindPinModalEvents() {
       return;
     }
 
-    $("pin-generated-code").textContent = pin.pin;
+    $("pin-generated-code").textContent = lastGeneratedPin?.pin || pin.pin;
     $("pin-generated-box")?.classList.remove("hidden");
     $("pin-modal-create")?.classList.add("hidden");
     if ($("pin-modal-title")) $("pin-modal-title").textContent = "New PIN generated";
