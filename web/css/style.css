@@ -3553,6 +3553,10 @@ a.btn.pin-download-link {
   max-width: 560px;
 }
 
+.account-page {
+  max-width: 960px;
+}
+
 .account-panel--tool-brand {
   margin-top: 4px;
 }
@@ -3618,9 +3622,24 @@ a.btn.pin-download-link {
 
 .tool-brand__window-body--cover .tool-brand__discord {
   width: auto;
-  min-width: 70%;
+  min-width: 0;
   backdrop-filter: blur(6px);
   background: rgba(0, 0, 0, 0.35);
+}
+
+.tool-brand__discord--avatar-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.tool-brand__discord--avatar-only .tool-brand__discord-img {
+  width: 52px;
+  height: 52px;
 }
 
 .page-header--account {

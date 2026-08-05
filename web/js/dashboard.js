@@ -803,32 +803,13 @@ function renderAccount() {
     ? `style="background-image:url('${branding.customImage}')"`
     : "";
   const avatarPreview = branding.showDiscordAvatar
-    ? `<div class="tool-brand__discord is-on">
+    ? `<div class="tool-brand__discord tool-brand__discord--avatar-only is-on">
          <img src="${escapeHtml(acc.avatar || "")}" alt="" class="tool-brand__discord-img" />
-         <div class="tool-brand__discord-meta">
-           <div class="tool-brand__discord-name">${escapeHtml(acc.username || "Discord")}</div>
-           <div class="tool-brand__discord-sub">Shown on the PC Check tool</div>
-         </div>
        </div>`
     : "";
 
   return `
     <div class="account-page">
-      <section class="account-panels account-panels--premium account-panels--single">
-        <div class="account-panel account-panel--profile">
-          <div class="account-panel__head">
-            <div>
-              <div class="account-panel__title">Discord profile</div>
-              <div class="account-panel__sub">Live avatar, banner, and decoration</div>
-            </div>
-            <button type="button" class="btn btn--ghost btn--small" id="refresh-profile">Refresh</button>
-          </div>
-          <div class="account-panel__body account-panel__body--flush">
-            ${buildDiscordProfileCard(acc)}
-          </div>
-        </div>
-      </section>
-
       <section class="account-panel account-panel--tool-brand">
         <div class="account-panel__head">
           <div>
@@ -880,14 +861,56 @@ function renderAccount() {
 
               <div class="tool-brand__block">
                 <div class="tool-brand__block-title">Discord avatar</div>
-                <p class="tool-brand__block-sub">Separate from your background — turn your Discord profile on or off in the tool.</p>
+                <p class="tool-brand__block-sub">Avatar only — no name. Turn on or off separately from your background.</p>
                 <label class="tool-brand__switch">
                   <input type="checkbox" id="tool-brand-avatar-toggle" ${branding.showDiscordAvatar !== false ? "checked" : ""} />
                   <span class="tool-brand__switch-ui" aria-hidden="true"></span>
-                  <span class="tool-brand__switch-label" id="tool-brand-avatar-label">${branding.showDiscordAvatar !== false ? "On — show Discord avatar & name" : "Off — hide Discord avatar"}</span>
+                  <span class="tool-brand__switch-label" id="tool-brand-avatar-label">${branding.showDiscordAvatar !== false ? "On — show Discord avatar" : "Off — hide Discord avatar"}</span>
                 </label>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="account-panels account-panels--premium">
+        <div class="account-panel account-panel--profile">
+          <div class="account-panel__head">
+            <div>
+              <div class="account-panel__title">Discord profile</div>
+              <div class="account-panel__sub">Live avatar, banner, and decoration</div>
+            </div>
+            <button type="button" class="btn btn--ghost btn--small" id="refresh-profile">Refresh</button>
+          </div>
+          <div class="account-panel__body account-panel__body--flush">
+            ${buildDiscordProfileCard(acc)}
+          </div>
+        </div>
+
+        <div class="account-panel account-panel--security">
+          <div class="account-panel__head">
+            <div>
+              <div class="account-panel__title">Account info</div>
+              <div class="account-panel__sub">Discord ID, join date, and license</div>
+            </div>
+            <button type="button" class="btn btn--ghost btn--small" id="copy-discord-id">Copy Discord ID</button>
+          </div>
+          <div class="account-panel__body">
+            <div class="account-kv">
+              <div class="account-kv__row">
+                <span class="account-kv__k">Discord ID</span>
+                <span class="account-kv__v mono" id="account-discord-id">${escapeHtml(acc.discordId)}</span>
+              </div>
+              <div class="account-kv__row">
+                <span class="account-kv__k">Join</span>
+                <span class="account-kv__v account-kv__v--join">${escapeHtml(formatJoinDate(acc))}</span>
+              </div>
+              <div class="account-kv__row">
+                <span class="account-kv__k">License expire in</span>
+                <span class="account-kv__v">${buildLicenseExpireCountdownHtml(acc)}</span>
+              </div>
+            </div>
+            <p class="account-panel__note">Join date is permanent from your first login. The license countdown runs in real time from the server expiry.</p>
           </div>
         </div>
       </section>
@@ -975,6 +998,21 @@ function bindAccountEvents() {
     }
   });
 
+  $("copy-discord-id")?.addEventListener("click", async () => {
+    const id = account?.discordId;
+    if (!id) return;
+    try {
+      await navigator.clipboard.writeText(id);
+      const btn = $("copy-discord-id");
+      if (btn) {
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy Discord ID"; }, 1500);
+      }
+    } catch {
+      alert(id);
+    }
+  });
+
   bindToolBrandingEvents();
 }
 
@@ -1011,12 +1049,8 @@ function _refreshToolBrandPreview() {
   }
   if (slot) {
     slot.innerHTML = branding.showDiscordAvatar
-      ? `<div class="tool-brand__discord is-on">
+      ? `<div class="tool-brand__discord tool-brand__discord--avatar-only is-on">
            <img src="${escapeHtml(account.avatar || "")}" alt="" class="tool-brand__discord-img" />
-           <div class="tool-brand__discord-meta">
-             <div class="tool-brand__discord-name">${escapeHtml(account.username || "Discord")}</div>
-             <div class="tool-brand__discord-sub">Shown on the PC Check tool</div>
-           </div>
          </div>`
       : "";
   }
@@ -1025,7 +1059,7 @@ function _refreshToolBrandPreview() {
   }
   if (label) {
     label.textContent = branding.showDiscordAvatar
-      ? "On — show Discord avatar & name"
+      ? "On — show Discord avatar"
       : "Off — hide Discord avatar";
   }
   if (clearBtn) clearBtn.classList.toggle("hidden", !hasCustom);

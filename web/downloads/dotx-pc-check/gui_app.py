@@ -675,7 +675,7 @@ class DotxApp(tk.Tk):
             if avatar_url:
                 avatar = self._photo_from_url(avatar_url)
                 if avatar:
-                    self._brand_avatar_photo = self._fit_photo(avatar, 44, 44)
+                    self._brand_avatar_photo = self._fit_photo(avatar, 52, 52)
 
     def _draw_logo(self, cx: int, cy: int) -> None:
         logo = self._logo_photo(140)
@@ -696,56 +696,30 @@ class DotxApp(tk.Tk):
             return True
         if not self.branding.get("showDiscordAvatar"):
             return False
-        return bool(self.branding.get("username") or self._brand_avatar_photo)
+        return self._brand_avatar_photo is not None
 
     def _draw_discord_badge(self, cx: int, y: int) -> int:
-        """Overlay Discord avatar + name. Returns bottom Y."""
-        show_avatar = bool(self.branding.get("showDiscordAvatar")) and bool(
-            self.branding.get("username") or self._brand_avatar_photo
-        )
+        """Overlay Discord avatar only (no name). Returns bottom Y."""
+        show_avatar = bool(self.branding.get("showDiscordAvatar")) and self._brand_avatar_photo is not None
         if not show_avatar:
             return y
 
-        username = str(self.branding.get("username") or "").strip()
-        row_y = y + 22
-        if self._brand_avatar_photo is not None:
-            r = 24
-            self.canvas.create_oval(
-                cx - 70 - r,
-                row_y - r,
-                cx - 70 + r,
-                row_y + r,
-                outline="#d6ebff",
-                width=2,
-                fill="#1a3a55",
-            )
-            self.canvas.create_image(cx - 70, row_y, image=self._brand_avatar_photo, anchor="center")
-            name_x = cx - 36
-            anchor = "w"
-        else:
-            name_x = cx
-            anchor = "center"
-        if username:
-            self.canvas.create_text(
-                name_x,
-                row_y - 6,
-                text=username,
-                fill=WHITE,
-                font=self.name_font,
-                anchor=anchor,
-            )
-            self.canvas.create_text(
-                name_x,
-                row_y + 12,
-                text="PC Check",
-                fill=WHITE_DIM,
-                font=self.small_font,
-                anchor=anchor,
-            )
-        return row_y + 36
+        row_y = y + 28
+        r = 28
+        self.canvas.create_oval(
+            cx - r,
+            row_y - r,
+            cx + r,
+            row_y + r,
+            outline="#d6ebff",
+            width=2,
+            fill="#1a3a55",
+        )
+        self.canvas.create_image(cx, row_y, image=self._brand_avatar_photo, anchor="center")
+        return row_y + r + 16
 
     def _draw_brand_header(self, cx: int, top_y: int) -> int:
-        """Discord overlay only — custom image is already the full-window background."""
+        """Discord avatar overlay only — custom image is the full-window background."""
         if self._brand_custom_photo is not None:
             return self._draw_discord_badge(cx, top_y)
 
@@ -753,7 +727,6 @@ class DotxApp(tk.Tk):
             self._draw_logo(cx, top_y + 40)
             return top_y + 100
 
-        # Avatar-only branding (no custom background)
         y = self._draw_discord_badge(cx, top_y)
         if y == top_y:
             self._draw_logo(cx, top_y + 40)
