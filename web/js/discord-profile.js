@@ -138,8 +138,6 @@ function buildDiscordProfileCard(account, { compact = false } = {}) {
       : "background:linear-gradient(135deg,#1a2230,#0d121c)";
 
   const avatarSize = compact ? "md" : "lg";
-  const licensedStatus = account.licensedStatus || account.plan || "Standard";
-  const isCustomer = licensedStatus === "Customer";
 
   return `
     <div class="discord-profile-card ${compact ? "discord-profile-card--compact" : ""}">
@@ -148,15 +146,6 @@ function buildDiscordProfileCard(account, { compact = false } = {}) {
         ${buildDiscordAvatarHtml(account, avatarSize)}
         <div class="discord-profile-card__name">${name}</div>
         <div class="discord-profile-card__tag">${tag}</div>
-        <div class="discord-profile-card__status-row">
-          <div class="discord-profile-card__status">
-            <span class="status-dot"></span> Connected via Discord
-          </div>
-          <div class="discord-profile-card__license">
-            <span class="discord-profile-card__license-label">Licensed Status</span>
-            <span class="discord-profile-card__license-badge ${isCustomer ? "is-customer" : "is-standard"}">${escapeHtml(licensedStatus)}</span>
-          </div>
-        </div>
       </div>
     </div>
   `;
