@@ -518,14 +518,49 @@ class DotxApp(tk.Tk):
             factor += 1
         return image.subsample(factor, factor)
 
+    def _cover_photo(self, image: tk.PhotoImage, target_w: int, target_h: int) -> tk.PhotoImage:
+        """Scale image to cover the full window (may crop edges)."""
+        w, h = max(image.width(), 1), max(image.height(), 1)
+        photo = image
+        # Zoom up until both axes meet or exceed the target
+        zoom = 1
+        while w * zoom < target_w or h * zoom < target_h:
+            zoom += 1
+            if zoom > 12:
+                break
+        if zoom > 1:
+            photo = photo.zoom(zoom, zoom)
+            w, h = max(photo.width(), 1), max(photo.height(), 1)
+        # Subsample down while still covering
+        sub = 1
+        while w // (sub + 1) >= target_w and h // (sub + 1) >= target_h:
+            sub += 1
+            if sub > 32:
+                break
+        if sub > 1:
+            photo = photo.subsample(sub, sub)
+        return self._remember_image(photo)
+
     def _draw_backdrop(self) -> int:
+        # Custom branding image covers the whole EXE window
+        if self._brand_custom_photo is not None:
+            self._using_bg_image = True
+            self._bg_photo = self._brand_custom_photo
+            self.canvas.config(width=WIN_W, height=WIN_H)
+            self.geometry(f"{WIN_W}x{WIN_H}")
+            self.canvas.create_image(WIN_W // 2, WIN_H // 2, image=self._bg_photo, anchor="center")
+            # Soft dark wash so PIN / text stays readable
+            self.canvas.create_rectangle(0, 0, WIN_W, WIN_H, fill="#0a1624", stipple="gray50", outline="")
+            self.after(10, self._apply_window_style)
+            return WIN_H
+
         bg = self._load_photo("background.png") or self._load_photo("dotx-bg.png")
         if bg:
             self._using_bg_image = True
-            self._bg_photo = self._fit_photo(bg, WIN_W, WIN_H)
+            self._bg_photo = self._cover_photo(bg, WIN_W, WIN_H) if bg.width() >= WIN_W or bg.height() >= WIN_H else self._fit_photo(bg, WIN_W, WIN_H)
             self.canvas.config(width=WIN_W, height=WIN_H)
             self.geometry(f"{WIN_W}x{WIN_H}")
-            self.canvas.create_image(0, 0, image=self._bg_photo, anchor="nw")
+            self.canvas.create_image(WIN_W // 2, WIN_H // 2, image=self._bg_photo, anchor="center")
             self.after(10, self._apply_window_style)
             return WIN_H
 
@@ -633,7 +668,7 @@ class DotxApp(tk.Tk):
         if custom:
             photo = self._photo_from_data_url(str(custom))
             if photo:
-                self._brand_custom_photo = self._fit_photo(photo, 280, 110)
+                self._brand_custom_photo = self._cover_photo(photo, WIN_W, WIN_H)
 
         if self.branding.get("showDiscordAvatar"):
             avatar_url = str(self.branding.get("avatarUrl") or "")
@@ -663,62 +698,67 @@ class DotxApp(tk.Tk):
             return False
         return bool(self.branding.get("username") or self._brand_avatar_photo)
 
+    def _draw_discord_badge(self, cx: int, y: int) -> int:
+        """Overlay Discord avatar + name. Returns bottom Y."""
+        show_avatar = bool(self.branding.get("showDiscordAvatar")) and bool(
+            self.branding.get("username") or self._brand_avatar_photo
+        )
+        if not show_avatar:
+            return y
+
+        username = str(self.branding.get("username") or "").strip()
+        row_y = y + 22
+        if self._brand_avatar_photo is not None:
+            r = 24
+            self.canvas.create_oval(
+                cx - 70 - r,
+                row_y - r,
+                cx - 70 + r,
+                row_y + r,
+                outline="#d6ebff",
+                width=2,
+                fill="#1a3a55",
+            )
+            self.canvas.create_image(cx - 70, row_y, image=self._brand_avatar_photo, anchor="center")
+            name_x = cx - 36
+            anchor = "w"
+        else:
+            name_x = cx
+            anchor = "center"
+        if username:
+            self.canvas.create_text(
+                name_x,
+                row_y - 6,
+                text=username,
+                fill=WHITE,
+                font=self.name_font,
+                anchor=anchor,
+            )
+            self.canvas.create_text(
+                name_x,
+                row_y + 12,
+                text="PC Check",
+                fill=WHITE_DIM,
+                font=self.small_font,
+                anchor=anchor,
+            )
+        return row_y + 36
+
     def _draw_brand_header(self, cx: int, top_y: int) -> int:
-        """Draw custom image and/or Discord avatar. Returns next content Y."""
+        """Discord overlay only — custom image is already the full-window background."""
+        if self._brand_custom_photo is not None:
+            return self._draw_discord_badge(cx, top_y)
+
         if not self._has_branding():
             self._draw_logo(cx, top_y + 40)
             return top_y + 100
 
-        y = top_y
-        has_custom = self._brand_custom_photo is not None
-        show_avatar = bool(self.branding.get("showDiscordAvatar")) and bool(
-            self.branding.get("username") or self._brand_avatar_photo
-        )
-        username = str(self.branding.get("username") or "").strip()
-
-        if has_custom:
-            self.canvas.create_image(cx, y, image=self._brand_custom_photo, anchor="n")
-            y += self._brand_custom_photo.height() + 14
-
-        if show_avatar:
-            row_y = y + 22
-            if self._brand_avatar_photo is not None:
-                r = 24
-                self.canvas.create_oval(
-                    cx - 70 - r,
-                    row_y - r,
-                    cx - 70 + r,
-                    row_y + r,
-                    outline="#d6ebff",
-                    width=2,
-                    fill="#2f7eb8",
-                )
-                self.canvas.create_image(cx - 70, row_y, image=self._brand_avatar_photo, anchor="center")
-                name_x = cx - 36
-                anchor = "w"
-            else:
-                name_x = cx
-                anchor = "center"
-            if username:
-                self.canvas.create_text(
-                    name_x,
-                    row_y - 6,
-                    text=username,
-                    fill=WHITE,
-                    font=self.name_font,
-                    anchor=anchor,
-                )
-                self.canvas.create_text(
-                    name_x,
-                    row_y + 12,
-                    text="PC Check",
-                    fill=WHITE_DIM,
-                    font=self.small_font,
-                    anchor=anchor,
-                )
-            y = row_y + 36
-
-        return max(y, top_y + 48)
+        # Avatar-only branding (no custom background)
+        y = self._draw_discord_badge(cx, top_y)
+        if y == top_y:
+            self._draw_logo(cx, top_y + 40)
+            return top_y + 100
+        return y
 
     def _bg_zones(self, height: int) -> dict[str, int]:
         return {
@@ -734,6 +774,7 @@ class DotxApp(tk.Tk):
         self.clear_screen()
         height = self._draw_backdrop()
         cx = (self.canvas.winfo_reqwidth() or WIN_W) // 2
+        custom_bg = self._brand_custom_photo is not None
         branded = self._has_branding()
 
         if self._using_bg_image:
@@ -755,7 +796,9 @@ class DotxApp(tk.Tk):
 
         self._place_close_button()
         if self._using_bg_image and branded:
-            self._draw_brand_header(cx, int(height * 0.08))
+            # Avatar over full-cover background (or default bg image)
+            badge_top = int(height * 0.08) if custom_bg else int(height * 0.08)
+            self._draw_brand_header(cx, badge_top)
 
         self.canvas.create_text(cx, label_y, text="Enter PIN Code", fill=WHITE_SOFT, font=self.label_font)
 

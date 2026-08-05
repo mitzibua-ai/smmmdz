@@ -38,7 +38,7 @@ begin
     'avatarUrl', left(coalesce(p_branding->>'avatarUrl', ''), 500),
     'customImage', case
       when jsonb_typeof(p_branding->'customImage') = 'string'
-           and length(p_branding->>'customImage') between 1 and 200000
+           and length(p_branding->>'customImage') between 1 and 320000
         then to_jsonb(p_branding->>'customImage')
       else null
     end

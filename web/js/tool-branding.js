@@ -1,7 +1,7 @@
 /** PC Check EXE branding — Account settings + download stamp helpers. */
 const TOOL_BRANDING_KEY = "dotx_tool_branding_v1";
-const MAX_BRAND_IMAGE_CHARS = 180_000;
-const MAX_BRAND_EDGE = 256;
+const MAX_BRAND_IMAGE_CHARS = 280_000;
+const MAX_BRAND_EDGE = 720;
 
 function defaultToolBranding(acc = typeof getAccount === "function" ? getAccount() : null) {
   return {
