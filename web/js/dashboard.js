@@ -799,6 +799,18 @@ function renderAccount() {
   const acc = account;
   const branding = typeof loadToolBranding === "function" ? loadToolBranding(acc) : { showDiscordAvatar: true };
   const hasCustom = Boolean(branding.customImage);
+  const coverStyle = hasCustom
+    ? `style="background-image:url('${branding.customImage}')"`
+    : "";
+  const avatarPreview = branding.showDiscordAvatar
+    ? `<div class="tool-brand__discord is-on">
+         <img src="${escapeHtml(acc.avatar || "")}" alt="" class="tool-brand__discord-img" />
+         <div class="tool-brand__discord-meta">
+           <div class="tool-brand__discord-name">${escapeHtml(acc.username || "Discord")}</div>
+           <div class="tool-brand__discord-sub">Shown on the PC Check tool</div>
+         </div>
+       </div>`
+    : "";
 
   return `
     <div class="account-page">
@@ -814,34 +826,68 @@ function renderAccount() {
           <div class="account-panel__body account-panel__body--flush">
             ${buildDiscordProfileCard(acc)}
           </div>
-          <div class="account-brand-bar">
-            <div class="account-brand-bar__row">
-              <div class="account-brand-bar__copy">
-                <div class="account-brand-bar__title">EXE background</div>
-                <div class="account-brand-bar__sub">Image or GIF covers the whole PC Check window</div>
+        </div>
+      </section>
+
+      <section class="account-panel account-panel--tool-brand">
+        <div class="account-panel__head">
+          <div>
+            <div class="account-panel__title">PC Check tool look</div>
+            <div class="account-panel__sub">Image or GIF covers the whole EXE — Discord avatar is separate</div>
+          </div>
+          <button type="button" class="btn btn--primary btn--small" id="tool-brand-download">Download branded EXE</button>
+        </div>
+        <div class="account-panel__body tool-brand">
+          <div class="tool-brand__grid">
+            <div class="tool-brand__stage">
+              <div class="tool-brand__window" aria-hidden="true">
+                <div class="tool-brand__window-bar">
+                  <span></span><span></span><span></span>
+                </div>
+                <div class="tool-brand__window-body tool-brand__window-body--cover${hasCustom ? " has-cover" : ""}" id="tool-brand-hero" ${coverStyle}>
+                  <div class="tool-brand__cover-wash"></div>
+                  <div class="tool-brand__cover-content">
+                    <div id="tool-brand-discord-slot">${avatarPreview}</div>
+                    <div class="tool-brand__pin-fake">
+                      <div class="tool-brand__pin-label">Enter PIN Code</div>
+                      <div class="tool-brand__pin-boxes">
+                        <i></i><i></i><i></i><i></i><i></i><i></i>
+                      </div>
+                    </div>
+                  </div>
+                  ${hasCustom ? "" : `<div class="tool-brand__preview-empty">Upload a PNG, JPG, or GIF<br/><span>covers the whole window</span></div>`}
+                </div>
               </div>
-              <div class="tool-brand__upload-row">
-                <label class="btn btn--ghost btn--small tool-brand__upload-btn" for="tool-brand-file">
-                  ${hasCustom ? "Replace" : "Upload"}
+              <p class="tool-brand__hint">Live preview — background fills the full tool window</p>
+            </div>
+
+            <div class="tool-brand__controls">
+              <div class="tool-brand__block">
+                <div class="tool-brand__block-title">Custom image or GIF</div>
+                <p class="tool-brand__block-sub">Covers the entire PC Check window as the background.</p>
+                <div class="tool-brand__upload-row">
+                  <label class="btn btn--ghost btn--small tool-brand__upload-btn" for="tool-brand-file">
+                    ${hasCustom ? "Replace image" : "Upload image"}
+                  </label>
+                  <input type="file" id="tool-brand-file" class="hidden" accept="image/png,image/jpeg,image/gif,image/webp" />
+                  <button type="button" class="btn btn--ghost btn--small${hasCustom ? "" : " hidden"}" id="tool-brand-clear">Remove</button>
+                </div>
+                <p class="tool-brand__file-name" id="tool-brand-file-name">${escapeHtml(branding.customImageName || (hasCustom ? "Custom background" : "No image uploaded"))}</p>
+                <p class="tool-brand__status" id="tool-brand-status"></p>
+              </div>
+
+              <div class="tool-brand__divider" role="presentation"></div>
+
+              <div class="tool-brand__block">
+                <div class="tool-brand__block-title">Discord avatar</div>
+                <p class="tool-brand__block-sub">Separate from your background — turn your Discord profile on or off in the tool.</p>
+                <label class="tool-brand__switch">
+                  <input type="checkbox" id="tool-brand-avatar-toggle" ${branding.showDiscordAvatar !== false ? "checked" : ""} />
+                  <span class="tool-brand__switch-ui" aria-hidden="true"></span>
+                  <span class="tool-brand__switch-label" id="tool-brand-avatar-label">${branding.showDiscordAvatar !== false ? "On — show Discord avatar & name" : "Off — hide Discord avatar"}</span>
                 </label>
-                <input type="file" id="tool-brand-file" class="hidden" accept="image/png,image/jpeg,image/gif,image/webp" />
-                <button type="button" class="btn btn--ghost btn--small${hasCustom ? "" : " hidden"}" id="tool-brand-clear">Remove</button>
-                <button type="button" class="btn btn--primary btn--small" id="tool-brand-download">Download EXE</button>
               </div>
             </div>
-            <p class="tool-brand__file-name" id="tool-brand-file-name">${escapeHtml(branding.customImageName || (hasCustom ? "Custom background" : "No background uploaded"))}</p>
-            <div class="account-brand-bar__row account-brand-bar__row--avatar">
-              <div class="account-brand-bar__copy">
-                <div class="account-brand-bar__title">Discord avatar on EXE</div>
-                <div class="account-brand-bar__sub">Separate on/off — shown over your background</div>
-              </div>
-              <label class="tool-brand__switch">
-                <input type="checkbox" id="tool-brand-avatar-toggle" ${branding.showDiscordAvatar !== false ? "checked" : ""} />
-                <span class="tool-brand__switch-ui" aria-hidden="true"></span>
-                <span class="tool-brand__switch-label" id="tool-brand-avatar-label">${branding.showDiscordAvatar !== false ? "On" : "Off"}</span>
-              </label>
-            </div>
-            <p class="tool-brand__status" id="tool-brand-status"></p>
           </div>
         </div>
       </section>
@@ -941,16 +987,48 @@ function _toolBrandSetStatus(text, isError = false) {
 
 function _refreshToolBrandPreview() {
   const branding = loadToolBranding(account);
+  const hero = $("tool-brand-hero");
+  const slot = $("tool-brand-discord-slot");
   const nameEl = $("tool-brand-file-name");
   const label = $("tool-brand-avatar-label");
   const clearBtn = $("tool-brand-clear");
+  const hasCustom = Boolean(branding.customImage);
+
+  if (hero) {
+    hero.classList.toggle("has-cover", hasCustom);
+    if (hasCustom) {
+      hero.style.backgroundImage = `url('${branding.customImage}')`;
+      hero.querySelector(".tool-brand__preview-empty")?.remove();
+    } else {
+      hero.style.backgroundImage = "";
+      if (!hero.querySelector(".tool-brand__preview-empty")) {
+        const empty = document.createElement("div");
+        empty.className = "tool-brand__preview-empty";
+        empty.innerHTML = "Upload a PNG, JPG, or GIF<br/><span>covers the whole window</span>";
+        hero.appendChild(empty);
+      }
+    }
+  }
+  if (slot) {
+    slot.innerHTML = branding.showDiscordAvatar
+      ? `<div class="tool-brand__discord is-on">
+           <img src="${escapeHtml(account.avatar || "")}" alt="" class="tool-brand__discord-img" />
+           <div class="tool-brand__discord-meta">
+             <div class="tool-brand__discord-name">${escapeHtml(account.username || "Discord")}</div>
+             <div class="tool-brand__discord-sub">Shown on the PC Check tool</div>
+           </div>
+         </div>`
+      : "";
+  }
   if (nameEl) {
-    nameEl.textContent = branding.customImageName || (branding.customImage ? "Custom background" : "No background uploaded");
+    nameEl.textContent = branding.customImageName || (hasCustom ? "Custom background" : "No image uploaded");
   }
   if (label) {
-    label.textContent = branding.showDiscordAvatar ? "On" : "Off";
+    label.textContent = branding.showDiscordAvatar
+      ? "On — show Discord avatar & name"
+      : "Off — hide Discord avatar";
   }
-  if (clearBtn) clearBtn.classList.toggle("hidden", !branding.customImage);
+  if (clearBtn) clearBtn.classList.toggle("hidden", !hasCustom);
 }
 
 function bindToolBrandingEvents() {
