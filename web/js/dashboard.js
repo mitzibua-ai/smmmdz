@@ -373,8 +373,11 @@ function barWidth(count, total) {
   return `${Math.round((count / total) * 100)}%`;
 }
 
-function licenseLockShell(contentHtml, { title = "Customer license required", hint = "Open a ticket in Discord. After payment, staff activates your key with smky license." } = {}) {
-  if (isCustomerAccount(account)) return contentHtml;
+function licenseLockShell(contentHtml, { title = "Customer license required", hint = "Open a ticket in Discord. After payment, staff activates your key with smky license.", requireActiveLicense = false } = {}) {
+  const unlocked = requireActiveLicense
+    ? (typeof isLicenseActive === "function" && isLicenseActive(account))
+    : isCustomerAccount(account);
+  if (unlocked) return contentHtml;
   const expiry = formatLicenseExpiry(account);
   return `
     <div class="license-lock">
@@ -391,6 +394,10 @@ function licenseLockShell(contentHtml, { title = "Customer license required", hi
       </div>
     </div>
   `;
+}
+
+function canCustomizePcCheckTool(acc = account) {
+  return typeof isLicenseActive === "function" && isLicenseActive(acc);
 }
 
 function renderOverview() {
@@ -808,8 +815,7 @@ function renderAccount() {
        </div>`
     : "";
 
-  return `
-    <div class="account-page">
+  const customizeSection = `
       <section class="account-panel account-panel--tool-brand">
         <div class="account-panel__head">
           <div>
@@ -871,7 +877,15 @@ function renderAccount() {
             </div>
           </div>
         </div>
-      </section>
+      </section>`;
+
+  return `
+    <div class="account-page">
+      ${licenseLockShell(customizeSection, {
+        title: "Customer license required",
+        hint: "EXE branding unlocks with an active Customer license. Open a ticket in Discord to get a key.",
+        requireActiveLicense: true,
+      })}
 
       <section class="account-panels account-panels--premium">
         <div class="account-panel account-panel--profile">
@@ -1067,6 +1081,7 @@ function _refreshToolBrandPreview() {
 
 function bindToolBrandingEvents() {
   if (typeof loadToolBranding !== "function") return;
+  if (!canCustomizePcCheckTool()) return;
 
   $("tool-brand-avatar-toggle")?.addEventListener("change", (e) => {
     const branding = loadToolBranding(account);
@@ -1081,6 +1096,10 @@ function bindToolBrandingEvents() {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
+    if (!canCustomizePcCheckTool()) {
+      alert("A Customer license is required to customize the PC Check tool.");
+      return;
+    }
     _toolBrandSetStatus("Processing image…");
     try {
       const { dataUrl, name } = await compressImageFile(file);
@@ -1097,6 +1116,7 @@ function bindToolBrandingEvents() {
   });
 
   $("tool-brand-clear")?.addEventListener("click", () => {
+    if (!canCustomizePcCheckTool()) return;
     clearToolCustomImage();
     const branding = loadToolBranding(account);
     syncToolBrandingToServer(branding);
@@ -1107,7 +1127,7 @@ function bindToolBrandingEvents() {
   $("tool-brand-download")?.addEventListener("click", async () => {
     const btn = $("tool-brand-download");
     if (!btn) return;
-    if (!isCustomerAccount(account) && !(typeof isOwnerAccount === "function" && isOwnerAccount(account))) {
+    if (!canCustomizePcCheckTool()) {
       alert("A Customer license is required to download the branded PC Check tool.");
       return;
     }
