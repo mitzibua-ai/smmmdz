@@ -3548,6 +3548,11 @@ a.btn.pin-download-link {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
 }
 
+.account-panels--single {
+  grid-template-columns: 1fr;
+  max-width: 560px;
+}
+
 .account-panel--tool-brand {
   margin-top: 4px;
 }

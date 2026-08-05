@@ -819,12 +819,20 @@ function renderAccount() {
 
   return `
     <div class="account-page">
-      <header class="page-header page-header--account">
-        <div>
-          <h1>Account</h1>
-          <p>Profile, license, and PC Check tool branding.</p>
+      <section class="account-panels account-panels--premium account-panels--single">
+        <div class="account-panel account-panel--profile">
+          <div class="account-panel__head">
+            <div>
+              <div class="account-panel__title">Discord profile</div>
+              <div class="account-panel__sub">Live avatar, banner, and decoration</div>
+            </div>
+            <button type="button" class="btn btn--ghost btn--small" id="refresh-profile">Refresh</button>
+          </div>
+          <div class="account-panel__body account-panel__body--flush">
+            ${buildDiscordProfileCard(acc)}
+          </div>
         </div>
-      </header>
+      </section>
 
       <section class="account-panel account-panel--tool-brand">
         <div class="account-panel__head">
@@ -884,48 +892,6 @@ function renderAccount() {
                 </label>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="account-panels account-panels--premium">
-        <div class="account-panel account-panel--profile">
-          <div class="account-panel__head">
-            <div>
-              <div class="account-panel__title">Discord profile</div>
-              <div class="account-panel__sub">Live avatar, banner, and decoration</div>
-            </div>
-            <button type="button" class="btn btn--ghost btn--small" id="refresh-profile">Refresh</button>
-          </div>
-          <div class="account-panel__body account-panel__body--flush">
-            ${buildDiscordProfileCard(acc)}
-          </div>
-        </div>
-
-        <div class="account-panel account-panel--security">
-          <div class="account-panel__head">
-            <div>
-              <div class="account-panel__title">Security & sync</div>
-              <div class="account-panel__sub">One Discord · server-backed license</div>
-            </div>
-            <button type="button" class="btn btn--ghost btn--small" id="copy-discord-id">Copy Discord ID</button>
-          </div>
-          <div class="account-panel__body">
-            <div class="account-kv">
-              <div class="account-kv__row">
-                <span class="account-kv__k">Discord ID</span>
-                <span class="account-kv__v mono" id="account-discord-id">${escapeHtml(acc.discordId)}</span>
-              </div>
-              <div class="account-kv__row">
-                <span class="account-kv__k">Join</span>
-                <span class="account-kv__v account-kv__v--join">${escapeHtml(formatJoinDate(acc))}</span>
-              </div>
-              <div class="account-kv__row">
-                <span class="account-kv__k">License expire in</span>
-                <span class="account-kv__v">${buildLicenseExpireCountdownHtml(acc)}</span>
-              </div>
-            </div>
-            <p class="account-panel__note">Join date is permanent from your first login. The license countdown runs in real time from the server expiry — close the browser and it stays accurate when you return.</p>
           </div>
         </div>
       </section>
@@ -1010,21 +976,6 @@ function bindAccountEvents() {
       alert(err.message || "Could not refresh profile.");
       btn.disabled = false;
       btn.textContent = "Refresh";
-    }
-  });
-
-  $("copy-discord-id")?.addEventListener("click", async () => {
-    const id = account?.discordId;
-    if (!id) return;
-    try {
-      await navigator.clipboard.writeText(id);
-      const btn = $("copy-discord-id");
-      if (btn) {
-        btn.textContent = "Copied!";
-        setTimeout(() => { btn.textContent = "Copy Discord ID"; }, 1500);
-      }
-    } catch {
-      alert(id);
     }
   });
 
