@@ -41,8 +41,10 @@ def generate_license_code() -> str:
 
 
 def duration_to_seconds(amount: int, unit: str) -> int:
-    value = max(1, int(amount))
     unit_key = str(unit or "").strip().lower().rstrip("s")
+    if unit_key in {"lifetime", "life", "permanent", "perm"}:
+        return 0
+    value = max(1, int(amount))
     if unit_key in {"month", "mo"}:
         return value * 30 * 86400
     if unit_key in {"day", "d"}:
@@ -55,8 +57,10 @@ def duration_to_seconds(amount: int, unit: str) -> int:
 
 
 def format_duration(amount: int, unit: str) -> str:
-    value = max(1, int(amount))
     unit_key = str(unit or "").strip().lower().rstrip("s")
+    if unit_key in {"lifetime", "life", "permanent", "perm"}:
+        return "Lifetime"
+    value = max(1, int(amount))
     labels = {
         "month": ("month", "months"),
         "mo": ("month", "months"),
@@ -71,6 +75,15 @@ def format_duration(amount: int, unit: str) -> str:
     }
     singular, plural = labels.get(unit_key, ("unit", "units"))
     return f"{value} {singular if value == 1 else plural}"
+
+
+def is_lifetime_key(key_entry: dict | None) -> bool:
+    if not key_entry:
+        return False
+    if int(key_entry.get("durationSeconds") or -1) == 0:
+        return True
+    label = str(key_entry.get("durationLabel") or "").strip().lower()
+    return label == "lifetime"
 
 
 def map_scanner_verdict(verdict: str) -> tuple[str, str, str]:

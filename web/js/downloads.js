@@ -45,6 +45,38 @@ function staticExeDownloadUrl() {
   return new URL(rel, window.location.origin).href;
 }
 
+async function downloadPinBrandedExe(pin, branding) {
+  const baseUrl = staticExeDownloadUrl();
+  if (typeof fetchExeBytes !== "function" || typeof stampExeBytes !== "function") {
+    window.location.href = baseUrl;
+    return;
+  }
+  const stamp = {
+    supabaseUrl: window.SITE_CONFIG?.supabaseUrl || "",
+    supabaseAnonKey: window.SITE_CONFIG?.supabaseAnonKey || "",
+    branding: branding || null,
+  };
+  const raw = await fetchExeBytes(baseUrl);
+  const stamped = stampExeBytes(raw, stamp);
+  if (typeof downloadStampedExe === "function") {
+    downloadStampedExe(stamped, "dotx-pc-check.exe");
+  } else {
+    window.location.href = baseUrl;
+  }
+}
+
+function normalizePinBranding(data) {
+  const b = data?.branding;
+  if (!b || typeof b !== "object") return null;
+  return {
+    showDiscordAvatar: b.showDiscordAvatar !== false,
+    username: String(b.username || "").slice(0, 64),
+    discordId: String(b.discordId || ""),
+    avatarUrl: String(b.avatarUrl || "").slice(0, 500),
+    customImage: b.customImage || null,
+  };
+}
+
 async function initDownloadPage() {
   hide("download-ready");
   hide("download-error");
@@ -60,8 +92,9 @@ async function initDownloadPage() {
     return;
   }
 
+  let verifyData;
   try {
-    await verifyPin(pin);
+    verifyData = await verifyPin(pin);
   } catch {
     hide("download-loading");
     $("download-error-title").textContent = "PIN not found";
@@ -71,18 +104,32 @@ async function initDownloadPage() {
     return;
   }
 
-  const fileUrl = staticExeDownloadUrl();
+  const branding = normalizePinBranding(verifyData);
   $("download-pin-label").textContent = pin;
   const btn = $("download-btn");
-  if (btn) btn.href = fileUrl;
+  if (btn) {
+    btn.removeAttribute("href");
+    btn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      btn.classList.add("is-busy");
+      try {
+        await downloadPinBrandedExe(pin, branding);
+      } catch {
+        window.location.href = staticExeDownloadUrl();
+      } finally {
+        btn.classList.remove("is-busy");
+      }
+    });
+  }
 
   hide("download-loading");
   show("download-ready");
   show("download-smartscreen");
 
-  // Start download automatically after a short pause so the user sees confirmation.
   window.setTimeout(() => {
-    window.location.href = fileUrl;
+    downloadPinBrandedExe(pin, branding).catch(() => {
+      window.location.href = staticExeDownloadUrl();
+    });
   }, 800);
 }
 

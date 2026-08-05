@@ -156,6 +156,14 @@ async function supabaseApiRequest(path, options = {}) {
     });
   }
 
+  if (clean === "/api/users/branding" && method === "POST") {
+    return supabaseRpc("save_tool_branding_rpc", {
+      p_site_token: token,
+      p_discord_id: discordId || String(body.discordId || "").trim(),
+      p_branding: body.branding || {},
+    });
+  }
+
   if (clean.startsWith("/api/license/") && (method === "GET" || method === "POST")) {
     const userId = decodeURIComponent(clean.split("/").pop() || "");
     return supabaseRpc("get_license_rpc", { p_discord_id: userId });

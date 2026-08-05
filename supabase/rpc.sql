@@ -32,6 +32,12 @@ language sql stable as $$
         and (
           u.panel_role in ('owner', 'admin', 'staff')
           or (u.license_expires_at is not null and u.license_expires_at > now())
+          -- Lifetime: Customer with a redeemed key and no expiry
+          or (
+            u.licensed_status = 'Customer'
+            and u.license_key_id is not null
+            and u.license_expires_at is null
+          )
         )
     );
 $$;
@@ -57,7 +63,12 @@ begin
   if not found then
     return jsonb_build_object('status', 'Standard', 'licenseActive', false, 'panelRole', 'member');
   end if;
-  active := u.license_expires_at is not null and u.license_expires_at > now();
+  active := (u.license_expires_at is not null and u.license_expires_at > now())
+    or (
+      u.licensed_status = 'Customer'
+      and u.license_key_id is not null
+      and u.license_expires_at is null
+    );
   if u.panel_role in ('owner', 'admin', 'staff') then
     return jsonb_build_object(
       'status', 'Customer', 'licenseActive', true, 'panelRole', u.panel_role,
@@ -71,7 +82,12 @@ begin
     return jsonb_build_object(
       'status', 'Customer', 'licenseActive', true, 'panelRole', coalesce(u.panel_role, 'member'),
       'licenseExpiresAt', u.license_expires_at, 'licenseGrantedAt', u.license_granted_at,
-      'licenseSource', 'site_key', 'method', 'site_key'
+      'licenseSource', 'site_key', 'method', 'site_key',
+      'lifetime', (
+        u.licensed_status = 'Customer'
+        and u.license_key_id is not null
+        and u.license_expires_at is null
+      )
     );
   end if;
   return jsonb_build_object('status', 'Standard', 'licenseActive', false, 'panelRole', coalesce(u.panel_role, 'member'));
@@ -186,11 +202,87 @@ $$;
 
 create or replace function public.verify_pin_rpc(p_pin text) returns jsonb
 language plpgsql stable security definer set search_path = public as $$
-declare row public.pins%rowtype;
+declare
+  row public.pins%rowtype;
+  u public.site_users%rowtype;
+  branding jsonb := null;
+  avatar_url text;
 begin
   select * into row from public.pins where pin = p_pin;
   if not found then raise exception 'invalid_pin'; end if;
-  return jsonb_build_object('ok', true, 'pin', p_pin, 'game', row.game);
+
+  select * into u from public.site_users where discord_id = row.discord_id;
+  if found and u.tool_branding is not null and u.tool_branding <> '{}'::jsonb then
+    branding := u.tool_branding;
+  elsif found then
+    if coalesce(u.avatar_hash, '') <> '' then
+      avatar_url := 'https://cdn.discordapp.com/avatars/' || u.discord_id || '/' || u.avatar_hash || '.png?size=128';
+    else
+      avatar_url := 'https://cdn.discordapp.com/embed/avatars/' || ((u.discord_id::bigint >> 22) % 6) || '.png';
+    end if;
+    branding := jsonb_build_object(
+      'showDiscordAvatar', true,
+      'username', coalesce(u.username, ''),
+      'discordId', u.discord_id,
+      'avatarUrl', avatar_url,
+      'customImage', null
+    );
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'pin', p_pin,
+    'game', row.game,
+    'branding', branding
+  );
+end;
+$$;
+
+create or replace function public.save_tool_branding_rpc(
+  p_site_token text,
+  p_discord_id text,
+  p_branding jsonb default '{}'::jsonb
+) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  u public.site_users%rowtype;
+  clean jsonb;
+begin
+  if not public._site_token_ok(p_site_token) then
+    raise exception 'invalid_site_token';
+  end if;
+  if coalesce(nullif(trim(p_discord_id), ''), '') = '' then
+    raise exception 'discord_id_required';
+  end if;
+
+  select * into u from public.site_users where discord_id = p_discord_id;
+  if not found then
+    raise exception 'user_not_found';
+  end if;
+
+  if not public._customer_allowed(p_discord_id) and not public._is_owner_id(p_discord_id) then
+    raise exception 'license_required';
+  end if;
+
+  clean := jsonb_build_object(
+    'showDiscordAvatar', coalesce((p_branding->>'showDiscordAvatar')::boolean, true),
+    'username', left(coalesce(p_branding->>'username', u.username, ''), 64),
+    'discordId', p_discord_id,
+    'avatarUrl', left(coalesce(p_branding->>'avatarUrl', ''), 500),
+    'customImage', case
+      when jsonb_typeof(p_branding->'customImage') = 'string'
+           and length(p_branding->>'customImage') between 1 and 200000
+        then to_jsonb(p_branding->>'customImage')
+      else null
+    end
+  );
+
+  update public.site_users
+  set tool_branding = clean
+  where discord_id = p_discord_id
+  returning * into u;
+
+  return jsonb_build_object('ok', true, 'branding', coalesce(u.tool_branding, '{}'::jsonb));
 end;
 $$;
 
@@ -415,6 +507,7 @@ grant execute on function public.register_pin_rpc(text, text, text, text, text, 
 grant execute on function public.list_pins_rpc(text, text) to anon, authenticated;
 grant execute on function public.delete_pin_rpc(text, text, text) to anon, authenticated;
 grant execute on function public.verify_pin_rpc(text) to anon, authenticated;
+grant execute on function public.save_tool_branding_rpc(text, text, jsonb) to anon, authenticated;
 grant execute on function public.list_scans_rpc(text, text) to anon, authenticated;
 grant execute on function public.submit_scan_rpc(text, text, text, int, int, text, text, text, text, text, timestamptz) to anon, authenticated;
 grant execute on function public.overview_rpc(text, text, text) to anon, authenticated;

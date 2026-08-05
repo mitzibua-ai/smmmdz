@@ -11,6 +11,7 @@ from db_common import (
     format_duration,
     generate_license_code,
     generate_user_token,
+    is_lifetime_key,
     map_scanner_verdict,
 )
 
@@ -27,6 +28,7 @@ def _use_supabase() -> bool:
 
 if _use_supabase():
     from supabase_store import (  # noqa: F401
+        branding_for_user,
         build_role_dashboard,
         create_license_key,
         delete_pin,
@@ -42,11 +44,13 @@ if _use_supabase():
         register_pin,
         register_site_user,
         revoke_site_license,
+        save_tool_branding,
         set_site_user_role,
         submit_scan,
     )
 else:
     from json_store import (  # noqa: F401
+        branding_for_user,
         build_role_dashboard,
         create_license_key,
         delete_pin,
@@ -62,6 +66,7 @@ else:
         register_pin,
         register_site_user,
         revoke_site_license,
+        save_tool_branding,
         set_site_user_role,
         submit_scan,
     )
@@ -74,7 +79,9 @@ __all__ = [
     "format_duration",
     "generate_license_code",
     "generate_user_token",
+    "is_lifetime_key",
     "map_scanner_verdict",
+    "branding_for_user",
     "build_role_dashboard",
     "create_license_key",
     "delete_pin",
@@ -90,6 +97,7 @@ __all__ = [
     "register_pin",
     "register_site_user",
     "revoke_site_license",
+    "save_tool_branding",
     "set_site_user_role",
     "submit_scan",
 ]

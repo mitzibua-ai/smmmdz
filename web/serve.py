@@ -13,6 +13,7 @@ from pathlib import Path
 from data_store import (
     PANEL_ROLES,
     ROLE_RANK,
+    branding_for_user,
     build_role_dashboard,
     delete_pin,
     find_pin_by_code,
@@ -23,6 +24,7 @@ from data_store import (
     register_pin,
     register_site_user,
     revoke_site_license,
+    save_tool_branding,
     set_site_user_role,
     submit_scan,
 )
@@ -70,6 +72,7 @@ SITE_TOKEN_EXEMPT_PATHS = {
     "/api/tool-config",
     "/api/site-config",
     "/api/users/register",
+    "/api/users/branding",
 }
 
 
@@ -653,7 +656,15 @@ class DotxHandler(SimpleHTTPRequestHandler):
             if not pin_entry:
                 self._send_error_json("invalid_pin", 404)
                 return True
-            self._send_json({"ok": True, "pin": pin_code, "game": pin_entry.get("game", "FiveM")})
+            owner = get_site_user(str(pin_entry.get("discordId") or ""))
+            self._send_json(
+                {
+                    "ok": True,
+                    "pin": pin_code,
+                    "game": pin_entry.get("game", "FiveM"),
+                    "branding": branding_for_user(owner),
+                }
+            )
             return True
 
         if path.startswith("/api/download/") and self.command == "GET":
@@ -756,6 +767,24 @@ class DotxHandler(SimpleHTTPRequestHandler):
                 )
                 panel_role = resolve_panel_role(discord_id, license_info.get("roles", []))
                 self._send_json({"ok": True, "user": {**user, "panelRole": panel_role}})
+            except ValueError as err:
+                self._send_error_json(str(err), 400)
+            return True
+
+        if path == "/api/users/branding" and self.command == "POST":
+            body = self._read_json_body()
+            discord_id = str(body.get("discordId", "")).strip()
+            if not discord_id:
+                self._send_error_json("discordId required", 400)
+                return True
+            license_info = check_license(discord_id, body.get("accessToken"))
+            panel_role = resolve_panel_role(discord_id, license_info.get("roles", []))
+            if license_info.get("status") != "Customer" and panel_role != "owner":
+                self._send_error_json("license_required", 403)
+                return True
+            try:
+                branding = save_tool_branding(discord_id, body.get("branding") or {})
+                self._send_json({"ok": True, "branding": branding})
             except ValueError as err:
                 self._send_error_json(str(err), 400)
             return True

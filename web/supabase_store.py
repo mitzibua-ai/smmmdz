@@ -15,6 +15,7 @@ from db_common import (
     generate_license_code,
     generate_user_token,
     hash_license_code,
+    is_lifetime_key,
     map_scanner_verdict,
     now_iso,
     parse_iso,
@@ -71,6 +72,7 @@ def _user_to_row(user: dict) -> dict:
         "license_revoked_at": _ts(user.get("licenseRevokedAt")),
         "license_revoked_by": user.get("licenseRevokedBy"),
         "promoted_at": _ts(user.get("promotedAt")),
+        "tool_branding": user.get("toolBranding"),
     }
 
 
@@ -92,6 +94,7 @@ def _user_from_row(row: dict) -> dict:
         "licenseRevokedAt": row.get("license_revoked_at"),
         "licenseRevokedBy": row.get("license_revoked_by"),
         "promotedAt": row.get("promoted_at"),
+        "toolBranding": row.get("tool_branding"),
     }
 
 
@@ -240,6 +243,19 @@ def get_active_site_license(discord_id: str) -> dict | None:
         return None
     expires = parse_iso(str(user.get("licenseExpiresAt", "")))
     if not expires:
+        # Lifetime: Customer with a redeemed key and no expiry timestamp
+        if (
+            str(user.get("licensedStatus") or "").lower() == "customer"
+            and user.get("licenseKeyId")
+        ):
+            return {
+                "discordId": str(discord_id),
+                "licenseExpiresAt": None,
+                "licenseGrantedAt": user.get("licenseGrantedAt"),
+                "licenseKeyId": user.get("licenseKeyId"),
+                "licensedStatus": "Customer",
+                "lifetime": True,
+            }
         return None
     if expires.tzinfo is None:
         expires = expires.replace(tzinfo=timezone.utc)
@@ -252,6 +268,7 @@ def get_active_site_license(discord_id: str) -> dict | None:
         "licenseGrantedAt": user.get("licenseGrantedAt"),
         "licenseKeyId": user.get("licenseKeyId"),
         "licensedStatus": "Customer",
+        "lifetime": False,
     }
 
 
@@ -336,8 +353,12 @@ def redeem_license_key(
             raise LookupError("key_used")
 
         now = datetime.now(timezone.utc)
-        expires = now + timedelta(seconds=int(key_entry.get("durationSeconds") or 0))
-        expires_iso = expires.isoformat()
+        lifetime = is_lifetime_key(key_entry)
+        if lifetime:
+            expires_iso = None
+        else:
+            expires = now + timedelta(seconds=int(key_entry.get("durationSeconds") or 0))
+            expires_iso = expires.isoformat()
 
         key_entry["status"] = "redeemed"
         key_entry["redeemedBy"] = target_id
@@ -382,6 +403,7 @@ def redeem_license_key(
             "targetDiscordId": target_id,
             "licenseExpiresAt": expires_iso,
             "durationLabel": key_entry.get("durationLabel"),
+            "lifetime": lifetime,
         }
 
 
@@ -501,6 +523,51 @@ def register_site_user(payload: dict) -> dict:
 
 def get_site_user(discord_id: str) -> dict | None:
     return _fetch_user(discord_id)
+
+
+def save_tool_branding(discord_id: str, branding: dict) -> dict:
+    user = _fetch_user(discord_id)
+    if not user:
+        raise ValueError("user_not_found")
+    clean = {
+        "showDiscordAvatar": branding.get("showDiscordAvatar") is not False,
+        "username": str(branding.get("username") or user.get("username") or "")[:64],
+        "discordId": str(discord_id).strip(),
+        "avatarUrl": str(branding.get("avatarUrl") or "")[:500],
+        "customImage": branding.get("customImage")
+        if isinstance(branding.get("customImage"), str) and len(branding.get("customImage") or "") <= 200000
+        else None,
+    }
+    user["toolBranding"] = clean
+    _upsert_user(user)
+    return clean
+
+
+def branding_for_user(user: dict | None) -> dict | None:
+    if not user:
+        return None
+    stored = user.get("toolBranding")
+    if isinstance(stored, dict) and stored:
+        return dict(stored)
+    discord_id = str(user.get("discordId") or "")
+    hash_ = str(user.get("avatarHash") or "")
+    if discord_id and hash_:
+        avatar_url = f"https://cdn.discordapp.com/avatars/{discord_id}/{hash_}.png?size=128"
+    elif discord_id:
+        try:
+            idx = (int(discord_id) >> 22) % 6
+        except ValueError:
+            idx = 0
+        avatar_url = f"https://cdn.discordapp.com/embed/avatars/{idx}.png"
+    else:
+        avatar_url = ""
+    return {
+        "showDiscordAvatar": True,
+        "username": user.get("username") or "",
+        "discordId": discord_id,
+        "avatarUrl": avatar_url,
+        "customImage": None,
+    }
 
 
 def list_site_users() -> list[dict]:

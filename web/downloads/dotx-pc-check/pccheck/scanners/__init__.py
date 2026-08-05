@@ -1,3 +1,4 @@
+from pccheck.scanners.archive_scanner import ArchiveScanner
 from pccheck.scanners.browser_scanner import BrowserScanner
 from pccheck.scanners.cleaner_scanner import CleanerScanner
 from pccheck.scanners.file_scanner import FileScanner
@@ -10,6 +11,7 @@ from pccheck.scanners.rpf_scanner import RpfScanner
 from pccheck.scanners.trace_scanner import TraceScanner
 
 __all__ = [
+    "ArchiveScanner",
     "BrowserScanner",
     "CleanerScanner",
     "FileScanner",

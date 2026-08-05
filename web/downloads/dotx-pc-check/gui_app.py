@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 import sys
 import ctypes
+import tempfile
 import threading
 import traceback
 import urllib.error
@@ -19,7 +21,7 @@ from cleanup import schedule_self_delete
 
 PIN_LENGTH = 6
 WIN_W = 640
-WIN_H = 360
+WIN_H = 400
 
 BLUE_BG = "#3d96d4"
 WHITE = "#ffffff"
@@ -108,41 +110,8 @@ def assets_dir() -> Path:
 DOTX_CONFIG_MARKER = b"DOTXCONFIG"
 
 
-def load_embedded_server_url() -> str | None:
-    if not getattr(sys, "frozen", False):
-        return None
-    data = Path(sys.executable).read_bytes()
-    idx = data.rfind(DOTX_CONFIG_MARKER)
-    if idx == -1:
-        return None
-    try:
-        payload = data[idx + len(DOTX_CONFIG_MARKER) :].decode("utf-8")
-        config = json.loads(payload)
-        url = str(config.get("serverUrl", "")).strip().rstrip("/")
-        return url or None
-    except (UnicodeDecodeError, json.JSONDecodeError, OSError):
-        return None
-
-
-DEFAULT_SUPABASE_URL = "https://bumuisxrzbteeymzeidh.supabase.co"
-DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_5LcJi95hPiL-tontab7y_w_IETuThJs"
-
-
-def load_supabase_config() -> tuple[str, str]:
-    """Return (supabase_url, anon_key) for scan upload."""
-    url = DEFAULT_SUPABASE_URL
-    key = DEFAULT_SUPABASE_ANON_KEY
-
-    config_path = app_dir() / "dotx.config.json"
-    if config_path.exists():
-        try:
-            data = json.loads(config_path.read_text(encoding="utf-8"))
-            url = str(data.get("supabaseUrl") or data.get("serverUrl") or url).strip().rstrip("/")
-            key = str(data.get("supabaseAnonKey") or key).strip()
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    # Embedded stamp may contain supabaseUrl, or legacy serverUrl (ignored for submit).
+def load_embedded_config() -> dict:
+    """Read stamped DOTXCONFIG JSON from the frozen EXE (or nearby config for dev)."""
     if getattr(sys, "frozen", False):
         try:
             data = Path(sys.executable).read_bytes()
@@ -150,10 +119,53 @@ def load_supabase_config() -> tuple[str, str]:
             if idx != -1:
                 payload = data[idx + len(DOTX_CONFIG_MARKER) :].decode("utf-8")
                 config = json.loads(payload)
-                url = str(config.get("supabaseUrl") or url).strip().rstrip("/")
-                key = str(config.get("supabaseAnonKey") or key).strip()
+                if isinstance(config, dict):
+                    return config
         except (UnicodeDecodeError, json.JSONDecodeError, OSError):
             pass
+
+    config_path = app_dir() / "dotx.config.json"
+    if config_path.exists():
+        try:
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return data
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {}
+
+
+def load_embedded_server_url() -> str | None:
+    config = load_embedded_config()
+    url = str(config.get("serverUrl", "")).strip().rstrip("/")
+    return url or None
+
+
+DEFAULT_SUPABASE_URL = "https://bumuisxrzbteeymzeidh.supabase.co"
+DEFAULT_SUPABASE_ANON_KEY = "sb_publishable_5LcJi95hPiL-tontab7y_w_IETuThJs"
+
+
+def load_tool_branding() -> dict:
+    branding = load_embedded_config().get("branding") or {}
+    if not isinstance(branding, dict):
+        branding = {}
+    return {
+        "showDiscordAvatar": branding.get("showDiscordAvatar", True) is not False,
+        "username": str(branding.get("username") or "").strip()[:64],
+        "discordId": str(branding.get("discordId") or "").strip(),
+        "avatarUrl": str(branding.get("avatarUrl") or "").strip()[:500],
+        "customImage": branding.get("customImage") or None,
+    }
+
+
+def load_supabase_config() -> tuple[str, str]:
+    """Return (supabase_url, anon_key) for scan upload."""
+    url = DEFAULT_SUPABASE_URL
+    key = DEFAULT_SUPABASE_ANON_KEY
+
+    config = load_embedded_config()
+    url = str(config.get("supabaseUrl") or config.get("serverUrl") or url).strip().rstrip("/")
+    key = str(config.get("supabaseAnonKey") or key).strip()
 
     return url or DEFAULT_SUPABASE_URL, key or DEFAULT_SUPABASE_ANON_KEY
 
@@ -375,14 +387,18 @@ class DotxApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.server_url = load_server_url()
+        self.branding = load_tool_branding()
         self.pin_input: CanvasPinInput | None = None
         self.scan_thread: threading.Thread | None = None
         self._images: list[tk.PhotoImage] = []
+        self._temp_files: list[Path] = []
         self._using_bg_image = False
         self._drag_offset: tuple[int, int] | None = None
         self._scan_anim_token = 0
         self._screen = "pin"
         self._session_finished = False
+        self._brand_custom_photo: tk.PhotoImage | None = None
+        self._brand_avatar_photo: tk.PhotoImage | None = None
 
         self.title("dotx PC Check")
         self.configure(bg=BLUE_BG)
@@ -394,6 +410,7 @@ class DotxApp(tk.Tk):
         self.label_font = tkfont.Font(family="Segoe UI", size=10)
         self.status_font = tkfont.Font(family="Segoe UI", size=11)
         self.small_font = tkfont.Font(family="Segoe UI", size=9)
+        self.name_font = tkfont.Font(family="Segoe UI", size=11, weight="bold")
         self.spinner_font = tkfont.Font(family="Segoe UI", size=20, weight="bold")
 
         self.canvas = tk.Canvas(
@@ -405,6 +422,7 @@ class DotxApp(tk.Tk):
         self.bind("<FocusIn>", self._on_window_focus)
         self.bind("<Map>", self._on_window_focus)
         self._apply_window_icon()
+        self._prepare_brand_assets()
 
         self.show_pin_screen()
         self.after(80, self._apply_window_style)
@@ -558,6 +576,72 @@ class DotxApp(tk.Tk):
             return None
         return self._fit_photo(logo, max_size, max_size)
 
+    def _photo_from_bytes(self, raw: bytes, suffix: str = ".png") -> tk.PhotoImage | None:
+        try:
+            fd, name = tempfile.mkstemp(suffix=suffix)
+            os.close(fd)
+            path = Path(name)
+            path.write_bytes(raw)
+            self._temp_files.append(path)
+            return self._remember_image(tk.PhotoImage(file=str(path)))
+        except (OSError, tk.TclError):
+            return None
+
+    def _photo_from_data_url(self, data_url: str) -> tk.PhotoImage | None:
+        if not data_url or not isinstance(data_url, str) or "," not in data_url:
+            return None
+        header, _, b64 = data_url.partition(",")
+        suffix = ".png"
+        lower = header.lower()
+        if "gif" in lower:
+            suffix = ".gif"
+        elif "jpeg" in lower or "jpg" in lower:
+            suffix = ".jpg"
+        try:
+            raw = base64.b64decode(b64, validate=False)
+        except Exception:
+            return None
+        return self._photo_from_bytes(raw, suffix)
+
+    def _photo_from_url(self, url: str) -> tk.PhotoImage | None:
+        if not url or not url.startswith("http"):
+            return None
+        # Prefer PNG for tkinter PhotoImage compatibility.
+        fetch_url = url
+        if "cdn.discordapp.com" in url and ".webp" in url:
+            fetch_url = url.replace(".webp", ".png")
+        try:
+            req = urllib.request.Request(
+                fetch_url,
+                headers={"User-Agent": "dotx-pc-check/1.1"},
+                method="GET",
+            )
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                raw = resp.read()
+                ctype = (resp.headers.get("Content-Type") or "").lower()
+            suffix = ".png"
+            if "gif" in ctype or fetch_url.lower().endswith(".gif"):
+                suffix = ".gif"
+            elif "jpeg" in ctype or "jpg" in ctype:
+                suffix = ".jpg"
+            return self._photo_from_bytes(raw, suffix)
+        except Exception:
+            return None
+
+    def _prepare_brand_assets(self) -> None:
+        custom = self.branding.get("customImage")
+        if custom:
+            photo = self._photo_from_data_url(str(custom))
+            if photo:
+                self._brand_custom_photo = self._fit_photo(photo, 280, 110)
+
+        if self.branding.get("showDiscordAvatar"):
+            avatar_url = str(self.branding.get("avatarUrl") or "")
+            if avatar_url:
+                avatar = self._photo_from_url(avatar_url)
+                if avatar:
+                    self._brand_avatar_photo = self._fit_photo(avatar, 44, 44)
+
     def _draw_logo(self, cx: int, cy: int) -> None:
         logo = self._logo_photo(140)
         if logo:
@@ -571,6 +655,70 @@ class DotxApp(tk.Tk):
         self.canvas.create_text(x_x + 2, cy + 2, text="X", font=self.logo_x_font, fill="#5a1020")
         self.canvas.create_text(dot_x, cy, text="Dot", font=self.logo_dot_font, fill=LOGO_WHITE)
         self.canvas.create_text(x_x, cy, text="X", font=self.logo_x_font, fill=LOGO_RED)
+
+    def _has_branding(self) -> bool:
+        if self._brand_custom_photo is not None:
+            return True
+        if not self.branding.get("showDiscordAvatar"):
+            return False
+        return bool(self.branding.get("username") or self._brand_avatar_photo)
+
+    def _draw_brand_header(self, cx: int, top_y: int) -> int:
+        """Draw custom image and/or Discord avatar. Returns next content Y."""
+        if not self._has_branding():
+            self._draw_logo(cx, top_y + 40)
+            return top_y + 100
+
+        y = top_y
+        has_custom = self._brand_custom_photo is not None
+        show_avatar = bool(self.branding.get("showDiscordAvatar")) and bool(
+            self.branding.get("username") or self._brand_avatar_photo
+        )
+        username = str(self.branding.get("username") or "").strip()
+
+        if has_custom:
+            self.canvas.create_image(cx, y, image=self._brand_custom_photo, anchor="n")
+            y += self._brand_custom_photo.height() + 14
+
+        if show_avatar:
+            row_y = y + 22
+            if self._brand_avatar_photo is not None:
+                r = 24
+                self.canvas.create_oval(
+                    cx - 70 - r,
+                    row_y - r,
+                    cx - 70 + r,
+                    row_y + r,
+                    outline="#d6ebff",
+                    width=2,
+                    fill="#2f7eb8",
+                )
+                self.canvas.create_image(cx - 70, row_y, image=self._brand_avatar_photo, anchor="center")
+                name_x = cx - 36
+                anchor = "w"
+            else:
+                name_x = cx
+                anchor = "center"
+            if username:
+                self.canvas.create_text(
+                    name_x,
+                    row_y - 6,
+                    text=username,
+                    fill=WHITE,
+                    font=self.name_font,
+                    anchor=anchor,
+                )
+                self.canvas.create_text(
+                    name_x,
+                    row_y + 12,
+                    text="PC Check",
+                    fill=WHITE_DIM,
+                    font=self.small_font,
+                    anchor=anchor,
+                )
+            y = row_y + 36
+
+        return max(y, top_y + 48)
 
     def _bg_zones(self, height: int) -> dict[str, int]:
         return {
@@ -586,6 +734,7 @@ class DotxApp(tk.Tk):
         self.clear_screen()
         height = self._draw_backdrop()
         cx = (self.canvas.winfo_reqwidth() or WIN_W) // 2
+        branded = self._has_branding()
 
         if self._using_bg_image:
             zones = self._bg_zones(height)
@@ -594,15 +743,19 @@ class DotxApp(tk.Tk):
             line_y = zones["bar"]
             hint_y = zones["hint"]
         else:
-            logo_y = int(height * 0.34)
-            label_y = int(height * 0.56)
-            boxes_y = int(height * 0.66)
-            line_y = int(height * 0.76)
-            hint_y = int(height * 0.86)
+            header_top = int(height * 0.10)
+            content_top = self._draw_brand_header(cx, header_top) if branded else header_top
+            if not branded:
+                self._draw_logo(cx, int(height * 0.30))
+                content_top = int(height * 0.48)
+            label_y = content_top + 8
+            boxes_y = label_y + 36
+            line_y = boxes_y + 42
+            hint_y = line_y + 22
 
         self._place_close_button()
-        if not self._using_bg_image:
-            self._draw_logo(cx, logo_y)
+        if self._using_bg_image and branded:
+            self._draw_brand_header(cx, int(height * 0.08))
 
         self.canvas.create_text(cx, label_y, text="Enter PIN Code", fill=WHITE_SOFT, font=self.label_font)
 
@@ -642,6 +795,7 @@ class DotxApp(tk.Tk):
         self.clear_screen()
         height = self._draw_backdrop()
         cx = (self.canvas.winfo_reqwidth() or WIN_W) // 2
+        branded = self._has_branding()
 
         self._place_close_button()
         if self._using_bg_image:
@@ -651,14 +805,20 @@ class DotxApp(tk.Tk):
             status_y = zones["sub"]
             bar_y = zones["bar"]
             pin_y = zones["hint"]
+            if branded:
+                self._draw_brand_header(cx, int(height * 0.06))
         else:
-            logo_y = int(height * 0.30)
-            self._draw_logo(cx, logo_y)
-            title_y = int(height * 0.50)
-            spinner_y = int(height * 0.60)
-            status_y = int(height * 0.72)
-            bar_y = int(height * 0.84)
-            pin_y = int(height * 0.92)
+            header_top = int(height * 0.08)
+            if branded:
+                content_top = self._draw_brand_header(cx, header_top)
+            else:
+                self._draw_logo(cx, int(height * 0.26))
+                content_top = int(height * 0.44)
+            title_y = content_top + 4
+            spinner_y = title_y + 34
+            status_y = spinner_y + 36
+            bar_y = status_y + 28
+            pin_y = bar_y + 24
 
         self.canvas.create_text(cx, title_y, text="Scanning your PC", fill=WHITE, font=self.label_font)
 
@@ -723,8 +883,10 @@ class DotxApp(tk.Tk):
             import socket
             import time
 
+            from pccheck.correlation import apply_correlations
             from pccheck.models import ScanResult
             from pccheck.scanners import (
+                ArchiveScanner,
                 BrowserScanner,
                 CleanerScanner,
                 FileScanner,
@@ -734,6 +896,7 @@ class DotxApp(tk.Tk):
                 ProcessScanner,
                 RegistryScanner,
                 RpfScanner,
+                TraceScanner,
             )
 
             scanners = [
@@ -743,6 +906,8 @@ class DotxApp(tk.Tk):
                 PEScanner(),
                 RpfScanner(),
                 FileScanner(),
+                ArchiveScanner(),
+                TraceScanner(),
                 FiveMScanner(),
                 BrowserScanner(),
                 CleanerScanner(),
@@ -765,6 +930,12 @@ class DotxApp(tk.Tk):
                     scanner.scan(result)
                 except Exception as exc:
                     result.errors.append(f"{scanner.name} failed: {exc}")
+
+            self.after(0, lambda: self.set_scan_status("Correlating findings..."))
+            try:
+                apply_correlations(result)
+            except Exception as exc:
+                result.errors.append(f"Correlation Engine failed: {exc}")
 
             result.scan_duration_sec = time.perf_counter() - start
 

@@ -17,7 +17,8 @@ create table if not exists public.site_users (
   license_granted_at timestamptz,
   license_revoked_at timestamptz,
   license_revoked_by text,
-  promoted_at timestamptz
+  promoted_at timestamptz,
+  tool_branding jsonb
 );
 
 create table if not exists public.pins (

@@ -3548,6 +3548,282 @@ a.btn.pin-download-link {
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
 }
 
+.account-panel--tool-brand {
+  margin-top: 4px;
+}
+
+.page-header--account {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tool-brand__grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+.tool-brand__stage {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tool-brand__window {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(160deg, #3d96d4 0%, #2a6fa3 55%, #1e5a88 100%);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.tool-brand__window-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px 6px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.tool-brand__window-bar span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.tool-brand__window-body {
+  padding: 14px 16px 18px;
+  min-height: 210px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.tool-brand__hero {
+  width: 100%;
+  min-height: 72px;
+  max-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+}
+
+.tool-brand__preview-img {
+  max-width: 100%;
+  max-height: 92px;
+  object-fit: contain;
+  display: block;
+}
+
+.tool-brand__preview-empty {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.65);
+  text-align: center;
+  padding: 12px;
+}
+
+.tool-brand__discord {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tool-brand__discord.is-off {
+  opacity: 0.72;
+}
+
+.tool-brand__discord-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  flex-shrink: 0;
+}
+
+.tool-brand__discord-name {
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.tool-brand__discord-sub {
+  font-size: 0.68rem;
+  color: rgba(216, 236, 255, 0.75);
+  margin-top: 2px;
+}
+
+.tool-brand__pin-fake {
+  width: 100%;
+  text-align: center;
+  margin-top: 2px;
+}
+
+.tool-brand__pin-label {
+  font-size: 0.72rem;
+  color: rgba(216, 236, 255, 0.9);
+  margin-bottom: 8px;
+}
+
+.tool-brand__pin-boxes {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.tool-brand__pin-boxes i {
+  width: 22px;
+  height: 26px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(214, 235, 255, 0.7);
+  background: rgba(110, 176, 224, 0.35);
+  display: block;
+}
+
+.tool-brand__hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.tool-brand__controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.tool-brand__block-title {
+  font-size: 0.95rem;
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+
+.tool-brand__block-sub {
+  margin: 0 0 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.tool-brand__upload-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tool-brand__upload-btn {
+  cursor: pointer;
+}
+
+.tool-brand__file-name {
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  word-break: break-all;
+}
+
+.tool-brand__status {
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: #4ade80;
+  min-height: 1.2em;
+}
+
+.tool-brand__status.is-error {
+  color: #f87171;
+}
+
+.tool-brand__divider {
+  height: 1px;
+  margin: 18px 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+}
+
+.tool-brand__switch {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-brand__switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.tool-brand__switch-ui {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.tool-brand__switch-ui::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease;
+}
+
+.tool-brand__switch input:checked + .tool-brand__switch-ui {
+  background: linear-gradient(135deg, #00d4aa, #38bdf8);
+  border-color: transparent;
+}
+
+.tool-brand__switch input:checked + .tool-brand__switch-ui::after {
+  transform: translateX(20px);
+}
+
+.tool-brand__switch-label {
+  font-size: 0.86rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+@media (max-width: 860px) {
+  .tool-brand__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tool-brand__window {
+    max-width: 320px;
+    margin: 0 auto;
+  }
+}
+
 .license-timer__label {
   display: block;
   margin-top: 6px;

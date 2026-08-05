@@ -19,6 +19,7 @@ const SITE_TOKEN_EXEMPT = new Set([
   "/api/tool-config",
   "/api/site-config",
   "/api/users/register",
+  "/api/users/branding",
 ]);
 const DOTX_CONFIG_MARKER = "DOTXCONFIG";
 
@@ -26,6 +27,34 @@ type Json = Record<string, unknown>;
 
 function env(name: string, fallback = ""): string {
   return (Deno.env.get(name) || fallback).trim();
+}
+
+function brandingFromUser(row: Json | null | undefined): Json | null {
+  if (!row) return null;
+  const stored = row.tool_branding;
+  if (stored && typeof stored === "object") {
+    return stored as Json;
+  }
+  const discordId = String(row.discord_id || "");
+  const hash = String(row.avatar_hash || "");
+  let avatarUrl = "";
+  if (discordId && hash) {
+    avatarUrl = `https://cdn.discordapp.com/avatars/${discordId}/${hash}.png?size=128`;
+  } else if (discordId) {
+    try {
+      const idx = Number((BigInt(discordId) >> 22n) % 6n);
+      avatarUrl = `https://cdn.discordapp.com/embed/avatars/${idx}.png`;
+    } catch {
+      avatarUrl = "https://cdn.discordapp.com/embed/avatars/0.png";
+    }
+  }
+  return {
+    showDiscordAvatar: true,
+    username: String(row.username || ""),
+    discordId,
+    avatarUrl,
+    customImage: null,
+  };
 }
 
 function supabase() {
@@ -508,7 +537,13 @@ async function handleApi(req: Request): Promise<Response> {
     const sb = supabase();
     const { data } = await sb.from("pins").select("*").eq("pin", pinCode).maybeSingle();
     if (!data) return errorResponse(req, "invalid_pin", 404);
-    return jsonResponse(req, { ok: true, pin: pinCode, game: data.game || "FiveM" });
+    const { data: owner } = await sb.from("site_users").select("*").eq("discord_id", data.discord_id).maybeSingle();
+    return jsonResponse(req, {
+      ok: true,
+      pin: pinCode,
+      game: data.game || "FiveM",
+      branding: brandingFromUser(owner as Json | null),
+    });
   }
 
   if (path.startsWith("/api/download/") && req.method === "GET") {
@@ -624,6 +659,35 @@ async function handleApi(req: Request): Promise<Response> {
     const user = userFromRow(data as Json);
     user.panelRole = String(license.panelRole || user.panelRole);
     return jsonResponse(req, { ok: true, user });
+  }
+
+  if (path === "/api/users/branding" && req.method === "POST") {
+    const discordId = String(body.discordId || "").trim();
+    if (!discordId) return errorResponse(req, "discordId required", 400);
+    const ctx = await customerContext(req, body, discordId);
+    if (!ctx || ctx.userId !== discordId) {
+      if (!ownerIds().has(discordId)) return errorResponse(req, "license_required", 403);
+    }
+    const brandingIn = (body.branding && typeof body.branding === "object" ? body.branding : {}) as Json;
+    const clean: Json = {
+      showDiscordAvatar: brandingIn.showDiscordAvatar !== false,
+      username: String(brandingIn.username || "").slice(0, 64),
+      discordId,
+      avatarUrl: String(brandingIn.avatarUrl || "").slice(0, 500),
+      customImage: typeof brandingIn.customImage === "string" && brandingIn.customImage.length <= 200000
+        ? brandingIn.customImage
+        : null,
+    };
+    const sb = supabase();
+    const { data, error } = await sb
+      .from("site_users")
+      .update({ tool_branding: clean })
+      .eq("discord_id", discordId)
+      .select("*")
+      .maybeSingle();
+    if (error) return errorResponse(req, error.message, 500);
+    if (!data) return errorResponse(req, "user_not_found", 404);
+    return jsonResponse(req, { ok: true, branding: clean });
   }
 
   if (path.startsWith("/api/license/") && (req.method === "GET" || req.method === "POST")) {
