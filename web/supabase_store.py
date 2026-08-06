@@ -44,7 +44,17 @@ def _client_or_raise():
         key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
         if not url or not key:
             raise RuntimeError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required")
-        _client = create_client(url, key)
+        try:
+            _client = create_client(url, key)
+        except Exception as exc:
+            msg = str(exc)
+            if "Invalid API key" in msg or "invalid api key" in msg.lower():
+                raise RuntimeError(
+                    "Supabase rejected the API key. Use a secret key (sb_secret_…) or "
+                    "legacy service_role JWT, and install supabase>=2.16 "
+                    "(py -3.12 -m pip install -U 'supabase>=2.16')."
+                ) from exc
+            raise
     return _client
 
 

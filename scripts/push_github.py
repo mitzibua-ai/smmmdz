@@ -24,6 +24,13 @@ WEB_PATHS = [
     "scripts/push_supabase.py",
     "scripts/migrate_store_to_supabase.py",
     "setup-supabase.bat",
+    "setup-railway-bot.bat",
+    "start_dotx.py",
+    "Procfile",
+    "nixpacks.toml",
+    "railway.toml",
+    "discord_bot",
+    "requirements.txt",
 ]
 
 

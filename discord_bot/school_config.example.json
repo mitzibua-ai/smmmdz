@@ -1,0 +1,14 @@
+{
+  "token": "YOUR_BOT_TOKEN_HERE",
+  "invite_link": "https://discord.gg/YOUR_INVITE_CODE",
+  "guild_id": 0,
+  "auto_setup": {
+    "enabled": true,
+    "server_name": "My School Project Server",
+    "channels": [
+      "general",
+      "announcements",
+      "homework"
+    ]
+  }
+}

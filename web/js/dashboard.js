@@ -882,8 +882,8 @@ function renderAccount() {
   return `
     <div class="account-page">
       ${licenseLockShell(customizeSection, {
-        title: "Customer license required",
-        hint: "EXE branding unlocks with an active Customer license. Open a ticket in Discord to get a key.",
+        title: "Locked",
+        hint: "",
         requireActiveLicense: true,
       })}
 

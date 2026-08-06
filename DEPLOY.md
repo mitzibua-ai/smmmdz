@@ -1,67 +1,53 @@
-# Deploy dotx (GitHub Pages + Supabase + Railway bot)
+# Deploy dotx
 
-| What | Where | How |
-|------|--------|-----|
-| Website | **GitHub Pages** (`dotx.store`) | `push-github.bat` |
-| Database + license unlock | **Supabase** | SQL + service role |
-| Discord bot **24/7** | **Railway** | Railway dashboard / `setup-railway-bot.bat` |
+| What | Where |
+|------|--------|
+| Website | GitHub Pages (`dotx.store`) |
+| Licenses / users / pins | **Supabase database** |
+| Discord bot | Your PC (`watch-bot.bat`) — writes to Supabase |
+
+The Discord bot **must** use `SUPABASE_SERVICE_ROLE_KEY` so licenses unlock on the website.
 
 ---
 
-## Discord bot 24/7 (Railway + Supabase)
+## 1. Supabase (database)
 
-The bot runs in the cloud with **`SUPABASE_SERVICE_ROLE_KEY`** so `/smky license` writes to Supabase and the website unlocks Customer access. Do not rely on a PC window for production.
+1. [Supabase SQL Editor](https://supabase.com/dashboard/project/bumuisxrzbteeymzeidh/sql) → run:
+   - `supabase/schema.sql`
+   - `supabase/rpc.sql`
+   - `supabase/fix_register_preserve_license.sql`
+2. **Settings → API Keys** → copy **secret** key (`sb_secret_…`) or legacy **service_role** JWT
+   - Paste into `deploy.config.json` as `supabaseServiceRoleKey`
+3. Bot needs `supabase>=2.16` (handles new `sb_secret_` keys). Install with Python 3.12:
+   `py -3.12 -m pip install -r requirements.txt`
+3. Put it in `deploy.config.json`:
 
-### One-time Railway setup
-
-1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub** → this repo.
-2. Set **Variables**:
-
+```json
+{
+  "supabaseUrl": "https://bumuisxrzbteeymzeidh.supabase.co",
+  "supabaseAnonKey": "<anon key>",
+  "supabaseServiceRoleKey": "<service_role key>"
+}
 ```
-DISCORD_BOT_TOKEN=<your bot token>
-SUPABASE_URL=https://bumuisxrzbteeymzeidh.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<Supabase service_role secret>
-DISCORD_GUILD_ID=<your guild id>
-DISCORD_CUSTOMER_ROLE_ID=<customer role id>
-```
 
-Optional: `DISCORD_WELCOME_CHANNEL_ID`, `DISCORD_TICKET_CATEGORY_ID`, `DISCORD_PURCHASE_LOG_CHANNEL_ID`, etc.
-
-3. **Settings → Deploy**
-   - Start command: `python start_dotx.py`
-   - Restart: **Always**
-
-4. Check **Deployments → Logs** for:  
-   `Discord bot starting (Supabase = licenses / users / keys)`
-
-Or run **`setup-railway-bot.bat`** if the Railway CLI is installed (`npm i -g @railway/cli`).
-
-### After granting a license
-
-1. Staff: `/smky license` (saves to Supabase `site_users`)
-2. User: refresh / re-login on [dotx.store](https://dotx.store)
-3. Pins / Reports / EXE customize unlock from the database
+Without `supabaseServiceRoleKey`, the bot cannot write licenses to the database and the site stays locked.
 
 ---
 
-## Supabase
+## 2. Discord bot 24/7 (local + Supabase)
 
-1. SQL Editor → run `supabase/schema.sql`, `supabase/rpc.sql`, `supabase/fix_register_preserve_license.sql`
-2. Put **service_role** in Railway Variables (required for the bot)
+Requires **Python 3.12** (`watch-bot.bat` forces it). Python 3.14 breaks discord/aiohttp (`No module named cgi`).
+
+1. Fill `deploy.config.json` (service role key required)
+2. Double-click **`watch-bot.bat`** and leave it open (or minimized)
+3. Optional: run **`install-bot-autostart.bat`** as Administrator so it starts at Windows logon
+
+Logs should show: `Starting Discord bot (Supabase database)...`
+
+`/smky license` → Supabase `site_users` → user refreshes [dotx.store](https://dotx.store) → Customer unlocked.
 
 ---
 
-## Website
+## 3. Website
 
-Repo **Settings → Pages → GitHub Actions**. OAuth redirect: `https://dotx.store/callback/`
-
-Use `push-github.bat` after site changes.
-
----
-
-## Local bot (testing only)
-
-```bash
-# needs supabaseServiceRoleKey in deploy.config.json
-run-bot.bat
-```
+`push-github.bat` after site changes. OAuth redirect: `https://dotx.store/callback/`

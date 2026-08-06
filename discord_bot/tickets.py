@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 import discord
@@ -11,6 +12,7 @@ if TYPE_CHECKING:
 
 OPEN_TICKET_ID = "dotx:ticket:open"
 CLOSE_TICKET_ID = "dotx:ticket:close"
+_TICKET_NAME_RE = re.compile(r"^ticket-(\d+)", re.IGNORECASE)
 
 
 def _ticket_state(bot: DotxBot) -> dict:
@@ -21,8 +23,62 @@ def _ticket_state(bot: DotxBot) -> dict:
     return tickets
 
 
-def _next_ticket_number(bot: DotxBot) -> int:
-    counter = int(bot.state.get("ticket_counter", 0)) + 1
+def _ticket_number_from_name(name: str) -> int | None:
+    match = _TICKET_NAME_RE.match(str(name or "").strip())
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _highest_ticket_number(bot: DotxBot, guild: discord.Guild | None = None) -> int:
+    """Highest ticket number from saved counter + existing ticket channel names."""
+    stored = int(bot.state.get("ticket_counter", 0) or 0)
+    highest = stored
+
+    if guild is None and bot.cfg.guild_id:
+        guild = bot.get_guild(bot.cfg.guild_id)
+
+    if isinstance(guild, discord.Guild):
+        channels = list(guild.text_channels)
+        category_id = int(bot.cfg.ticket_category_id or 0)
+        if category_id:
+            category = guild.get_channel(category_id)
+            if isinstance(category, discord.CategoryChannel):
+                channels = list(category.text_channels) + channels
+
+        seen: set[int] = set()
+        for channel in channels:
+            if channel.id in seen:
+                continue
+            seen.add(channel.id)
+            number = _ticket_number_from_name(channel.name)
+            if number is not None and number > highest:
+                highest = number
+
+    return highest
+
+
+def sync_ticket_counter(bot: DotxBot, guild: discord.Guild | None = None) -> int:
+    """Ensure ticket_counter never goes backwards. Returns the synced value."""
+    highest = _highest_ticket_number(bot, guild)
+    current = int(bot.state.get("ticket_counter", 0) or 0)
+    if highest > current:
+        bot.state["ticket_counter"] = highest
+        bot.save_state()
+        return highest
+    if "ticket_counter" not in bot.state:
+        bot.state["ticket_counter"] = current
+        bot.save_state()
+    return current
+
+
+def _next_ticket_number(bot: DotxBot, guild: discord.Guild | None = None) -> int:
+    # Always continue from the highest known number (saved or live channels).
+    base = sync_ticket_counter(bot, guild)
+    counter = base + 1
     bot.state["ticket_counter"] = counter
     bot.save_state()
     return counter
@@ -98,7 +154,7 @@ async def open_ticket_for_member(bot: DotxBot, interaction: discord.Interaction)
 
     await interaction.response.defer(ephemeral=True)
 
-    ticket_no = _next_ticket_number(bot)
+    ticket_no = _next_ticket_number(bot, interaction.guild)
     safe_name = "".join(c for c in interaction.user.name.lower() if c.isalnum())[:12] or "user"
     channel_name = f"ticket-{ticket_no:04d}-{safe_name}"
 
@@ -126,12 +182,20 @@ async def open_ticket_for_member(bot: DotxBot, interaction: discord.Interaction)
                 read_message_history=True,
             )
 
-    channel = await interaction.guild.create_text_channel(
-        name=channel_name,
-        category=category,
-        overwrites=overwrites,
-        reason=f"Ticket opened by {interaction.user}",
-    )
+    try:
+        channel = await interaction.guild.create_text_channel(
+            name=channel_name,
+            category=category,
+            overwrites=overwrites,
+            reason=f"Ticket opened by {interaction.user}",
+        )
+    except (discord.Forbidden, discord.HTTPException) as exc:
+        # Keep the counter advanced so numbering never rewinds.
+        await interaction.followup.send(
+            f"Could not create ticket channel: {exc}",
+            ephemeral=True,
+        )
+        return
 
     _ticket_state(bot)[str(interaction.user.id)] = channel.id
     bot.save_state()
@@ -182,6 +246,14 @@ async def close_ticket_channel(bot: DotxBot, interaction: discord.Interaction) -
         await interaction.response.send_message("Only ticket staff can close this ticket.", ephemeral=True)
         return
 
+    # Keep numbering continuous even after close — raise counter to this ticket if higher.
+    closed_no = _ticket_number_from_name(channel.name)
+    if closed_no is not None:
+        current = int(bot.state.get("ticket_counter", 0) or 0)
+        if closed_no > current:
+            bot.state["ticket_counter"] = closed_no
+            bot.save_state()
+
     await interaction.response.send_message("Closing ticket in 3 seconds…", ephemeral=True)
 
     log_channel = interaction.guild.get_channel(bot.cfg.ticket_log_channel_id)
@@ -204,6 +276,12 @@ async def close_ticket_channel(bot: DotxBot, interaction: discord.Interaction) -
 class TicketCog(commands.Cog):
     def __init__(self, bot: DotxBot) -> None:
         self.bot = bot
+
+    @commands.Cog.listener()
+    async def on_ready(self) -> None:
+        guild = self.bot.get_guild(self.bot.cfg.guild_id) if self.bot.cfg.guild_id else None
+        synced = sync_ticket_counter(self.bot, guild)
+        print(f"[dotx] Ticket counter synced at {synced} (next ticket will be {synced + 1:04d})")
 
     @app_commands.command(name="ticket-panel", description="Post the support ticket panel in this channel")
     @app_commands.checks.has_permissions(manage_guild=True)

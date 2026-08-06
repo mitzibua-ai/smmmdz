@@ -7,10 +7,14 @@
   "ticket_staff_role_ids": [],
   "ticket_log_channel_id": 0,
   "auto_role_ids": [],
+  "customer_role_id": 0,
+  "purchase_log_channel_id": 1521165512820916304,
+  "product_channel_ids": [],
+  "owner_discord_ids": ["1284140942764539985"],
   "brand": {
     "server_name": "Dot X",
     "accent_hex": "#FFD700",
-    "banner_url": "https://example.com/your-banner.png",
+    "banner_url": "https://cdn.discordapp.com/attachments/1519625014993748115/1523865451061444688/Untitled_design_1.gif?ex=6a4da9cb&is=6a4c584b&hm=b3f3c65cfcd20840b3ef70e44e477ba261397488416ea73e98a9994b25ef8d0c&",
     "logo_url": "",
     "footer_text": ""
   }

@@ -1,1 +1,2 @@
 discord.py==2.7.1
+supabase>=2.16.0

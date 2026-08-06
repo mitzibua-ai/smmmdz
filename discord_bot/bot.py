@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
 ROOT = Path(__file__).resolve().parent
@@ -17,6 +18,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from discord_bot.tickets import TicketCloseView, TicketCog, TicketPanelView
+from discord_bot.license import setup_license_commands
 from discord_bot.welcome_embed import Brand, build_leave_message, build_welcome_message
 
 
@@ -27,7 +29,10 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 
 def _save_json(path: Path, data: dict[str, Any]) -> None:
-    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    tmp.replace(path)
 
 
 def _now() -> str:
@@ -123,6 +128,9 @@ class BotConfig:
     ticket_staff_role_ids: list[int]
     ticket_log_channel_id: int
     auto_role_ids: list[int]
+    customer_role_id: int
+    purchase_log_channel_id: int
+    product_channel_ids: list[int]
     brand: Brand
 
 
@@ -136,12 +144,24 @@ def load_config(config_path: Path) -> BotConfig:
     leave_channel_id = _env_int("DISCORD_LEAVE_CHANNEL_ID", int(raw.get("leave_channel_id", 0)))
     ticket_category_id = _env_int("DISCORD_TICKET_CATEGORY_ID", int(raw.get("ticket_category_id", 0)))
     ticket_log_channel_id = _env_int("DISCORD_TICKET_LOG_CHANNEL_ID", int(raw.get("ticket_log_channel_id", 0)))
+    customer_role_id = _env_int("DISCORD_CUSTOMER_ROLE_ID", int(raw.get("customer_role_id", 0)))
+    purchase_log_channel_id = _env_int(
+        "DISCORD_PURCHASE_LOG_CHANNEL_ID",
+        int(raw.get("purchase_log_channel_id", 1521165512820916304) or 1521165512820916304),
+    )
+
+    prefer_file = config_path.name == "config.json"
+
+    product_from_env = _env_list_int("DISCORD_PRODUCT_CHANNEL_IDS")
+    product_from_file = [int(x) for x in (raw.get("product_channel_ids") or [])]
+    if prefer_file:
+        product_channel_ids = product_from_file or product_from_env
+    else:
+        product_channel_ids = product_from_env or product_from_file
 
     staff_from_env = _env_list_int("DISCORD_TICKET_STAFF_ROLE_IDS")
     staff_from_file = [int(x) for x in (raw.get("ticket_staff_role_ids") or [])]
     ticket_staff_role_ids = staff_from_env or staff_from_file
-
-    prefer_file = config_path.name == "config.json"
 
     auto_from_env = _env_list_int("DISCORD_AUTO_ROLE_IDS")
     auto_from_file = [int(x) for x in (raw.get("auto_role_ids") or [])]
@@ -167,6 +187,9 @@ def load_config(config_path: Path) -> BotConfig:
         ticket_staff_role_ids=ticket_staff_role_ids,
         ticket_log_channel_id=ticket_log_channel_id,
         auto_role_ids=auto_role_ids,
+        customer_role_id=customer_role_id,
+        purchase_log_channel_id=purchase_log_channel_id,
+        product_channel_ids=product_channel_ids,
         brand=Brand(
             server_name=os.getenv("BRAND_SERVER_NAME", "").strip()
             or str(brand_raw.get("server_name", "Dot X")),
@@ -203,6 +226,11 @@ class DotxBot(commands.Bot):
         self.add_view(TicketPanelView())
         self.add_view(TicketCloseView())
         await self.add_cog(TicketCog(self))
+        try:
+            await setup_license_commands(self)
+        except Exception as exc:
+            print(f"[{_now()}] [ERROR] License cog failed to load: {exc}")
+            raise
         if self.cfg.guild_id:
             guild = discord.Object(id=self.cfg.guild_id)
             self.tree.copy_global_to(guild=guild)
@@ -211,10 +239,30 @@ class DotxBot(commands.Bot):
 
     async def on_ready(self) -> None:
         print(f"[{_now()}] Logged in as {self.user} (guild={self.cfg.guild_id})")
+        print(f"[{_now()}] Prefix commands: smky key, smky license, smky revoke, smky product")
+        print(f"[{_now()}] Slash commands: /smky key, /smky license, /smky revoke, /smky product")
+        if self.cfg.purchase_log_channel_id:
+            print(f"[{_now()}] Purchase logs -> channel {self.cfg.purchase_log_channel_id}")
+        print(f"[{_now()}] License expiry loop: strips Customer role when licenses expire")
         if self.cfg.auto_role_ids:
             print(f"[{_now()}] Auto-role enabled for role ID(s): {self.cfg.auto_role_ids}")
         else:
             print(f"[{_now()}] Auto-role disabled (no role IDs configured)")
+
+    async def on_app_command_error(
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
+    ) -> None:
+        print(f"[{_now()}] Slash command error: {error!r}")
+        message = "That command failed. Try again or use `smky key` in chat."
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(message, ephemeral=True)
+            else:
+                await interaction.response.send_message(message, ephemeral=True)
+        except discord.HTTPException:
+            pass
 
     async def _send_welcome_leave(self, member: discord.Member, *, kind: str) -> None:
         channel_id = self.cfg.welcome_channel_id if kind == "welcome" else self.cfg.leave_channel_id
@@ -278,7 +326,7 @@ def main() -> None:
         if not os.getenv("DISCORD_BOT_TOKEN"):
             raise SystemExit(
                 "Missing discord_bot/config.json or DISCORD_BOT_TOKEN. "
-                "Copy config.example.json to config.json or set Railway env vars."
+                "Copy config.example.json to config.json and set Supabase env vars (SUPABASE_SERVICE_ROLE_KEY)."
             )
 
     cfg = load_config(config_path)
