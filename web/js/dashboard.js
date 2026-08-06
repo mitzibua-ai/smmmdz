@@ -819,7 +819,7 @@ function renderAccount() {
       <section class="account-panel account-panel--tool-brand">
         <div class="account-panel__head">
           <div>
-            <div class="account-panel__title">PC Check tool look</div>
+            <div class="account-panel__title">Custom Panel</div>
             <div class="account-panel__sub">Image or GIF covers the whole EXE — Discord avatar is separate</div>
           </div>
           <button type="button" class="btn btn--primary btn--small" id="tool-brand-download">Download branded EXE</button>
