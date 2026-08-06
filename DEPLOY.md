@@ -1,79 +1,67 @@
-# Deploy dotx (GitHub Pages + Supabase)
+# Deploy dotx (GitHub Pages + Supabase + Railway bot)
 
-| What | Where | Push with |
-|------|--------|-----------|
-| Website (HTML, CSS, login) | **GitHub Pages** (`dotx.store`) | `push-github.bat` |
-| PC Check `.exe` download | **GitHub Pages** (`/downloads/`) | `push-github.bat` |
-| Database (pins, scans, users, licenses) | **Supabase** | `push-supabase.bat` |
-| API (pins, scans, license checks) | **Supabase Edge Function** | `push-supabase.bat` |
-| Discord bot | **Your PC** (local) | `run-bot.bat` |
-
-After code changes, run **`push-all.bat`** (or **`push-supabase.bat`**) to update everything.
+| What | Where | How |
+|------|--------|-----|
+| Website | **GitHub Pages** (`dotx.store`) | `push-github.bat` |
+| Database + license unlock | **Supabase** | SQL + service role |
+| Discord bot **24/7** | **Railway** | Railway dashboard / `setup-railway-bot.bat` |
 
 ---
 
-## One-time setup
+## Discord bot 24/7 (Railway + Supabase)
 
-### 1. Supabase database + API
+The bot runs in the cloud with **`SUPABASE_SERVICE_ROLE_KEY`** so `/smky license` writes to Supabase and the website unlocks Customer access. Do not rely on a PC window for production.
 
-1. Open [your Supabase project](https://supabase.com/dashboard/project/bumuisxrzbteeymzeidh).
-2. **SQL Editor** → run **`supabase/schema.sql`**, then **`supabase/rpc.sql`**.
-3. **Settings → API** → copy:
-   - **anon public** key → `deploy.config.json` → `supabaseAnonKey`
-   - **service_role** key → `deploy.config.json` → `supabaseServiceRoleKey`
+### One-time Railway setup
 
-Or double-click **`setup-supabase.bat`** — it opens the SQL Editor and API settings.
+1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub** → this repo.
+2. Set **Variables**:
 
-### 2. `deploy.config.json`
-
-Copy `deploy.config.json.example` → `deploy.config.json` and fill in:
-
-```json
-{
-  "githubPagesUrl": "https://mitzibua-ai.github.io/smmmdz",
-  "customSiteUrl": "https://dotx.store",
-  "siteApiToken": "your-random-secret",
-  "supabaseUrl": "https://bumuisxrzbteeymzeidh.supabase.co",
-  "supabaseServiceRoleKey": "eyJ..."
-}
+```
+DISCORD_BOT_TOKEN=<your bot token>
+SUPABASE_URL=https://bumuisxrzbteeymzeidh.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<Supabase service_role secret>
+DISCORD_GUILD_ID=<your guild id>
+DISCORD_CUSTOMER_ROLE_ID=<customer role id>
 ```
 
-### 3. Supabase Edge Function (API)
+Optional: `DISCORD_WELCOME_CHANNEL_ID`, `DISCORD_TICKET_CATEGORY_ID`, `DISCORD_PURCHASE_LOG_CHANNEL_ID`, etc.
 
-Install the [Supabase CLI](https://supabase.com/docs/guides/cli), then:
+3. **Settings → Deploy**
+   - Start command: `python start_dotx.py`
+   - Restart: **Always**
+
+4. Check **Deployments → Logs** for:  
+   `Discord bot starting (Supabase = licenses / users / keys)`
+
+Or run **`setup-railway-bot.bat`** if the Railway CLI is installed (`npm i -g @railway/cli`).
+
+### After granting a license
+
+1. Staff: `/smky license` (saves to Supabase `site_users`)
+2. User: refresh / re-login on [dotx.store](https://dotx.store)
+3. Pins / Reports / EXE customize unlock from the database
+
+---
+
+## Supabase
+
+1. SQL Editor → run `supabase/schema.sql`, `supabase/rpc.sql`, `supabase/fix_register_preserve_license.sql`
+2. Put **service_role** in Railway Variables (required for the bot)
+
+---
+
+## Website
+
+Repo **Settings → Pages → GitHub Actions**. OAuth redirect: `https://dotx.store/callback/`
+
+Use `push-github.bat` after site changes.
+
+---
+
+## Local bot (testing only)
 
 ```bash
-supabase login
-supabase functions deploy dotx --project-ref bumuisxrzbteeymzeidh
+# needs supabaseServiceRoleKey in deploy.config.json
+run-bot.bat
 ```
-
-Or run **`push-supabase.bat`** — it deploys the function and sets secrets when the CLI is installed.
-
-### 4. GitHub Pages
-
-Repo **Settings → Pages → Source: GitHub Actions**.
-
-Discord OAuth redirect: `https://dotx.store/callback/`
-
-### 5. Discord bot (local)
-
-Run **`run-bot.bat`** on your PC. The bot uses Supabase for licenses.
-
----
-
-## Daily workflow
-
-1. Edit code.
-2. Run **`push-all.bat`**.
-3. Verify: `https://bumuisxrzbteeymzeidh.supabase.co/functions/v1/dotx/api/health` → `{"ok":true}`
-
----
-
-## Local testing
-
-```bash
-cd web
-python serve.py
-```
-
-Set `SUPABASE_SERVICE_ROLE_KEY` in `web/.env` for Supabase-backed local API.
