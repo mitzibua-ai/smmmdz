@@ -404,12 +404,12 @@ def register_site_user(payload: dict) -> dict:
                 existing["firstSeen"] = preserved_first_seen
                 existing["joinedAt"] = preserved_first_seen
             if active:
-                existing["licenseExpiresAt"] = active["licenseExpiresAt"]
+                existing["licenseExpiresAt"] = active.get("licenseExpiresAt")
                 if active.get("licenseKeyId"):
                     existing["licenseKeyId"] = active["licenseKeyId"]
-            elif licensed_status == "Standard":
-                existing.pop("licenseExpiresAt", None)
-                existing.pop("licenseKeyId", None)
+                if active.get("licenseGrantedAt"):
+                    existing["licenseGrantedAt"] = active["licenseGrantedAt"]
+            # Never wipe an existing key/expiry on login — only revoke/expire paths clear them
             save_store(store)
             return dict(existing)
 

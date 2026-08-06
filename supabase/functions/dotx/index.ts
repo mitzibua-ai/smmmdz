@@ -199,14 +199,31 @@ async function getActiveSiteLicense(discordId: string): Promise<Json | null> {
   const { data } = await sb.from("site_users").select("*").eq("discord_id", discordId).maybeSingle();
   if (!data) return null;
   const expires = parseIso(data.license_expires_at);
-  if (!expires || expires <= new Date()) return null;
-  return {
-    discordId,
-    licenseExpiresAt: expires.toISOString(),
-    licenseGrantedAt: data.license_granted_at,
-    licenseKeyId: data.license_key_id,
-    licensedStatus: "Customer",
-  };
+  const status = String(data.licensed_status || "");
+  const keyId = data.license_key_id;
+  // Timed license
+  if (expires && expires > new Date()) {
+    return {
+      discordId,
+      licenseExpiresAt: expires.toISOString(),
+      licenseGrantedAt: data.license_granted_at,
+      licenseKeyId: keyId,
+      licensedStatus: "Customer",
+      lifetime: false,
+    };
+  }
+  // Lifetime: Customer + key + no expiry timestamp
+  if (status === "Customer" && keyId && !expires) {
+    return {
+      discordId,
+      licenseExpiresAt: null,
+      licenseGrantedAt: data.license_granted_at,
+      licenseKeyId: keyId,
+      licensedStatus: "Customer",
+      lifetime: true,
+    };
+  }
+  return null;
 }
 
 async function discordRequest(url: string, auth: string): Promise<{ code: number; data: Json | string }> {

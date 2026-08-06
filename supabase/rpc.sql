@@ -103,6 +103,8 @@ declare
   u public.site_users%rowtype;
   now_ts timestamptz := now();
   token text;
+  keep_customer boolean := false;
+  next_status text;
 begin
   if not public._site_token_ok(p_site_token) then
     raise exception 'invalid_site_token';
@@ -110,10 +112,21 @@ begin
   select * into u from public.site_users where discord_id = p_discord_id;
   if found then
     token := u.user_token;
+    keep_customer :=
+      (u.license_expires_at is not null and u.license_expires_at > now_ts)
+      or (
+        lower(coalesce(u.licensed_status, '')) = 'customer'
+        and u.license_key_id is not null
+        and u.license_expires_at is null
+      );
+    next_status := case
+      when keep_customer then 'Customer'
+      else coalesce(nullif(p_licensed_status, ''), 'Standard')
+    end;
     update public.site_users set
       username = coalesce(nullif(p_username, ''), username),
       avatar_hash = coalesce(nullif(p_avatar_hash, ''), avatar_hash),
-      licensed_status = case when license_expires_at > now() then 'Customer' else p_licensed_status end,
+      licensed_status = next_status,
       last_seen = now_ts,
       login_count = login_count + 1
     where discord_id = p_discord_id
@@ -126,7 +139,7 @@ begin
     ) values (
       p_discord_id, coalesce(nullif(p_username, ''), 'Unknown'), coalesce(p_avatar_hash, ''),
       token, case when public._is_owner_id(p_discord_id) then 'owner' else 'member' end,
-      p_licensed_status, now_ts, now_ts, now_ts, 1
+      coalesce(nullif(p_licensed_status, ''), 'Standard'), now_ts, now_ts, now_ts, 1
     ) returning * into u;
   end if;
   return jsonb_build_object(
@@ -135,7 +148,8 @@ begin
       'discordId', u.discord_id, 'username', u.username, 'avatarHash', u.avatar_hash,
       'userToken', u.user_token, 'panelRole', u.panel_role, 'licensedStatus', u.licensed_status,
       'firstSeen', u.first_seen, 'joinedAt', u.joined_at, 'lastSeen', u.last_seen,
-      'loginCount', u.login_count, 'licenseExpiresAt', u.license_expires_at
+      'loginCount', u.login_count, 'licenseExpiresAt', u.license_expires_at,
+      'licenseKeyId', u.license_key_id, 'licenseGrantedAt', u.license_granted_at
     )
   );
 end;

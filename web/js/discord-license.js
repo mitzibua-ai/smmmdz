@@ -107,22 +107,21 @@ async function fetchLicenseFromServer(discordId) {
   if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
     try {
       const data = await supabaseRpc("get_license_rpc", { p_discord_id: String(discordId) });
-      if (data?.licenseActive === true) {
-        return {
-          status: "Customer",
-          licenseActive: true,
-          isOwner: data.isOwner === true,
-          isAdmin: data.isAdmin === true,
-          isStaff: data.isStaff === true,
-          panelRole: data.panelRole || "member",
-          licenseExpiresAt: data.licenseExpiresAt || null,
-          licenseGrantedAt: data.licenseGrantedAt || null,
-          licenseSource: data.licenseSource || data.method || null,
-          source: data.method || "supabase",
-          unreachable: false,
-        };
-      }
-      return null;
+      if (!data || typeof data !== "object") return null;
+      const licenseActive = data.licenseActive === true || data.status === "Customer";
+      return {
+        status: licenseActive ? "Customer" : "Standard",
+        licenseActive,
+        isOwner: data.isOwner === true,
+        isAdmin: data.isAdmin === true,
+        isStaff: data.isStaff === true,
+        panelRole: data.panelRole || "member",
+        licenseExpiresAt: data.licenseExpiresAt || null,
+        licenseGrantedAt: data.licenseGrantedAt || null,
+        licenseSource: data.licenseSource || data.method || null,
+        source: data.method || "supabase",
+        unreachable: false,
+      };
     } catch {
       return null;
     }
@@ -302,9 +301,15 @@ function applyServerLicense(account, server, previous) {
 
   const licenseActive = server.licenseActive === true;
   const status = licenseActive ? "Customer" : "Standard";
-  const expiresAt = licenseActive ? server.licenseExpiresAt || account.licenseExpiresAt || null : null;
+  const expiresAt = licenseActive
+    ? (Object.prototype.hasOwnProperty.call(server, "licenseExpiresAt")
+        ? server.licenseExpiresAt || null
+        : account.licenseExpiresAt || null)
+    : null;
   const grantedAt = licenseActive
-    ? server.licenseGrantedAt || account.licenseGrantedAt || null
+    ? (Object.prototype.hasOwnProperty.call(server, "licenseGrantedAt")
+        ? server.licenseGrantedAt || null
+        : account.licenseGrantedAt || null)
     : null;
 
   const updated = {
