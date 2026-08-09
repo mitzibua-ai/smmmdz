@@ -390,6 +390,24 @@ class DotxHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
+    def end_headers(self) -> None:
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "SAMEORIGIN")
+        self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header(
+            "Permissions-Policy",
+            "geolocation=(), microphone=(), camera=(), payment=()",
+        )
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https: blob:; font-src 'self' data:; "
+            "connect-src 'self' https://*.supabase.co https://discord.com "
+            "https://discordapp.com https://cdn.discordapp.com; "
+            "frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://discord.com",
+        )
+        super().end_headers()
+
     def _read_json_body(self) -> dict:
         length = int(self.headers.get("Content-Length", "0"))
         if length <= 0:

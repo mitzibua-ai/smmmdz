@@ -48,6 +48,18 @@ Logs should show: `Starting Discord bot (Supabase database)...`
 
 ---
 
+## 3. Website security
+
+- Panel/login pages load `js/site-guard.js` (blocks F12, right-click, copy, DevTools overlay).
+- `serve.py` and `web/_headers` send CSP + anti-clickjacking headers when you self-host the API.
+- **Important:** browser JavaScript can always be viewed or copied. Real protection is:
+  - **Never** put `supabaseServiceRoleKey` in the website — bot/server only.
+  - Supabase **RLS** + RPC checks (`license_required`, `forbidden`, Discord ID match).
+  - Rotate `SITE_API_TOKEN` / `apiToken` if leaked.
+  - Licenses and admin actions enforced in Supabase, not in the browser.
+
+---
+
 ## 3. Website
 
 `push-github.bat` after site changes. OAuth redirect: `https://dotx.store/callback/`

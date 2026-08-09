@@ -1,0 +1,58 @@
+html.site-protect,
+html.site-protect body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html.site-protect input,
+html.site-protect textarea,
+html.site-protect [contenteditable="true"],
+html.site-protect [data-allow-copy] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+html.site-protect img,
+html.site-protect svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+html.site-protect--blocked body {
+  overflow: hidden;
+}
+
+#site-guard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 10, 20, 0.94);
+  backdrop-filter: blur(8px);
+}
+
+.site-guard-overlay__card {
+  max-width: 420px;
+  padding: 28px 32px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(12, 18, 32, 0.96);
+  color: #eef3ff;
+  text-align: center;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.site-guard-overlay__card strong {
+  display: block;
+  font-size: 1.15rem;
+  margin-bottom: 10px;
+}
+
+.site-guard-overlay__card p {
+  margin: 0;
+  color: rgba(238, 243, 255, 0.72);
+  line-height: 1.5;
+}

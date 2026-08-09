@@ -3,8 +3,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta name="robots" content="noarchive" />
     <title>dotx — Panel</title>
     <link rel="stylesheet" href="/css/style.css?v=20260806i" />
+    <link rel="stylesheet" href="/css/site-protect.css" />
+    <script>window.SITE_GUARD = { level: "strict" };</script>
+    <script src="/js/site-guard.js"></script>
   </head>
   <body>
     <div class="shell">
@@ -68,7 +74,7 @@
           <option value="FiveM">FiveM</option>
         </select>
         <div class="pin-modal__generated hidden" id="pin-generated-box">
-          <div class="pin-modal__pin" id="pin-generated-code"></div>
+          <div class="pin-modal__pin" id="pin-generated-code" data-allow-copy></div>
           <div class="pin-modal__actions">
             <button type="button" class="btn btn--ghost" id="pin-modal-copy">Copy PIN</button>
           </div>
@@ -93,7 +99,7 @@
       <div class="pin-modal__card" id="delete-pin-card">
         <h3>Delete PIN?</h3>
         <p class="pin-modal__sub">This cannot be undone. The PIN will be permanently removed from your panel.</p>
-        <div class="pin-modal__pin pin-modal__pin--danger" id="delete-pin-code">000000</div>
+        <div class="pin-modal__pin pin-modal__pin--danger" id="delete-pin-code" data-allow-copy>000000</div>
         <p class="pin-modal__error hidden" id="delete-pin-error"></p>
         <div class="pin-modal__footer">
           <button type="button" class="btn btn--ghost" id="delete-pin-cancel">Cancel</button>
