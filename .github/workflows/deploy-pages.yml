@@ -9,6 +9,7 @@ on:
       - "scripts/obfuscate_web.py"
       - "scripts/html-bootstrap.js"
       - "scripts/js-obfuscator.json"
+      - "scripts/js-obfuscator-html.json"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch:
 
