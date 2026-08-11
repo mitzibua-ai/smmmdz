@@ -11,14 +11,16 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
+WEB_SRC = ROOT / "web-src" if (ROOT / "web-src").is_dir() else WEB_DIR
 SITE_DIR = ROOT / "_site"
 DEPLOY_CONFIG = ROOT / "deploy.config.json"
-CONFIG_JS = WEB_DIR / "js" / "config.js"
+CONFIG_JS = WEB_SRC / "js" / "config.js"
 OBFUSCATE_SCRIPT = ROOT / "scripts" / "obfuscate_web.py"
 DEFAULT_API_SUFFIX = "/functions/v1/dotx"
 DEFAULT_SUPABASE_URL = "https://bumuisxrzbteeymzeidh.supabase.co"
 
 WEB_PATHS = [
+    "web-src",
     "web",
     "supabase",
     ".github/workflows",
@@ -124,13 +126,14 @@ def _build_encrypted_site() -> int:
 
 
 def _backup_readable_web(backup_dir: Path) -> None:
+    src = WEB_SRC
     backup_dir.mkdir(parents=True, exist_ok=True)
-    for html in WEB_DIR.rglob("*.html"):
-        rel = html.relative_to(WEB_DIR)
+    for html in src.rglob("*.html"):
+        rel = html.relative_to(src)
         dest = backup_dir / rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(html, dest)
-    js_src = WEB_DIR / "js"
+    js_src = src / "js"
     if js_src.is_dir():
         shutil.copytree(
             js_src,

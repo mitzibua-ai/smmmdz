@@ -1,14 +1,15 @@
+# Builds encrypted _site from web-src/ and deploys via GitHub Actions Pages.
 name: Deploy GitHub Pages
 
 on:
   push:
     branches: [main, master]
     paths:
-      - "web/**"
+      - "web-src/**"
       - "scripts/obfuscate_web.py"
+      - "scripts/html-bootstrap.js"
       - "scripts/js-obfuscator.json"
       - ".github/workflows/deploy-pages.yml"
-      - "scripts/push_github.py"
   workflow_dispatch:
 
 permissions:

@@ -14,11 +14,12 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-JS_DIR = ROOT / "web" / "js"
+WEB_SRC = ROOT / "web-src" if (ROOT / "web-src").is_dir() else ROOT / "web"
+JS_DIR = WEB_SRC / "js"
 OUT_DIR = JS_DIR / "obf"
 OBF_CONFIG = ROOT / "scripts" / "js-obfuscator.json"
 BOOTSTRAP_TEMPLATE = ROOT / "scripts" / "html-bootstrap.js"
-HTML_DIR = ROOT / "web"
+HTML_DIR = WEB_SRC
 IS_WINDOWS = platform.system() == "Windows"
 
 
