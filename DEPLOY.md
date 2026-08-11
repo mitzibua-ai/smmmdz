@@ -50,9 +50,12 @@ Logs should show: `Starting Discord bot (Supabase database)...`
 
 ## 3. Website security
 
-- Panel/login pages load `js/site-guard.js` (blocks F12, right-click, copy, DevTools overlay).
+- **Production deploy obfuscates all JavaScript** (`scripts/obfuscate_web.py`) — readable sources stay in the repo; GitHub Pages only gets encrypted/obfuscated `js/` files (RC4 string encoding, self-defending, anti-debug).
+- Run locally: **`build-web.bat`** → outputs obfuscated site to `_site/`.
+- Panel pages also load `site-guard.js` (blocks F12, right-click, copy, DevTools overlay).
 - `serve.py` and `web/_headers` send CSP + anti-clickjacking headers when you self-host the API.
-- **Important:** browser JavaScript can always be viewed or copied. Real protection is:
+
+**Important:** browser JavaScript can always be reverse-engineered by skilled attackers — obfuscation makes stealing much harder, not impossible. HTML structure is still visible in Elements. Real protection is:
   - **Never** put `supabaseServiceRoleKey` in the website — bot/server only.
   - Supabase **RLS** + RPC checks (`license_required`, `forbidden`, Discord ID match).
   - Rotate `SITE_API_TOKEN` / `apiToken` if leaked.

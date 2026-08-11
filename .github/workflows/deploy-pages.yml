@@ -5,6 +5,8 @@ on:
     branches: [main, master]
     paths:
       - "web/**"
+      - "scripts/obfuscate_web.py"
+      - "scripts/js-obfuscator.json"
       - ".github/workflows/deploy-pages.yml"
       - "scripts/push_github.py"
   workflow_dispatch:
@@ -25,41 +27,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build obfuscated production site
+        run: python scripts/obfuscate_web.py --site
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
-
-      - name: Build static site
-        run: |
-          set -euo pipefail
-          mkdir -p _site
-
-          # Public HTML
-          for file in index.html 404.html login.html callback.html dashboard.html; do
-            cp "web/$file" "_site/$file"
-          done
-
-          # Assets
-          cp -r web/css web/js web/static _site/
-          cp -r web/login web/callback web/dashboard web/downloads _site/
-
-          # Downloads (exe only — no Python source tree for public download)
-          mkdir -p _site/downloads
-          if [ -f web/downloads/dotx-pc-check.exe ]; then
-            cp web/downloads/dotx-pc-check.exe _site/downloads/
-          elif [ -f web/downloads/dotx-pc-check/dotx-pc-check.exe ]; then
-            cp web/downloads/dotx-pc-check/dotx-pc-check.exe _site/downloads/dotx-pc-check.exe
-          elif [ -f web/downloads/dotx-pc-check/dotx.exe ]; then
-            cp web/downloads/dotx-pc-check/dotx.exe _site/downloads/dotx-pc-check.exe
-          fi
-          # Don't serve the Python source package as a download folder dump
-          rm -rf _site/downloads/dotx-pc-check
-          ls -la _site/downloads/ || true
-
-          # GitHub Pages: skip Jekyll processing
-          cp web/.nojekyll _site/.nojekyll
-
-          echo "Site files:"
-          find _site -type f | head -50
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
