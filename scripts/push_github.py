@@ -117,8 +117,11 @@ def _build_encrypted_site() -> int:
         print(f"[ERROR] Build did not produce {SITE_DIR / 'index.html'}")
         return 1
     sample = (SITE_DIR / "index.html").read_text(encoding="utf-8")
-    if "dotx-payload" not in sample:
-        print("[ERROR] Built index.html is not encrypted.")
+    if 'class="header"' in sample or 'class="hero"' in sample or "dotx-payload" in sample:
+        print("[ERROR] Built index.html is not fully obfuscated.")
+        return 1
+    if "<script" not in sample or "<!DOCTYPE html>" not in sample:
+        print("[ERROR] Built index.html has unexpected format.")
         return 1
     print(f"[OK] Encrypted site ready in {SITE_DIR.relative_to(ROOT)}")
     return 0
@@ -178,7 +181,9 @@ def _push_main() -> int:
     else:
         print("[OK] Source on main is already committed.")
 
-    ahead = _run(["git", "rev-list", "--count", "@{u}..HEAD"], check=False)
+    ahead = _run(["git", "rev-list", "--count", "origin/main..HEAD"], check=False)
+    if ahead.returncode != 0:
+        ahead = _run(["git", "rev-list", "--count", "@{u}..HEAD"], check=False)
     if ahead.returncode == 0 and ahead.stdout.strip() not in {"", "0"}:
         print("Pushing main to GitHub...")
         push = _run(["git", "push", "origin", "HEAD"], check=False)

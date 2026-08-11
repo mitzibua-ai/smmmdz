@@ -4,19 +4,20 @@
 from __future__ import annotations
 
 import base64
-import json
 import re
 import secrets
 import shutil
 import subprocess
 import sys
 import platform
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 JS_DIR = ROOT / "web" / "js"
 OUT_DIR = JS_DIR / "obf"
 OBF_CONFIG = ROOT / "scripts" / "js-obfuscator.json"
+BOOTSTRAP_TEMPLATE = ROOT / "scripts" / "html-bootstrap.js"
 HTML_DIR = ROOT / "web"
 IS_WINDOWS = platform.system() == "Windows"
 
@@ -54,18 +55,20 @@ def _xor_encrypt(plaintext: str) -> tuple[str, str]:
     return base64.b64encode(xored).decode("ascii"), base64.b64encode(key).decode("ascii")
 
 
-def _python_obfuscate(src: Path, dest: Path) -> None:
-    """Fallback when Node is unavailable — weaker than javascript-obfuscator."""
-    raw = src.read_text(encoding="utf-8")
-    payload, key = _xor_encrypt(raw)
-    wrapper = (
+def _python_obfuscate_text(source: str) -> str:
+    payload, key = _xor_encrypt(source)
+    return (
         "(function(){"
         f'var k=atob("{key}"),d=atob("{payload}"),o=new Uint8Array(d.length);'
         "for(var i=0;i<d.length;i++)o[i]=d.charCodeAt(i)^k.charCodeAt(i%k.length);"
         "try{eval(new TextDecoder('utf-8').decode(o));}catch(e){}"
         "})();"
     )
-    dest.write_text(wrapper, encoding="utf-8")
+
+
+def _python_obfuscate(src: Path, dest: Path) -> None:
+    """Fallback when Node is unavailable — weaker than javascript-obfuscator."""
+    dest.write_text(_python_obfuscate_text(src.read_text(encoding="utf-8")), encoding="utf-8")
 
 
 def obfuscate_js() -> int:
@@ -118,9 +121,8 @@ def minify_html_text(text: str) -> str:
     return text.strip()
 
 
-SITE_GUARD_BOOT = (
-    'window.SITE_GUARD={level:"strict",antiDebug:true,lockConsole:true,devtoolsThreshold:120};'
-)
+_BOOTSTRAP_PLACEHOLDER_PAYLOAD = "__PAYLOAD__"
+_BOOTSTRAP_PLACEHOLDER_KEY = "__KEY__"
 
 _SHELL_SKIP_HEAD = re.compile(
     r"<script[^>]*src=[\"'][^\"']*site-guard\.js[\"'][^>]*>\s*</script>",
@@ -154,37 +156,64 @@ def _extract_encryptable_html(text: str) -> tuple[str, str]:
     return lang, fragment
 
 
-def _encrypted_html_shell(lang: str, payload: str, key: str) -> str:
-    packet = json.dumps({"d": payload, "k": key}, separators=(",", ":"))
+def _build_bootstrap(payload: str, key: str) -> str:
+    if not BOOTSTRAP_TEMPLATE.is_file():
+        raise FileNotFoundError(f"Missing bootstrap template: {BOOTSTRAP_TEMPLATE}")
+    template = BOOTSTRAP_TEMPLATE.read_text(encoding="utf-8")
     return (
-        "<!doctype html>"
-        f'<html lang="{lang}">'
-        "<head>"
-        '<meta charset="utf-8"/>'
-        '<meta name="viewport" content="width=device-width, initial-scale=1"/>'
-        '<meta http-equiv="X-Content-Type-Options" content="nosniff"/>'
-        '<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin"/>'
-        "<title>Dot X</title>"
-        f"<script>{SITE_GUARD_BOOT}</script>"
-        '<script src="/js/site-guard.js"></script>'
-        "</head>"
-        "<body>"
-        "<noscript>JavaScript is required to view this page.</noscript>"
-        f'<script type="application/json" id="dotx-payload">{packet}</script>'
-        '<script src="/js/html-loader.js"></script>'
-        "</body></html>\n"
+        template.replace(_BOOTSTRAP_PLACEHOLDER_PAYLOAD, payload)
+        .replace(_BOOTSTRAP_PLACEHOLDER_KEY, key)
+    )
+
+
+def _obfuscate_js_text(source: str) -> str:
+    if not _node_available():
+        print("[WARN] Node.js/npx not found — using Python fallback for HTML bootstrap.")
+        return _python_obfuscate_text(source)
+
+    with tempfile.TemporaryDirectory(prefix="dotx-html-") as tmp:
+        src = Path(tmp) / "bootstrap.js"
+        dest = Path(tmp) / "bootstrap.obf.js"
+        src.write_text(source, encoding="utf-8")
+        subprocess.run(
+            [
+                "npx",
+                "--yes",
+                "javascript-obfuscator",
+                str(src),
+                "--output",
+                str(dest),
+                "--config",
+                str(OBF_CONFIG),
+            ],
+            cwd=ROOT,
+            check=True,
+            shell=IS_WINDOWS,
+        )
+        return dest.read_text(encoding="utf-8").strip()
+
+
+def _obfuscated_html_shell(obfuscated_js: str) -> str:
+    return (
+        "<!DOCTYPE html>\n"
+        "<html><head><meta charset=\"UTF-8\" />"
+        f"<script>{obfuscated_js}</script>"
+        "</head></html>\n"
     )
 
 
 def encrypt_html_files(out_dir: Path) -> None:
     count = 0
-    for path in out_dir.rglob("*.html"):
+    for path in sorted(out_dir.rglob("*.html")):
         original = path.read_text(encoding="utf-8")
-        lang, fragment = _extract_encryptable_html(original)
+        _lang, fragment = _extract_encryptable_html(original)
         payload, key = _xor_encrypt(fragment)
-        path.write_text(_encrypted_html_shell(lang, payload, key), encoding="utf-8")
+        bootstrap = _build_bootstrap(payload, key)
+        obfuscated = _obfuscate_js_text(bootstrap)
+        path.write_text(_obfuscated_html_shell(obfuscated), encoding="utf-8")
         count += 1
-    print(f"[OK] Encrypted {count} HTML files in {out_dir.relative_to(ROOT)}")
+        print(f"  [OK] Obfuscated HTML -> {path.relative_to(out_dir)}")
+    print(f"[OK] Obfuscated {count} HTML files in {out_dir.relative_to(ROOT)}")
 
 
 def build_production_site(out_dir: Path) -> int:
