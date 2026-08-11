@@ -28,6 +28,7 @@ WEB_PATHS = [
     "deploy.config.json.example",
     "scripts/push_github.py",
     "scripts/obfuscate_web.py",
+    "scripts/phpkobo_html.py",
     "scripts/html-bootstrap.js",
     "scripts/js-obfuscator.json",
     "build-web.bat",
@@ -115,11 +116,11 @@ def _build_encrypted_site() -> int:
         print(f"[ERROR] Build did not produce {SITE_DIR / 'index.html'}")
         return 1
     sample = (SITE_DIR / "index.html").read_text(encoding="utf-8")
-    if 'class="header"' in sample or 'class="hero"' in sample or "dotx-payload" in sample:
-        print("[ERROR] Built index.html is not fully obfuscated.")
+    if "phpkobo.com/html-obfuscator" not in sample:
+        print("[ERROR] Built index.html is not PHPKobo obfuscated.")
         return 1
-    if "<script" not in sample or "<!DOCTYPE html>" not in sample:
-        print("[ERROR] Built index.html has unexpected format.")
+    if 'class="header"' in sample or 'class="hero"' in sample:
+        print("[ERROR] Built index.html still contains readable HTML.")
         return 1
     print(f"[OK] Encrypted site ready in {SITE_DIR.relative_to(ROOT)}")
     return 0

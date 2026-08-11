@@ -4,13 +4,11 @@
 from __future__ import annotations
 
 import base64
-import re
 import secrets
 import shutil
 import subprocess
 import sys
 import platform
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,10 +16,11 @@ WEB_SRC = ROOT / "web-src" if (ROOT / "web-src").is_dir() else ROOT / "web"
 JS_DIR = WEB_SRC / "js"
 OUT_DIR = JS_DIR / "obf"
 OBF_CONFIG = ROOT / "scripts" / "js-obfuscator.json"
-HTML_OBF_CONFIG = ROOT / "scripts" / "js-obfuscator-html.json"
-BOOTSTRAP_TEMPLATE = ROOT / "scripts" / "html-bootstrap.js"
 HTML_DIR = WEB_SRC
 IS_WINDOWS = platform.system() == "Windows"
+
+sys.path.insert(0, str(ROOT / "scripts"))
+from phpkobo_html import build_phpkobo_page, prepare_full_html
 
 
 def _run(cmd: list[str]) -> None:
@@ -116,106 +115,18 @@ def obfuscate_js() -> int:
     return 0
 
 
-def minify_html_text(text: str) -> str:
-    """Strip HTML comments and collapse extra whitespace for production."""
-    text = re.sub(r"<!--(?!.*\[if).*?-->", "", text, flags=re.DOTALL)
-    text = re.sub(r">\s+<", "><", text)
-    return text.strip()
-
-
-_BOOTSTRAP_PLACEHOLDER_PAYLOAD = "__PAYLOAD__"
-_BOOTSTRAP_PLACEHOLDER_KEY = "__KEY__"
-
-_SHELL_SKIP_HEAD = re.compile(
-    r"<script[^>]*src=[\"'][^\"']*site-guard\.js[\"'][^>]*>\s*</script>",
-    re.IGNORECASE,
-)
-_SHELL_SKIP_SITE_GUARD_INLINE = re.compile(
-    r"<script[^>]*>\s*window\.SITE_GUARD\s*=.*?</script>",
-    re.IGNORECASE | re.DOTALL,
-)
-_SHELL_SKIP_META = re.compile(
-    r"<meta[^>]+(?:charset|name=[\"']viewport[\"']|http-equiv=[\"'](?:X-Content-Type-Options|Referrer-Policy)[\"'])[^>]*>",
-    re.IGNORECASE,
-)
-
-
-def _extract_encryptable_html(text: str) -> tuple[str, str]:
-    text = minify_html_text(text)
-    lang_match = re.search(r"<html[^>]*\blang=[\"']([^\"']+)[\"']", text, re.IGNORECASE)
-    lang = lang_match.group(1) if lang_match else "en"
-
-    head_match = re.search(r"<head[^>]*>(.*?)</head>", text, re.IGNORECASE | re.DOTALL)
-    body_match = re.search(r"<body[^>]*>(.*?)</body>", text, re.IGNORECASE | re.DOTALL)
-    head_inner = head_match.group(1) if head_match else ""
-    body_inner = body_match.group(1) if body_match else ""
-
-    head_inner = _SHELL_SKIP_HEAD.sub("", head_inner)
-    head_inner = _SHELL_SKIP_SITE_GUARD_INLINE.sub("", head_inner)
-    head_inner = _SHELL_SKIP_META.sub("", head_inner)
-
-    fragment = f"<head>{head_inner.strip()}</head><body>{body_inner.strip()}</body>"
-    return lang, fragment
-
-
-def _build_bootstrap(payload: str, key: str) -> str:
-    if not BOOTSTRAP_TEMPLATE.is_file():
-        raise FileNotFoundError(f"Missing bootstrap template: {BOOTSTRAP_TEMPLATE}")
-    template = BOOTSTRAP_TEMPLATE.read_text(encoding="utf-8")
-    return (
-        template.replace(_BOOTSTRAP_PLACEHOLDER_PAYLOAD, payload)
-        .replace(_BOOTSTRAP_PLACEHOLDER_KEY, key)
-    )
-
-
-def _obfuscate_js_text(source: str) -> str:
-    if not _node_available():
-        print("[WARN] Node.js/npx not found — using Python fallback for HTML bootstrap.")
-        return _python_obfuscate_text(source)
-
-    with tempfile.TemporaryDirectory(prefix="dotx-html-") as tmp:
-        src = Path(tmp) / "bootstrap.js"
-        dest = Path(tmp) / "bootstrap.obf.js"
-        src.write_text(source, encoding="utf-8")
-        subprocess.run(
-            [
-                "npx",
-                "--yes",
-                "javascript-obfuscator",
-                str(src),
-                "--output",
-                str(dest),
-                "--config",
-                str(HTML_OBF_CONFIG if HTML_OBF_CONFIG.is_file() else OBF_CONFIG),
-            ],
-            cwd=ROOT,
-            check=True,
-            shell=IS_WINDOWS,
-        )
-        return dest.read_text(encoding="utf-8").strip()
-
-
-def _obfuscated_html_shell(obfuscated_js: str) -> str:
-    return (
-        "<!DOCTYPE html>\n"
-        "<html><head><meta charset=\"UTF-8\" />"
-        f"<script>{obfuscated_js}</script>"
-        "</head></html>\n"
-    )
-
-
 def encrypt_html_files(out_dir: Path) -> None:
     count = 0
     for path in sorted(out_dir.rglob("*.html")):
         original = path.read_text(encoding="utf-8")
-        _lang, fragment = _extract_encryptable_html(original)
-        payload, key = _xor_encrypt(fragment)
-        bootstrap = _build_bootstrap(payload, key)
-        obfuscated = _obfuscate_js_text(bootstrap)
-        path.write_text(_obfuscated_html_shell(obfuscated), encoding="utf-8")
+        full_html = prepare_full_html(original)
+        path.write_text(
+            build_phpkobo_page(full_html, remove_scripts=True, remove_comments=True),
+            encoding="utf-8",
+        )
         count += 1
-        print(f"  [OK] Obfuscated HTML -> {path.relative_to(out_dir)}")
-    print(f"[OK] Obfuscated {count} HTML files in {out_dir.relative_to(ROOT)}")
+        print(f"  [OK] PHPKobo HTML -> {path.relative_to(out_dir)}")
+    print(f"[OK] PHPKobo obfuscated {count} HTML files in {out_dir.relative_to(ROOT)}")
 
 
 def build_production_site(out_dir: Path) -> int:
