@@ -1,4 +1,4 @@
-"""Commit source to main, build encrypted site, deploy gh-pages for dotx.store."""
+"""Build encrypted site and deploy it to main/web (what GitHub Pages serves)."""
 from __future__ import annotations
 
 import json
@@ -10,13 +10,13 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+WEB_DIR = ROOT / "web"
 SITE_DIR = ROOT / "_site"
 DEPLOY_CONFIG = ROOT / "deploy.config.json"
-CONFIG_JS = ROOT / "web" / "js" / "config.js"
+CONFIG_JS = WEB_DIR / "js" / "config.js"
 OBFUSCATE_SCRIPT = ROOT / "scripts" / "obfuscate_web.py"
 DEFAULT_API_SUFFIX = "/functions/v1/dotx"
 DEFAULT_SUPABASE_URL = "https://bumuisxrzbteeymzeidh.supabase.co"
-PAGES_BRANCH = "gh-pages"
 
 WEB_PATHS = [
     "web",
@@ -26,6 +26,7 @@ WEB_PATHS = [
     "deploy.config.json.example",
     "scripts/push_github.py",
     "scripts/obfuscate_web.py",
+    "scripts/html-bootstrap.js",
     "scripts/js-obfuscator.json",
     "build-web.bat",
     "push-github.bat",
@@ -42,11 +43,6 @@ WEB_PATHS = [
 
 def _run(cmd: list[str], *, cwd: Path | None = None, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, cwd=cwd or ROOT, text=True, capture_output=True, check=check)
-
-
-def _api_base_url(data: dict) -> str:
-    supabase = str(data.get("supabaseUrl", DEFAULT_SUPABASE_URL)).strip().rstrip("/")
-    return f"{supabase or DEFAULT_SUPABASE_URL}{DEFAULT_API_SUFFIX}"
 
 
 def _sync_api_url() -> None:
@@ -127,77 +123,87 @@ def _build_encrypted_site() -> int:
     return 0
 
 
-def _deploy_gh_pages(site_dir: Path, remote_url: str) -> int:
-    print(f"Deploying encrypted site to origin/{PAGES_BRANCH}...")
-    with tempfile.TemporaryDirectory(prefix="dotx-pages-") as tmp:
-        tmp_path = Path(tmp)
-        shutil.copytree(site_dir, tmp_path, dirs_exist_ok=True)
-
-        steps: list[tuple[list[str], str]] = [
-            (["git", "init"], "init"),
-            (["git", "checkout", "-B", PAGES_BRANCH], "checkout"),
-            (["git", "add", "-A"], "add"),
-            (["git", "commit", "-m", "Deploy encrypted dotx site"], "commit"),
-            (["git", "remote", "add", "origin", remote_url], "remote"),
-            (["git", "push", "-f", "origin", PAGES_BRANCH], "push"),
-        ]
-
-        for cmd, label in steps:
-            result = _run(cmd, cwd=tmp_path, check=False)
-            if result.returncode != 0 and label == "commit":
-                print("[WARN] No page changes since last deploy.")
-                return 0
-            if result.returncode != 0:
-                if result.stdout:
-                    print(result.stdout.rstrip())
-                if result.stderr:
-                    print(result.stderr.rstrip())
-                print(f"[FAILED] gh-pages deploy step failed: {label}")
-                return result.returncode
-
-    print(f"[OK] Pushed encrypted site to origin/{PAGES_BRANCH}")
-    return 0
+def _backup_readable_web(backup_dir: Path) -> None:
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    for html in WEB_DIR.rglob("*.html"):
+        rel = html.relative_to(WEB_DIR)
+        dest = backup_dir / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(html, dest)
+    js_src = WEB_DIR / "js"
+    if js_src.is_dir():
+        shutil.copytree(
+            js_src,
+            backup_dir / "js",
+            ignore=shutil.ignore_patterns("obf", "obf/*"),
+            dirs_exist_ok=True,
+        )
 
 
-def _push_main() -> int:
+def _overlay_site_to_web(site_dir: Path) -> None:
+    for html in site_dir.rglob("*.html"):
+        rel = html.relative_to(site_dir)
+        dest = WEB_DIR / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(html, dest)
+    site_js = site_dir / "js"
+    web_js = WEB_DIR / "js"
+    if web_js.is_dir():
+        shutil.rmtree(web_js)
+    shutil.copytree(site_js, web_js)
+
+
+def _restore_readable_web(backup_dir: Path) -> None:
+    for html in backup_dir.rglob("*.html"):
+        rel = html.relative_to(backup_dir)
+        if rel.parts[:1] == ("js",):
+            continue
+        dest = WEB_DIR / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(html, dest)
+    backup_js = backup_dir / "js"
+    web_js = WEB_DIR / "js"
+    if web_js.is_dir():
+        shutil.rmtree(web_js)
+    if backup_js.is_dir():
+        shutil.copytree(backup_js, web_js)
+
+
+def _commit_and_push_encrypted_web() -> int:
     for rel in WEB_PATHS:
         path = ROOT / rel
         if path.exists():
             _run(["git", "add", rel], check=False)
 
     staged = _run(["git", "diff", "--cached", "--name-only"], check=False)
-    if staged.stdout.strip():
-        print("Committing source changes:")
-        for line in staged.stdout.strip().splitlines():
-            print(f"  {line}")
-        commit = _run(
-            ["git", "commit", "-m", "Update dotx website source and encryption build"],
-            check=False,
-        )
-        if commit.returncode != 0:
-            print(commit.stderr or commit.stdout)
-            print("[FAILED] Could not commit.")
-            return commit.returncode
-    else:
-        print("[OK] Source on main is already committed.")
+    if not staged.stdout.strip():
+        print("[WARN] No deploy changes detected after encryption overlay.")
+        return 0
 
-    ahead = _run(["git", "rev-list", "--count", "origin/main..HEAD"], check=False)
-    if ahead.returncode != 0:
-        ahead = _run(["git", "rev-list", "--count", "@{u}..HEAD"], check=False)
-    if ahead.returncode == 0 and ahead.stdout.strip() not in {"", "0"}:
-        print("Pushing main to GitHub...")
-        push = _run(["git", "push", "origin", "HEAD"], check=False)
-        if push.stdout:
-            print(push.stdout.rstrip())
-        if push.returncode != 0:
-            if push.stderr:
-                print(push.stderr.rstrip())
-            print("[FAILED] git push failed.")
-            return push.returncode
-        print("[OK] Pushed main.")
-    else:
-        print("[OK] Main branch is up to date on GitHub.")
+    print("Committing encrypted website for GitHub Pages:")
+    for line in staged.stdout.strip().splitlines():
+        print(f"  {line}")
 
+    commit = _run(
+        ["git", "commit", "-m", "Deploy encrypted dotx website (GitHub Pages)"],
+        check=False,
+    )
+    if commit.returncode != 0:
+        print(commit.stderr or commit.stdout)
+        print("[FAILED] Could not commit encrypted deploy.")
+        return commit.returncode
+
+    print("Pushing encrypted site to GitHub (main/web)...")
+    push = _run(["git", "push", "origin", "HEAD"], check=False)
+    if push.stdout:
+        print(push.stdout.rstrip())
+    if push.returncode != 0:
+        if push.stderr:
+            print(push.stderr.rstrip())
+        print("[FAILED] git push failed.")
+        return push.returncode
+
+    print("[OK] Encrypted site is live on main/web.")
     return 0
 
 
@@ -215,28 +221,30 @@ def main() -> int:
         print("[ERROR] This folder is not a git repo yet.")
         return 1
 
-    _sync_api_url()
-
     remote = _run(["git", "remote", "get-url", "origin"], check=False)
     if remote.returncode != 0:
         print("[ERROR] No git remote named 'origin'.")
         return 1
-    remote_url = remote.stdout.strip()
 
-    if _push_main() != 0:
-        return 1
+    _sync_api_url()
 
     if _build_encrypted_site() != 0:
         return 1
 
-    if _deploy_gh_pages(SITE_DIR, remote_url) != 0:
-        return 1
+    with tempfile.TemporaryDirectory(prefix="dotx-web-src-") as tmp:
+        backup_dir = Path(tmp)
+        _backup_readable_web(backup_dir)
+        _overlay_site_to_web(SITE_DIR)
+        try:
+            if _commit_and_push_encrypted_web() != 0:
+                return 1
+        finally:
+            print("Restoring readable web/ sources for local editing...")
+            _restore_readable_web(backup_dir)
 
     print()
-    print("[OK] Encrypted site deployed.")
-    print("    GitHub repo -> Settings -> Pages -> Source:")
-    print(f"      Branch: {PAGES_BRANCH}   Folder: / (root)")
-    print("    If dotx.store still shows plain HTML, switch Pages to gh-pages and wait ~2 min.")
+    print("[OK] dotx.store will serve obfuscated HTML from main/web in ~1-2 minutes.")
+    print("    Your local web/ folder stays readable for editing.")
     return 0
 
 
