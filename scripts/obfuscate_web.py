@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import base64
+import re
 import secrets
 import shutil
 import subprocess
@@ -19,8 +20,20 @@ OBF_CONFIG = ROOT / "scripts" / "js-obfuscator.json"
 HTML_DIR = WEB_SRC
 IS_WINDOWS = platform.system() == "Windows"
 
-sys.path.insert(0, str(ROOT / "scripts"))
-from phpkobo_html import build_phpkobo_page, prepare_full_html
+def prepare_production_html(text: str) -> str:
+    """Minify HTML for production without breaking the page."""
+    text = re.sub(r"<!--(?!.*\[if).*?-->", "", text, flags=re.DOTALL)
+    text = re.sub(r">\s+<", "><", text)
+    return text.strip() + "\n"
+
+
+def prepare_html_files(out_dir: Path) -> None:
+    count = 0
+    for path in sorted(out_dir.rglob("*.html")):
+        original = path.read_text(encoding="utf-8")
+        path.write_text(prepare_production_html(original), encoding="utf-8")
+        count += 1
+    print(f"[OK] Prepared {count} HTML files in {out_dir.relative_to(ROOT)}")
 
 
 def _run(cmd: list[str]) -> None:
@@ -115,24 +128,7 @@ def obfuscate_js() -> int:
     return 0
 
 
-def encrypt_html_files(out_dir: Path) -> None:
-    count = 0
-    for path in sorted(out_dir.rglob("*.html")):
-        original = path.read_text(encoding="utf-8")
-        full_html = prepare_full_html(original)
-        path.write_text(
-            build_phpkobo_page(full_html, remove_scripts=True, remove_comments=True),
-            encoding="utf-8",
-        )
-        count += 1
-        print(f"  [OK] PHPKobo HTML -> {path.relative_to(out_dir)}")
-    print(f"[OK] PHPKobo obfuscated {count} HTML files in {out_dir.relative_to(ROOT)}")
-
-
 def build_production_site(out_dir: Path) -> int:
-    if obfuscate_js() != 0:
-        return 1
-
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
@@ -147,7 +143,11 @@ def build_production_site(out_dir: Path) -> int:
         if src.is_dir():
             shutil.copytree(src, out_dir / folder)
 
-    shutil.copytree(OUT_DIR, out_dir / "js")
+    site_js = out_dir / "js"
+    site_js.mkdir(parents=True, exist_ok=True)
+    for src in sorted((HTML_DIR / "js").glob("*.js")):
+        if src.is_file():
+            shutil.copy2(src, site_js / src.name)
     if (HTML_DIR / "_headers").is_file():
         shutil.copy2(HTML_DIR / "_headers", out_dir / "_headers")
     if (HTML_DIR / ".nojekyll").is_file():
@@ -175,7 +175,7 @@ def build_production_site(out_dir: Path) -> int:
     if nested.is_dir():
         shutil.rmtree(nested)
 
-    encrypt_html_files(out_dir)
+    prepare_html_files(out_dir)
     print(f"[OK] Production site ready at {out_dir.relative_to(ROOT)}")
     return 0
 

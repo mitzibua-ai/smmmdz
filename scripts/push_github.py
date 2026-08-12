@@ -116,11 +116,11 @@ def _build_encrypted_site() -> int:
         print(f"[ERROR] Build did not produce {SITE_DIR / 'index.html'}")
         return 1
     sample = (SITE_DIR / "index.html").read_text(encoding="utf-8")
-    if "phpkobo.com/html-obfuscator" not in sample:
-        print("[ERROR] Built index.html is not PHPKobo obfuscated.")
+    if "phpkobo.com/html-obfuscator" in sample:
+        print("[ERROR] Built index.html is still PHPKobo obfuscated.")
         return 1
-    if 'class="header"' in sample or 'class="hero"' in sample:
-        print("[ERROR] Built index.html still contains readable HTML.")
+    if 'class="header"' not in sample and 'class="hero"' not in sample:
+        print("[ERROR] Built index.html does not look like the normal dotx landing page.")
         return 1
     print(f"[OK] Encrypted site ready in {SITE_DIR.relative_to(ROOT)}")
     return 0
