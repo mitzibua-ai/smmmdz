@@ -119,7 +119,11 @@ def _build_encrypted_site() -> int:
     if "phpkobo.com/html-obfuscator" in sample:
         print("[ERROR] Built index.html is still PHPKobo obfuscated.")
         return 1
-    if 'class="header"' not in sample and 'class="hero"' not in sample:
+    if (
+        'class="header"' not in sample
+        and 'class="hero"' not in sample
+        and "gif-overlay" not in sample
+    ):
         print("[ERROR] Built index.html does not look like the normal dotx landing page.")
         return 1
     print(f"[OK] Encrypted site ready in {SITE_DIR.relative_to(ROOT)}")
