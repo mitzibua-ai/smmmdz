@@ -123,6 +123,7 @@ def _build_encrypted_site() -> int:
         'class="header"' not in sample
         and 'class="hero"' not in sample
         and "gif-overlay" not in sample
+        and "tools-page" not in sample
     ):
         print("[ERROR] Built index.html does not look like the normal dotx landing page.")
         return 1

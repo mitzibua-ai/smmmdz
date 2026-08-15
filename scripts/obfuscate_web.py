@@ -138,7 +138,7 @@ def build_production_site(out_dir: Path) -> int:
         if src.is_file():
             shutil.copy2(src, out_dir / name)
 
-    for folder in ("css", "static", "login", "callback", "dashboard", "downloads"):
+    for folder in ("css", "static", "login", "callback", "dashboard", "downloads", "tools"):
         src = HTML_DIR / folder
         if src.is_dir():
             shutil.copytree(src, out_dir / folder)

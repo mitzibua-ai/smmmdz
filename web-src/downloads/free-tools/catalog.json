@@ -1,0 +1,118 @@
+{
+  "panelVersion": "1.0.0",
+  "installDirName": "DotXFreeTools",
+  "tools": [
+    {
+      "id": "autoruns",
+      "name": "Autoruns++",
+      "tag": "Startup",
+      "description": "Enhanced startup monitor with USN journal tracking, signature checks, and anomaly filters.",
+      "file": "autoruns.zip"
+    },
+    {
+      "id": "string-explorer",
+      "name": "StringExplorer++",
+      "tag": "PE Analysis",
+      "description": "Navigate executable strings, entropy, compile timestamps, and VirusTotal links.",
+      "file": "string-explorer.zip"
+    },
+    {
+      "id": "prefetch",
+      "name": "WinPrefetchView++",
+      "tag": "Prefetch",
+      "description": "Prefetch viewer with bypass detections, YARA rules, and pink USN modification flags.",
+      "file": "prefetch.zip"
+    },
+    {
+      "id": "usbdeview",
+      "name": "USBDeview++",
+      "tag": "USB / DMA",
+      "description": "Cross-reference USB logs, flag unverified firmware, and uncover cleaned device traces.",
+      "file": "usbdeview.zip"
+    },
+    {
+      "id": "saved-files",
+      "name": "SavedFilesViewer++",
+      "tag": "Downloads",
+      "description": "Local artifact viewer for files saved to disk with cleaner detections built in.",
+      "file": "saved-files.zip"
+    },
+    {
+      "id": "powershell",
+      "name": "PowerShellParser++",
+      "tag": "PowerShell",
+      "description": "Deep PowerShell history scraping with bypass filters and integrated protections.",
+      "file": "powershell.zip"
+    },
+    {
+      "id": "paths",
+      "name": "PathsParser++",
+      "tag": "Paths",
+      "description": "Multi-input path parser with YARA imports and visual USN journal highlighting.",
+      "file": "paths.zip"
+    },
+    {
+      "id": "mft",
+      "name": "MFTExplorer++",
+      "tag": "MFT",
+      "description": "MFT viewer for ADS streams and historical file presence verification.",
+      "file": "mft.zip"
+    },
+    {
+      "id": "kernel-dump",
+      "name": "KernelLiveDump++",
+      "tag": "Memory",
+      "description": "Kernel and user-mode RAM dumps with suspicious string toggles and custom search.",
+      "file": "kernel-dump.zip"
+    },
+    {
+      "id": "journal",
+      "name": "JournalTrace++",
+      "tag": "USN Journal",
+      "description": "USN journal analysis with reason-code filters and bypass detections.",
+      "file": "journal.zip"
+    },
+    {
+      "id": "crash",
+      "name": "CrashedFileViewer++",
+      "tag": "Crash Logs",
+      "description": "Unified Windows crash artifacts with USN highlights and log-clearing detection.",
+      "file": "crash.zip"
+    },
+    {
+      "id": "browser-history",
+      "name": "BrowsingHistoryView++",
+      "tag": "Browser",
+      "description": "Multi-browser history with suspicious domain flags and VirusTotal integration.",
+      "file": "browser-history.zip"
+    },
+    {
+      "id": "browser-downloads",
+      "name": "BrowserDownloadsView++",
+      "tag": "Browser",
+      "description": "Aggregated browser downloads with USN modification tracking and YARA scans.",
+      "file": "browser-downloads.zip"
+    },
+    {
+      "id": "bam",
+      "name": "BamParser++",
+      "tag": "Execution",
+      "description": "BAM execution history with YARA engine, USN flags, and tamper detections.",
+      "file": "bam.zip"
+    },
+    {
+      "id": "amcache",
+      "name": "AmcacheParser++",
+      "tag": "Amcache",
+      "description": "High-performance Amcache parser with YARA, SHA1 filters, and VT integration.",
+      "file": "amcache.zip"
+    },
+    {
+      "id": "srum",
+      "name": "SRUMExplorer++",
+      "tag": "Network",
+      "description": "SRUM network usage mapping with YARA matching and USN journal tracking.",
+      "file": "srum.zip"
+    }
+  ]
+}
