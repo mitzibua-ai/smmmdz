@@ -994,20 +994,13 @@ function freeToolDownloadUrl(tool) {
   return `/downloads/free-tools/${tool.file}`;
 }
 
-function freeToolPathLabel(tool) {
-  if (tool.externalUrl) return "osforensics.com/download";
-  return `dotx.store/downloads/free-tools/${tool.file}`;
-}
-
 function renderFreeTools() {
   const avatar = escapeHtml(account?.avatar || "");
   const username = escapeHtml(account?.username || account?.globalName || "Moderator");
-  const panelPath = "dotx.store/downloads/dotx-free-tools.exe";
-  const count = FREE_TOOLS_CATALOG.length + 1; // + panel
+  const count = FREE_TOOLS_CATALOG.length + 1;
 
   const cards = FREE_TOOLS_CATALOG.map((tool) => {
     const url = freeToolDownloadUrl(tool);
-    const path = freeToolPathLabel(tool);
     const icon = FREE_TOOLS_ICONS[tool.id] || "◇";
     const dlAttr = tool.externalUrl ? 'target="_blank" rel="noopener noreferrer"' : "download";
     const badge = tool.badge
@@ -1017,12 +1010,9 @@ function renderFreeTools() {
       <article class="dx-tool-card" data-name="${escapeHtml(tool.name.toLowerCase())}" data-tag="${escapeHtml(tool.tag.toLowerCase())}" data-desc="${escapeHtml(tool.description.toLowerCase())}">
         <div class="dx-tool-card__icon" aria-hidden="true">${icon}</div>
         ${badge}
+        <span class="dx-tool-card__tag">${escapeHtml(tool.tag)}</span>
         <h3 class="dx-tool-card__title">${escapeHtml(tool.name)}</h3>
         <p class="dx-tool-card__desc">${escapeHtml(tool.description)}</p>
-        <div class="dx-tool-card__path">
-          <span class="dx-tool-card__path-text" title="${escapeHtml(path)}">${escapeHtml(path)}</span>
-          <button type="button" class="dx-copy-btn" data-copy="${escapeHtml(url)}" title="Copy link" aria-label="Copy link">⧉</button>
-        </div>
         <a class="dx-tool-card__dl" href="${escapeHtml(url)}" ${dlAttr}>
           <span class="dx-dl-ico" aria-hidden="true">↓</span> Download
         </a>
@@ -1055,10 +1045,6 @@ function renderFreeTools() {
           Dot X all-in-one forensic downloader — stamp your Discord name &amp; avatar in the corner,
           download the full suite, get live <strong>IN USE</strong> alerts, then clean everything with one red button.
         </p>
-        <div class="dx-featured__path">
-          <span class="dx-featured__path-text">${panelPath}</span>
-          <button type="button" class="dx-copy-btn" data-copy="/downloads/dotx-free-tools.exe" title="Copy link" aria-label="Copy link">⧉</button>
-        </div>
         <div class="dx-featured__actions">
           <button type="button" class="dx-featured__cta" id="free-tools-download-exe">
             <span class="dx-dl-ico" aria-hidden="true">↓</span> Download All-in-One
@@ -1096,25 +1082,6 @@ function bindFreeToolsEvents() {
       btn.disabled = false;
       btn.innerHTML = original;
     }
-  });
-
-  document.querySelectorAll(".dx-copy-btn[data-copy]").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const value = btn.getAttribute("data-copy") || "";
-      const absolute = value.startsWith("http")
-        ? value
-        : new URL(value, window.location.origin).href;
-      try {
-        await navigator.clipboard.writeText(absolute);
-        const prev = btn.textContent;
-        btn.textContent = "✓";
-        setTimeout(() => {
-          btn.textContent = prev;
-        }, 1200);
-      } catch {
-        /* ignore */
-      }
-    });
   });
 
   const search = $("ft-search");
