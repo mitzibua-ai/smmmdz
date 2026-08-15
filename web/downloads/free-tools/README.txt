@@ -1,13 +1,31 @@
-﻿Place individual tool ZIP files here for the Dot X Free Tools panel.
-
-Expected filenames (see free_tools/catalog.json):
-  autoruns.zip, string-explorer.zip, prefetch.zip, ... plus OSForensics via external URL.
-
-The all-in-one panel EXE downloads from:
-  https://dotx.store/downloads/free-tools/
-
-Install location on user PC:
-  %LOCALAPPDATA%\DotXFreeTools\
-
-Build panel EXE:
-  python free_tools/build_exe.py
+# dotx Free Tools Panel
+
+Signature: Free Tools
+Product:   dotx Free Tools
+Theme:    dark shell, red edges, white text
+
+## Run (dev)
+1. Python 3.12+
+2. `python free_tools/panel.py` or `run-free-tools-panel.bat`
+
+## Build EXE
+```
+python free_tools/build_exe.py
+```
+Output: `free_tools/dotx-free-tools.exe` (also copied to `web-src/downloads/` and `web/downloads/`)
+
+## Discord badge
+Download the panel from the dashboard Free Tools view while logged in. Your Discord name and avatar are stamped into the upper-right corner of the EXE.
+
+## Features
+- Download listed forensic utilities into `%LOCALAPPDATA%\DotXFreeTools\`
+- Open installed tools from the panel
+- Live **IN USE** badges + toast when a tool process is running
+- Red **Clean Installed Tools** removes everything the panel installed
+- Includes **Everything** (voidtools official installer)
+- Includes **DotX Recent Activity** and **DotX Recently Deleted**
+- Includes **OSForensics** (PassMark official installer)
+
+Tool ZIPs: https://dotx.store/downloads/free-tools/
+Everything: https://www.voidtools.com/downloads/
+OSForensics: https://www.osforensics.com/download.html

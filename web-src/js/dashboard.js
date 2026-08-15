@@ -958,26 +958,40 @@ const FREE_TOOLS_ICONS = {
   bam: "▶",
   amcache: "◈",
   srum: "⇄",
+  "recent-activity": "⏱",
+  "recently-deleted": "⌫",
+  everything: "∀",
   osforensics: "◆",
 };
 
 const FREE_TOOLS_CATALOG = [
-  { id: "autoruns", name: "Autoruns++", tag: "Startup", file: "autoruns.zip", description: "Enhanced startup monitor with USN journal tracking, signature checks, and anomaly filters." },
-  { id: "string-explorer", name: "StringExplorer++", tag: "PE Analysis", file: "string-explorer.zip", description: "Navigate executable strings, entropy, compile timestamps, and VirusTotal links." },
-  { id: "prefetch", name: "WinPrefetchView++", tag: "Prefetch", file: "prefetch.zip", description: "Prefetch viewer with bypass detections, YARA rules, and pink USN modification flags." },
-  { id: "usbdeview", name: "USBDeview++", tag: "USB / DMA", file: "usbdeview.zip", description: "Cross-reference USB logs, flag unverified firmware, and uncover cleaned device traces." },
-  { id: "saved-files", name: "SavedFilesViewer++", tag: "Downloads", file: "saved-files.zip", description: "Local artifact viewer for files saved to disk with cleaner detections built in." },
-  { id: "powershell", name: "PowerShellParser++", tag: "PowerShell", file: "powershell.zip", description: "Deep PowerShell history scraping with bypass filters and integrated protections." },
-  { id: "paths", name: "PathsParser++", tag: "Paths", file: "paths.zip", description: "Multi-input path parser with YARA imports and visual USN journal highlighting." },
-  { id: "mft", name: "MFTExplorer++", tag: "MFT", file: "mft.zip", description: "MFT viewer for ADS streams and historical file presence verification." },
-  { id: "kernel-dump", name: "KernelLiveDump++", tag: "Memory", file: "kernel-dump.zip", description: "Kernel and user-mode RAM dumps with suspicious string toggles and custom search." },
-  { id: "journal", name: "JournalTrace++", tag: "USN Journal", file: "journal.zip", description: "USN journal analysis with reason-code filters and bypass detections." },
-  { id: "crash", name: "CrashedFileViewer++", tag: "Crash Logs", file: "crash.zip", description: "Unified Windows crash artifacts with USN highlights and log-clearing detection." },
-  { id: "browser-history", name: "BrowsingHistoryView++", tag: "Browser", file: "browser-history.zip", description: "Multi-browser history with suspicious domain flags and VirusTotal integration." },
-  { id: "browser-downloads", name: "BrowserDownloadsView++", tag: "Browser", file: "browser-downloads.zip", description: "Aggregated browser downloads with USN modification tracking and YARA scans." },
-  { id: "bam", name: "BamParser++", tag: "Execution", file: "bam.zip", description: "BAM execution history with YARA engine, USN flags, and tamper detections." },
-  { id: "amcache", name: "AmcacheParser++", tag: "Amcache", file: "amcache.zip", description: "High-performance Amcache parser with YARA, SHA1 filters, and VT integration." },
-  { id: "srum", name: "SRUMExplorer++", tag: "Network", file: "srum.zip", description: "SRUM network usage mapping with YARA matching and USN journal tracking." },
+  { id: "autoruns", name: "DotX Autoruns", tag: "Startup", file: "autoruns.zip", description: "Startup and persistence monitor with USN journal tracking, signature checks, and anomaly filters." },
+  { id: "string-explorer", name: "DotX String Lab", tag: "PE Analysis", file: "string-explorer.zip", description: "Navigate executable strings, entropy, compile timestamps, and VirusTotal links." },
+  { id: "prefetch", name: "DotX Prefetch", tag: "Prefetch", file: "prefetch.zip", description: "Prefetch viewer with bypass detections, YARA rules, and USN modification flags." },
+  { id: "usbdeview", name: "DotX USB Trace", tag: "USB / DMA", file: "usbdeview.zip", description: "Cross-reference USB logs, flag unverified firmware, and uncover cleaned device traces." },
+  { id: "saved-files", name: "DotX Saved Files", tag: "Downloads", file: "saved-files.zip", description: "Local artifact viewer for files saved to disk with cleaner detections built in." },
+  { id: "powershell", name: "DotX PowerShell", tag: "PowerShell", file: "powershell.zip", description: "Deep PowerShell history scraping with bypass filters and integrated protections." },
+  { id: "paths", name: "DotX Paths", tag: "Paths", file: "paths.zip", description: "Multi-input path parser with YARA imports and visual USN journal highlighting." },
+  { id: "mft", name: "DotX MFT", tag: "MFT", file: "mft.zip", description: "MFT viewer for ADS streams and historical file presence verification." },
+  { id: "kernel-dump", name: "DotX Kernel Dump", tag: "Memory", file: "kernel-dump.zip", description: "Kernel and user-mode RAM dumps with suspicious string toggles and custom search." },
+  { id: "journal", name: "DotX Journal", tag: "USN Journal", file: "journal.zip", description: "USN journal analysis with reason-code filters and bypass detections." },
+  { id: "crash", name: "DotX Crash Viewer", tag: "Crash Logs", file: "crash.zip", description: "Unified Windows crash artifacts with USN highlights and log-clearing detection." },
+  { id: "browser-history", name: "DotX Browser History", tag: "Browser", file: "browser-history.zip", description: "Multi-browser history with suspicious domain flags and VirusTotal integration." },
+  { id: "browser-downloads", name: "DotX Browser Downloads", tag: "Browser", file: "browser-downloads.zip", description: "Aggregated browser downloads with USN modification tracking and YARA scans." },
+  { id: "bam", name: "DotX BAM", tag: "Execution", file: "bam.zip", description: "BAM execution history with YARA engine, USN flags, and tamper detections." },
+  { id: "amcache", name: "DotX Amcache", tag: "Amcache", file: "amcache.zip", description: "High-performance Amcache parser with YARA, SHA1 filters, and VT integration." },
+  { id: "srum", name: "DotX SRUM", tag: "Network", file: "srum.zip", description: "SRUM network usage mapping with YARA matching and USN journal tracking." },
+  { id: "recent-activity", name: "DotX Recent Activity", tag: "Activity", file: "recent-activity.zip", description: "Recent file and app activity timeline — Jump Lists, RecentDocs, Office MRU, and shell bags." },
+  { id: "recently-deleted", name: "DotX Recently Deleted", tag: "Deleted", file: "recently-deleted.zip", description: "Recover and review recently deleted file traces from Recycle Bin, MFT, and journal remnants." },
+  {
+    id: "everything",
+    name: "Everything",
+    tag: "Search",
+    externalUrl: "https://www.voidtools.com/Everything-1.4.1.1032.x64-Setup.exe",
+    homepage: "https://www.voidtools.com/downloads/",
+    description: "voidtools Everything — instant filename search across the whole drive. Official download from voidtools.com.",
+    badge: "NEW",
+  },
   {
     id: "osforensics",
     name: "OSForensics",
@@ -985,7 +999,7 @@ const FREE_TOOLS_CATALOG = [
     externalUrl: "https://www.osforensics.com/downloads/OSForensics.exe",
     homepage: "https://www.osforensics.com/download.html",
     description: "PassMark digital investigation suite — hash sets, timelines, deleted files, emails, and more.",
-    badge: "NEW",
+    badge: "SUITE",
   },
 ];
 
@@ -1040,7 +1054,7 @@ function renderFreeTools() {
         <div class="dx-featured__glow" aria-hidden="true"></div>
         <div class="dx-featured__icon" aria-hidden="true">▣</div>
         <span class="dx-featured__star">★ Featured</span>
-        <h2 class="dx-featured__title">FreeTools<span>Panel</span>++</h2>
+        <h2 class="dx-featured__title">dot<span>x</span> Free Tools Panel</h2>
         <p class="dx-featured__desc">
           Dot X all-in-one forensic downloader — stamp your Discord name &amp; avatar in the corner,
           download the full suite, get live <strong>IN USE</strong> alerts, then clean everything with one red button.

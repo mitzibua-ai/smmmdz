@@ -1,148 +1,178 @@
 {
-  "panelVersion": "2.1.0",
+  "panelVersion": "2.2.0",
   "panelName": "dotx Free Tools",
   "signature": "Free Tools",
   "installDirName": "DotXFreeTools",
   "tools": [
     {
       "id": "autoruns",
-      "name": "Autoruns++",
+      "name": "DotX Autoruns",
       "tag": "Startup",
-      "description": "Enhanced startup monitor with USN journal tracking, signature checks, and anomaly filters.",
+      "description": "Startup and persistence monitor with USN journal tracking, signature checks, and anomaly filters.",
       "file": "autoruns.zip",
-      "processNames": ["Autoruns++.exe", "Autoruns.exe", "autoruns.exe"]
+      "processNames": ["DotXAutoruns.exe", "Autoruns.exe", "autoruns.exe"]
     },
     {
       "id": "string-explorer",
-      "name": "StringExplorer++",
+      "name": "DotX String Lab",
       "tag": "PE Analysis",
       "description": "Navigate executable strings, entropy, compile timestamps, and VirusTotal links.",
       "file": "string-explorer.zip",
-      "processNames": ["StringExplorer++.exe", "StringExplorer.exe"]
+      "processNames": ["DotXStringLab.exe", "StringExplorer.exe"]
     },
     {
       "id": "prefetch",
-      "name": "WinPrefetchView++",
+      "name": "DotX Prefetch",
       "tag": "Prefetch",
-      "description": "Prefetch viewer with bypass detections, YARA rules, and pink USN modification flags.",
+      "description": "Prefetch viewer with bypass detections, YARA rules, and USN modification flags.",
       "file": "prefetch.zip",
-      "processNames": ["WinPrefetchView++.exe", "WinPrefetchView.exe"]
+      "processNames": ["DotXPrefetch.exe", "WinPrefetchView.exe"]
     },
     {
       "id": "usbdeview",
-      "name": "USBDeview++",
+      "name": "DotX USB Trace",
       "tag": "USB / DMA",
       "description": "Cross-reference USB logs, flag unverified firmware, and uncover cleaned device traces.",
       "file": "usbdeview.zip",
-      "processNames": ["USBDeview++.exe", "USBDeview.exe"]
+      "processNames": ["DotXUsbTrace.exe", "USBDeview.exe"]
     },
     {
       "id": "saved-files",
-      "name": "SavedFilesViewer++",
+      "name": "DotX Saved Files",
       "tag": "Downloads",
       "description": "Local artifact viewer for files saved to disk with cleaner detections built in.",
       "file": "saved-files.zip",
-      "processNames": ["SavedFilesViewer++.exe", "SavedFilesViewer.exe"]
+      "processNames": ["DotXSavedFiles.exe", "SavedFilesViewer.exe"]
     },
     {
       "id": "powershell",
-      "name": "PowerShellParser++",
+      "name": "DotX PowerShell",
       "tag": "PowerShell",
       "description": "Deep PowerShell history scraping with bypass filters and integrated protections.",
       "file": "powershell.zip",
-      "processNames": ["PowerShellParser++.exe", "PowerShellParser.exe"]
+      "processNames": ["DotXPowerShell.exe", "PowerShellParser.exe"]
     },
     {
       "id": "paths",
-      "name": "PathsParser++",
+      "name": "DotX Paths",
       "tag": "Paths",
       "description": "Multi-input path parser with YARA imports and visual USN journal highlighting.",
       "file": "paths.zip",
-      "processNames": ["PathsParser++.exe", "PathsParser.exe"]
+      "processNames": ["DotXPaths.exe", "PathsParser.exe"]
     },
     {
       "id": "mft",
-      "name": "MFTExplorer++",
+      "name": "DotX MFT",
       "tag": "MFT",
       "description": "MFT viewer for ADS streams and historical file presence verification.",
       "file": "mft.zip",
-      "processNames": ["MFTExplorer++.exe", "MFTExplorer.exe"]
+      "processNames": ["DotXMFT.exe", "MFTExplorer.exe"]
     },
     {
       "id": "kernel-dump",
-      "name": "KernelLiveDump++",
+      "name": "DotX Kernel Dump",
       "tag": "Memory",
       "description": "Kernel and user-mode RAM dumps with suspicious string toggles and custom search.",
       "file": "kernel-dump.zip",
-      "processNames": ["KernelLiveDump++.exe", "KernelLiveDump.exe"]
+      "processNames": ["DotXKernelDump.exe", "KernelLiveDump.exe"]
     },
     {
       "id": "journal",
-      "name": "JournalTrace++",
+      "name": "DotX Journal",
       "tag": "USN Journal",
       "description": "USN journal analysis with reason-code filters and bypass detections.",
       "file": "journal.zip",
-      "processNames": ["JournalTrace++.exe", "JournalTrace.exe"]
+      "processNames": ["DotXJournal.exe", "JournalTrace.exe"]
     },
     {
       "id": "crash",
-      "name": "CrashedFileViewer++",
+      "name": "DotX Crash Viewer",
       "tag": "Crash Logs",
       "description": "Unified Windows crash artifacts with USN highlights and log-clearing detection.",
       "file": "crash.zip",
-      "processNames": ["CrashedFileViewer++.exe", "CrashedFileViewer.exe"]
+      "processNames": ["DotXCrashViewer.exe", "CrashedFileViewer.exe"]
     },
     {
       "id": "browser-history",
-      "name": "BrowsingHistoryView++",
+      "name": "DotX Browser History",
       "tag": "Browser",
       "description": "Multi-browser history with suspicious domain flags and VirusTotal integration.",
       "file": "browser-history.zip",
-      "processNames": ["BrowsingHistoryView++.exe", "BrowsingHistoryView.exe"]
+      "processNames": ["DotXBrowserHistory.exe", "BrowsingHistoryView.exe"]
     },
     {
       "id": "browser-downloads",
-      "name": "BrowserDownloadsView++",
+      "name": "DotX Browser Downloads",
       "tag": "Browser",
       "description": "Aggregated browser downloads with USN modification tracking and YARA scans.",
       "file": "browser-downloads.zip",
-      "processNames": ["BrowserDownloadsView++.exe", "BrowserDownloadsView.exe"]
+      "processNames": ["DotXBrowserDownloads.exe", "BrowserDownloadsView.exe"]
     },
     {
       "id": "bam",
-      "name": "BamParser++",
+      "name": "DotX BAM",
       "tag": "Execution",
       "description": "BAM execution history with YARA engine, USN flags, and tamper detections.",
       "file": "bam.zip",
-      "processNames": ["BamParser++.exe", "BamParser.exe"]
+      "processNames": ["DotXBAM.exe", "BamParser.exe"]
     },
     {
       "id": "amcache",
-      "name": "AmcacheParser++",
+      "name": "DotX Amcache",
       "tag": "Amcache",
       "description": "High-performance Amcache parser with YARA, SHA1 filters, and VT integration.",
       "file": "amcache.zip",
-      "processNames": ["AmcacheParser++.exe", "AmcacheParser.exe"]
+      "processNames": ["DotXAmcache.exe", "AmcacheParser.exe"]
     },
     {
       "id": "srum",
-      "name": "SRUMExplorer++",
+      "name": "DotX SRUM",
       "tag": "Network",
       "description": "SRUM network usage mapping with YARA matching and USN journal tracking.",
       "file": "srum.zip",
-      "processNames": ["SRUMExplorer++.exe", "SRUMExplorer.exe"]
+      "processNames": ["DotXSRUM.exe", "SRUMExplorer.exe"]
+    },
+    {
+      "id": "recent-activity",
+      "name": "DotX Recent Activity",
+      "tag": "Activity",
+      "description": "Recent file and app activity timeline — Jump Lists, RecentDocs, Office MRU, and shell bags.",
+      "file": "recent-activity.zip",
+      "processNames": ["DotXRecentActivity.exe", "RecentActivityViewer.exe"]
+    },
+    {
+      "id": "recently-deleted",
+      "name": "DotX Recently Deleted",
+      "tag": "Deleted",
+      "description": "Recover and review recently deleted file traces from Recycle Bin, MFT, and journal remnants.",
+      "file": "recently-deleted.zip",
+      "processNames": ["DotXRecentlyDeleted.exe", "RecentlyDeletedViewer.exe"]
+    },
+    {
+      "id": "everything",
+      "name": "Everything",
+      "tag": "Search",
+      "description": "voidtools Everything — instant filename search across the whole drive. Official download from voidtools.com.",
+      "source": "external",
+      "downloadUrl": "https://www.voidtools.com/Everything-1.4.1.1032.x64-Setup.exe",
+      "homepage": "https://www.voidtools.com/downloads/",
+      "file": "Everything-x64-Setup.exe",
+      "processNames": ["Everything.exe"],
+      "sizeHint": "~2 MB",
+      "badge": "NEW"
     },
     {
       "id": "osforensics",
       "name": "OSForensics",
       "tag": "Full Suite",
-      "description": "PassMark digital investigation suite — hash sets, timelines, deleted files, emails, and more. Official installer from osforensics.com.",
+      "description": "PassMark digital investigation suite — hash sets, timelines, deleted files, emails, and more.",
       "source": "external",
       "downloadUrl": "https://www.osforensics.com/downloads/OSForensics.exe",
       "homepage": "https://www.osforensics.com/download.html",
       "file": "OSForensics.exe",
       "processNames": ["OSForensics.exe", "osf.exe"],
-      "sizeHint": "~286 MB"
+      "sizeHint": "~286 MB",
+      "badge": "SUITE"
     }
   ]
 }
