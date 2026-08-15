@@ -1019,7 +1019,6 @@ function renderFreeTools() {
         <div class="free-tools-actions">
           <button type="button" class="btn btn--primary" id="free-tools-download-exe">Download Panel EXE</button>
           <a class="btn btn--ghost" href="/downloads/dotx-free-tools-panel.zip" download>Python zip (dev)</a>
-          <a class="btn btn--ghost" href="/tools/" target="_blank" rel="noopener">Public tools page</a>
         </div>
         <p class="free-tools-status" id="free-tools-status"></p>
       </div>
@@ -1069,8 +1068,8 @@ function renderView(view) {
     stopAccountLicenseTimer();
   }
 
-  // Legacy hash from old Signatures nav
-  if (view === "signatures") view = "free-tools";
+  // Old free-tools hash → signatures slot (renamed Free Tools)
+  if (view === "free-tools") view = "signatures";
 
   if (!canAccessView(view, account)) {
     view = "overview";
@@ -1088,8 +1087,8 @@ function renderView(view) {
     owner: () => renderTeamView("owner"),
     admin: () => renderTeamView("admin"),
     staff: () => renderTeamView("staff"),
-    "free-tools": renderFreeTools,
     signatures: renderFreeTools,
+    "free-tools": renderFreeTools,
     help: () => renderPlaceholder("Help", "Guides and support for dotx."),
     billing: () => renderPlaceholder("Billing", "Plans and payments."),
   };
@@ -1121,7 +1120,7 @@ function bindViewEvents(view) {
   if (view === "checks") bindChecksEvents();
   if (view === "reports") bindReportsEvents();
   if (view === "account") bindAccountEvents();
-  if (view === "free-tools" || view === "signatures") bindFreeToolsEvents();
+  if (view === "signatures" || view === "free-tools") bindFreeToolsEvents();
 }
 
 function bindAccountEvents() {
