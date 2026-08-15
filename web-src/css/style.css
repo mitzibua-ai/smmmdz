@@ -4297,3 +4297,128 @@ a.btn.pin-download-link {
     grid-template-columns: 1fr;
   }
 }
+
+/* Dashboard Free Tools (replaces Signatures) */
+.page-header--free-tools h1 {
+  color: #00d4aa;
+}
+
+.free-tools-panel .panel__head {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.free-tools-brand-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: rgba(0, 212, 170, 0.08);
+  border: 1px solid rgba(0, 212, 170, 0.22);
+}
+
+.free-tools-brand-chip__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.free-tools-brand-chip__fallback {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #00d4aa;
+  font-weight: 700;
+}
+
+.free-tools-brand-chip__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #f0f4fa;
+}
+
+.free-tools-lead {
+  color: #8a94a8;
+  line-height: 1.55;
+  margin: 0 0 16px;
+  max-width: 640px;
+}
+
+.free-tools-inuse {
+  color: #ff8a3d;
+}
+
+.free-tools-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.free-tools-status {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: #00d4aa;
+  min-height: 1.2em;
+}
+
+.free-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.free-tool-card {
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.free-tool-card--featured {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: linear-gradient(160deg, rgba(245, 158, 11, 0.08), transparent 55%), rgba(255, 255, 255, 0.02);
+}
+
+.free-tool-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.free-tool-card__num {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #d40000;
+  letter-spacing: 0.08em;
+}
+
+.free-tool-card__tag {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #00d4aa;
+  background: rgba(0, 212, 170, 0.12);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.free-tool-card h3 {
+  font-size: 0.95rem;
+  margin: 0 0 6px;
+}
+
+.free-tool-card p {
+  font-size: 0.8rem;
+  color: #8a94a8;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  min-height: 2.8em;
+}

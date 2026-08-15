@@ -941,10 +941,136 @@ function renderPlaceholder(title, desc) {
   `;
 }
 
+const FREE_TOOLS_CATALOG = [
+  { id: "autoruns", name: "Autoruns++", tag: "Startup", file: "autoruns.zip", description: "Startup monitor with USN tracking and signature checks." },
+  { id: "string-explorer", name: "StringExplorer++", tag: "PE Analysis", file: "string-explorer.zip", description: "Executable strings, entropy, and VirusTotal links." },
+  { id: "prefetch", name: "WinPrefetchView++", tag: "Prefetch", file: "prefetch.zip", description: "Prefetch viewer with bypass detections and YARA." },
+  { id: "usbdeview", name: "USBDeview++", tag: "USB / DMA", file: "usbdeview.zip", description: "USB logs, firmware checks, cleaned device traces." },
+  { id: "saved-files", name: "SavedFilesViewer++", tag: "Downloads", file: "saved-files.zip", description: "Local saved-file artifacts with cleaner detections." },
+  { id: "powershell", name: "PowerShellParser++", tag: "PowerShell", file: "powershell.zip", description: "PowerShell history scraping and bypass filters." },
+  { id: "paths", name: "PathsParser++", tag: "Paths", file: "paths.zip", description: "Path parser with YARA and USN highlights." },
+  { id: "mft", name: "MFTExplorer++", tag: "MFT", file: "mft.zip", description: "MFT viewer for ADS and historical file presence." },
+  { id: "kernel-dump", name: "KernelLiveDump++", tag: "Memory", file: "kernel-dump.zip", description: "Kernel and user-mode RAM dumps." },
+  { id: "journal", name: "JournalTrace++", tag: "USN Journal", file: "journal.zip", description: "USN journal analysis with bypass detections." },
+  { id: "crash", name: "CrashedFileViewer++", tag: "Crash Logs", file: "crash.zip", description: "Unified crash artifacts and log-clearing detection." },
+  { id: "browser-history", name: "BrowsingHistoryView++", tag: "Browser", file: "browser-history.zip", description: "Multi-browser history with suspicious domain flags." },
+  { id: "browser-downloads", name: "BrowserDownloadsView++", tag: "Browser", file: "browser-downloads.zip", description: "Browser downloads with USN and YARA." },
+  { id: "bam", name: "BamParser++", tag: "Execution", file: "bam.zip", description: "BAM execution history with tamper detections." },
+  { id: "amcache", name: "AmcacheParser++", tag: "Amcache", file: "amcache.zip", description: "Amcache parser with YARA and VT integration." },
+  { id: "srum", name: "SRUMExplorer++", tag: "Network", file: "srum.zip", description: "SRUM network usage mapping and YARA." },
+  {
+    id: "osforensics",
+    name: "OSForensics",
+    tag: "Full Suite",
+    externalUrl: "https://www.osforensics.com/downloads/OSForensics.exe",
+    homepage: "https://www.osforensics.com/download.html",
+    description: "PassMark investigation suite — official installer (~286 MB).",
+    featured: true,
+  },
+];
+
+function renderFreeTools() {
+  const toolsBase = "/downloads/free-tools/";
+  const cards = FREE_TOOLS_CATALOG.map((tool, i) => {
+    const num = String(i + 1).padStart(2, "0");
+    const url = tool.externalUrl || toolsBase + tool.file;
+    const featured = tool.featured ? " free-tool-card--featured" : "";
+    const dlAttr = tool.externalUrl ? 'target="_blank" rel="noopener noreferrer"' : "download";
+    return `
+      <article class="free-tool-card${featured}">
+        <div class="free-tool-card__meta">
+          <span class="free-tool-card__num">${num}</span>
+          <span class="free-tool-card__tag">${escapeHtml(tool.tag)}</span>
+        </div>
+        <h3>${escapeHtml(tool.name)}</h3>
+        <p>${escapeHtml(tool.description)}</p>
+        <a class="btn btn--ghost btn--small" href="${escapeHtml(url)}" ${dlAttr}>Download</a>
+      </article>
+    `;
+  }).join("");
+
+  const avatar = escapeHtml(account?.avatar || "");
+  const username = escapeHtml(account?.username || account?.globalName || "Moderator");
+
+  return `
+    <header class="page-header page-header--free-tools">
+      <div>
+        <h1>Free Tools</h1>
+        <p>All-in-one forensic panel with Discord branding, live in-use watch, and OSForensics.</p>
+      </div>
+    </header>
+
+    <div class="panel free-tools-panel">
+      <div class="panel__head">
+        <div>
+          <div class="panel__title">dotx Free Tools Panel</div>
+          <div class="panel__sub">Downloads as EXE · Discord name &amp; avatar stamped in the upper-right corner</div>
+        </div>
+        <div class="free-tools-brand-chip">
+          ${avatar ? `<img src="${avatar}" alt="" class="free-tools-brand-chip__avatar" />` : `<span class="free-tools-brand-chip__fallback">◆</span>`}
+          <span class="free-tools-brand-chip__name">${username}</span>
+        </div>
+      </div>
+      <div class="panel__body">
+        <p class="free-tools-lead">
+          One desktop EXE to download every utility, open them from one place, get notified when a tool is
+          <strong class="free-tools-inuse">IN USE</strong>, then clean everything with the red button.
+        </p>
+        <div class="free-tools-actions">
+          <button type="button" class="btn btn--primary" id="free-tools-download-exe">Download Panel EXE</button>
+          <a class="btn btn--ghost" href="/downloads/dotx-free-tools-panel.zip" download>Python zip (dev)</a>
+          <a class="btn btn--ghost" href="/tools/" target="_blank" rel="noopener">Public tools page</a>
+        </div>
+        <p class="free-tools-status" id="free-tools-status"></p>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <div class="panel__head">
+        <div>
+          <div class="panel__title">Suite catalog</div>
+          <div class="panel__sub">${FREE_TOOLS_CATALOG.length} tools included in the panel</div>
+        </div>
+      </div>
+      <div class="panel__body">
+        <div class="free-tools-grid">${cards}</div>
+      </div>
+    </div>
+  `;
+}
+
+function bindFreeToolsEvents() {
+  $("free-tools-download-exe")?.addEventListener("click", async () => {
+    const btn = $("free-tools-download-exe");
+    const status = $("free-tools-status");
+    if (!btn) return;
+    btn.disabled = true;
+    btn.textContent = "Preparing…";
+    if (status) status.textContent = "Stamping Discord name & avatar into the EXE…";
+    try {
+      if (typeof downloadBrandedFreeToolsExe === "function") {
+        await downloadBrandedFreeToolsExe();
+      } else {
+        window.location.href = (window.SITE_CONFIG?.freeToolsPanelUrl) || "/downloads/dotx-free-tools.exe";
+      }
+      if (status) status.textContent = "Download started — your Discord badge is on the panel.";
+    } catch (err) {
+      if (status) status.textContent = err.message || "Download failed.";
+      window.location.href = "/downloads/dotx-free-tools.exe";
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Download Panel EXE";
+    }
+  });
+}
+
 function renderView(view) {
   if (currentView === "account" && view !== "account") {
     stopAccountLicenseTimer();
   }
+
+  // Legacy hash from old Signatures nav
+  if (view === "signatures") view = "free-tools";
 
   if (!canAccessView(view, account)) {
     view = "overview";
@@ -962,7 +1088,8 @@ function renderView(view) {
     owner: () => renderTeamView("owner"),
     admin: () => renderTeamView("admin"),
     staff: () => renderTeamView("staff"),
-    signatures: () => renderPlaceholder("Signatures", "Manage cheat detection signatures."),
+    "free-tools": renderFreeTools,
+    signatures: renderFreeTools,
     help: () => renderPlaceholder("Help", "Guides and support for dotx."),
     billing: () => renderPlaceholder("Billing", "Plans and payments."),
   };
@@ -994,6 +1121,7 @@ function bindViewEvents(view) {
   if (view === "checks") bindChecksEvents();
   if (view === "reports") bindReportsEvents();
   if (view === "account") bindAccountEvents();
+  if (view === "free-tools" || view === "signatures") bindFreeToolsEvents();
 }
 
 function bindAccountEvents() {
