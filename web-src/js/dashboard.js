@@ -971,70 +971,104 @@ const FREE_TOOLS_CATALOG = [
 
 function renderFreeTools() {
   const toolsBase = "/downloads/free-tools/";
-  const cards = FREE_TOOLS_CATALOG.map((tool, i) => {
-    const num = String(i + 1).padStart(2, "0");
-    const url = tool.externalUrl || toolsBase + tool.file;
-    const featured = tool.featured ? " free-tool-card--featured" : "";
-    const dlAttr = tool.externalUrl ? 'target="_blank" rel="noopener noreferrer"' : "download";
-    return `
-      <article class="free-tool-card${featured}">
-        <div class="free-tool-card__meta">
-          <span class="free-tool-card__num">${num}</span>
-          <span class="free-tool-card__tag">${escapeHtml(tool.tag)}</span>
-        </div>
-        <h3>${escapeHtml(tool.name)}</h3>
-        <p>${escapeHtml(tool.description)}</p>
-        <a class="btn btn--ghost btn--small" href="${escapeHtml(url)}" ${dlAttr}>Download</a>
-      </article>
-    `;
-  }).join("");
-
+  const featured = FREE_TOOLS_CATALOG.filter((t) => t.featured);
+  const regular = FREE_TOOLS_CATALOG.filter((t) => !t.featured);
   const avatar = escapeHtml(account?.avatar || "");
   const username = escapeHtml(account?.username || account?.globalName || "Moderator");
 
+  const cards = regular
+    .map((tool, i) => {
+      const num = String(i + 1).padStart(2, "0");
+      const url = tool.externalUrl || toolsBase + tool.file;
+      const dlAttr = tool.externalUrl ? 'target="_blank" rel="noopener noreferrer"' : "download";
+      return `
+      <article class="ft-card" data-tag="${escapeHtml(tool.tag)}" data-name="${escapeHtml(tool.name.toLowerCase())}">
+        <div class="ft-card__top">
+          <span class="ft-card__num">${num}</span>
+          <span class="ft-card__tag">${escapeHtml(tool.tag)}</span>
+        </div>
+        <h3 class="ft-card__title">${escapeHtml(tool.name)}</h3>
+        <p class="ft-card__desc">${escapeHtml(tool.description)}</p>
+        <a class="ft-card__btn" href="${escapeHtml(url)}" ${dlAttr}>Download</a>
+      </article>`;
+    })
+    .join("");
+
+  const featuredHtml = featured
+    .map((tool) => {
+      const url = tool.externalUrl || toolsBase + tool.file;
+      return `
+      <article class="ft-featured">
+        <div class="ft-featured__badge">Included · Full Suite</div>
+        <h3>${escapeHtml(tool.name)}</h3>
+        <p>${escapeHtml(tool.description)}</p>
+        <div class="ft-featured__actions">
+          <a class="btn btn--primary" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Download OSForensics</a>
+          <a class="btn btn--ghost" href="${escapeHtml(tool.homepage || url)}" target="_blank" rel="noopener noreferrer">Official site</a>
+        </div>
+      </article>`;
+    })
+    .join("");
+
   return `
-    <header class="page-header page-header--free-tools">
-      <div>
-        <h1>Free Tools</h1>
-        <p>All-in-one forensic panel with Discord branding, live in-use watch, and OSForensics.</p>
+    <section class="ft-hero">
+      <div class="ft-hero__glow" aria-hidden="true"></div>
+      <div class="ft-hero__content">
+        <div class="ft-hero__copy">
+          <p class="ft-hero__eyebrow">Dashboard · Free Tools</p>
+          <h1 class="ft-hero__title">dot<span>x</span> Free Tools</h1>
+          <p class="ft-hero__desc">
+            Branded forensic panel for moderators — Discord identity stamped on the EXE,
+            live <strong>IN USE</strong> alerts so you never confuse open tools, and one red clean button when the check is done.
+          </p>
+          <div class="ft-hero__stats">
+            <div class="ft-stat"><span class="ft-stat__n">${FREE_TOOLS_CATALOG.length}</span><span class="ft-stat__l">Tools</span></div>
+            <div class="ft-stat"><span class="ft-stat__n">EXE</span><span class="ft-stat__l">Panel</span></div>
+            <div class="ft-stat"><span class="ft-stat__n">LIVE</span><span class="ft-stat__l">In-use</span></div>
+          </div>
+        </div>
+        <div class="ft-hero__panel">
+          <div class="ft-download-card">
+            <div class="ft-download-card__head">
+              <div class="ft-user">
+                ${avatar ? `<img src="${avatar}" alt="" class="ft-user__avatar" />` : `<span class="ft-user__fallback">◆</span>`}
+                <div>
+                  <div class="ft-user__name">${username}</div>
+                  <div class="ft-user__sub">Stamped on your panel EXE</div>
+                </div>
+              </div>
+            </div>
+            <p class="ft-download-card__lead">
+              Download the all-in-one panel. Your Discord name and avatar appear in the upper-right corner.
+            </p>
+            <div class="ft-download-card__actions">
+              <button type="button" class="btn btn--primary ft-download-card__cta" id="free-tools-download-exe">Download Panel EXE</button>
+              <a class="btn btn--ghost" href="/downloads/dotx-free-tools-panel.zip" download>Dev zip</a>
+            </div>
+            <p class="ft-download-card__status" id="free-tools-status"></p>
+            <ul class="ft-checklist">
+              <li>Discord badge in the corner</li>
+              <li>IN USE toast when a tool is open</li>
+              <li>One-click clean of install folder</li>
+            </ul>
+          </div>
+        </div>
       </div>
-    </header>
+    </section>
 
-    <div class="panel free-tools-panel">
-      <div class="panel__head">
-        <div>
-          <div class="panel__title">dotx Free Tools Panel</div>
-          <div class="panel__sub">Downloads as EXE · Discord name &amp; avatar stamped in the upper-right corner</div>
-        </div>
-        <div class="free-tools-brand-chip">
-          ${avatar ? `<img src="${avatar}" alt="" class="free-tools-brand-chip__avatar" />` : `<span class="free-tools-brand-chip__fallback">◆</span>`}
-          <span class="free-tools-brand-chip__name">${username}</span>
-        </div>
-      </div>
-      <div class="panel__body">
-        <p class="free-tools-lead">
-          One desktop EXE to download every utility, open them from one place, get notified when a tool is
-          <strong class="free-tools-inuse">IN USE</strong>, then clean everything with the red button.
-        </p>
-        <div class="free-tools-actions">
-          <button type="button" class="btn btn--primary" id="free-tools-download-exe">Download Panel EXE</button>
-          <a class="btn btn--ghost" href="/downloads/dotx-free-tools-panel.zip" download>Python zip (dev)</a>
-        </div>
-        <p class="free-tools-status" id="free-tools-status"></p>
-      </div>
-    </div>
+    ${featuredHtml}
 
-    <div class="panel" style="margin-top:16px">
-      <div class="panel__head">
+    <section class="ft-catalog">
+      <div class="ft-catalog__head">
         <div>
-          <div class="panel__title">Suite catalog</div>
-          <div class="panel__sub">${FREE_TOOLS_CATALOG.length} tools included in the panel</div>
+          <h2>Suite catalog</h2>
+          <p>${regular.length} utilities · filter by name or category</p>
         </div>
+        <input type="search" id="ft-search" class="ft-search" placeholder="Search tools…" autocomplete="off" />
       </div>
-      <div class="panel__body">
-        <div class="free-tools-grid">${cards}</div>
-      </div>
-    </div>
+      <div class="ft-grid" id="ft-grid">${cards}</div>
+      <p class="ft-empty hidden" id="ft-empty">No tools match that search.</p>
+    </section>
   `;
 }
 
@@ -1050,7 +1084,7 @@ function bindFreeToolsEvents() {
       if (typeof downloadBrandedFreeToolsExe === "function") {
         await downloadBrandedFreeToolsExe();
       } else {
-        window.location.href = (window.SITE_CONFIG?.freeToolsPanelUrl) || "/downloads/dotx-free-tools.exe";
+        window.location.href = window.SITE_CONFIG?.freeToolsPanelUrl || "/downloads/dotx-free-tools.exe";
       }
       if (status) status.textContent = "Download started — your Discord badge is on the panel.";
     } catch (err) {
@@ -1060,6 +1094,22 @@ function bindFreeToolsEvents() {
       btn.disabled = false;
       btn.textContent = "Download Panel EXE";
     }
+  });
+
+  const search = $("ft-search");
+  const grid = $("ft-grid");
+  const empty = $("ft-empty");
+  search?.addEventListener("input", () => {
+    const q = String(search.value || "").trim().toLowerCase();
+    let shown = 0;
+    grid?.querySelectorAll(".ft-card").forEach((card) => {
+      const name = card.getAttribute("data-name") || "";
+      const tag = (card.getAttribute("data-tag") || "").toLowerCase();
+      const match = !q || name.includes(q) || tag.includes(q);
+      card.classList.toggle("hidden", !match);
+      if (match) shown += 1;
+    });
+    empty?.classList.toggle("hidden", shown > 0);
   });
 }
 
