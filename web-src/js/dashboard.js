@@ -941,134 +941,135 @@ function renderPlaceholder(title, desc) {
   `;
 }
 
+const FREE_TOOLS_ICONS = {
+  autoruns: "⚡",
+  "string-explorer": "⌕",
+  prefetch: "◎",
+  usbdeview: "⌁",
+  "saved-files": "▤",
+  powershell: "〉_",
+  paths: "▦",
+  mft: "☰",
+  "kernel-dump": "⬡",
+  journal: "⟳",
+  crash: "⚠",
+  "browser-history": "◉",
+  "browser-downloads": "↓",
+  bam: "▶",
+  amcache: "◈",
+  srum: "⇄",
+  osforensics: "◆",
+};
+
 const FREE_TOOLS_CATALOG = [
-  { id: "autoruns", name: "Autoruns++", tag: "Startup", file: "autoruns.zip", description: "Startup monitor with USN tracking and signature checks." },
-  { id: "string-explorer", name: "StringExplorer++", tag: "PE Analysis", file: "string-explorer.zip", description: "Executable strings, entropy, and VirusTotal links." },
-  { id: "prefetch", name: "WinPrefetchView++", tag: "Prefetch", file: "prefetch.zip", description: "Prefetch viewer with bypass detections and YARA." },
-  { id: "usbdeview", name: "USBDeview++", tag: "USB / DMA", file: "usbdeview.zip", description: "USB logs, firmware checks, cleaned device traces." },
-  { id: "saved-files", name: "SavedFilesViewer++", tag: "Downloads", file: "saved-files.zip", description: "Local saved-file artifacts with cleaner detections." },
-  { id: "powershell", name: "PowerShellParser++", tag: "PowerShell", file: "powershell.zip", description: "PowerShell history scraping and bypass filters." },
-  { id: "paths", name: "PathsParser++", tag: "Paths", file: "paths.zip", description: "Path parser with YARA and USN highlights." },
-  { id: "mft", name: "MFTExplorer++", tag: "MFT", file: "mft.zip", description: "MFT viewer for ADS and historical file presence." },
-  { id: "kernel-dump", name: "KernelLiveDump++", tag: "Memory", file: "kernel-dump.zip", description: "Kernel and user-mode RAM dumps." },
-  { id: "journal", name: "JournalTrace++", tag: "USN Journal", file: "journal.zip", description: "USN journal analysis with bypass detections." },
-  { id: "crash", name: "CrashedFileViewer++", tag: "Crash Logs", file: "crash.zip", description: "Unified crash artifacts and log-clearing detection." },
-  { id: "browser-history", name: "BrowsingHistoryView++", tag: "Browser", file: "browser-history.zip", description: "Multi-browser history with suspicious domain flags." },
-  { id: "browser-downloads", name: "BrowserDownloadsView++", tag: "Browser", file: "browser-downloads.zip", description: "Browser downloads with USN and YARA." },
-  { id: "bam", name: "BamParser++", tag: "Execution", file: "bam.zip", description: "BAM execution history with tamper detections." },
-  { id: "amcache", name: "AmcacheParser++", tag: "Amcache", file: "amcache.zip", description: "Amcache parser with YARA and VT integration." },
-  { id: "srum", name: "SRUMExplorer++", tag: "Network", file: "srum.zip", description: "SRUM network usage mapping and YARA." },
+  { id: "autoruns", name: "Autoruns++", tag: "Startup", file: "autoruns.zip", description: "Enhanced startup monitor with USN journal tracking, signature checks, and anomaly filters." },
+  { id: "string-explorer", name: "StringExplorer++", tag: "PE Analysis", file: "string-explorer.zip", description: "Navigate executable strings, entropy, compile timestamps, and VirusTotal links." },
+  { id: "prefetch", name: "WinPrefetchView++", tag: "Prefetch", file: "prefetch.zip", description: "Prefetch viewer with bypass detections, YARA rules, and pink USN modification flags." },
+  { id: "usbdeview", name: "USBDeview++", tag: "USB / DMA", file: "usbdeview.zip", description: "Cross-reference USB logs, flag unverified firmware, and uncover cleaned device traces." },
+  { id: "saved-files", name: "SavedFilesViewer++", tag: "Downloads", file: "saved-files.zip", description: "Local artifact viewer for files saved to disk with cleaner detections built in." },
+  { id: "powershell", name: "PowerShellParser++", tag: "PowerShell", file: "powershell.zip", description: "Deep PowerShell history scraping with bypass filters and integrated protections." },
+  { id: "paths", name: "PathsParser++", tag: "Paths", file: "paths.zip", description: "Multi-input path parser with YARA imports and visual USN journal highlighting." },
+  { id: "mft", name: "MFTExplorer++", tag: "MFT", file: "mft.zip", description: "MFT viewer for ADS streams and historical file presence verification." },
+  { id: "kernel-dump", name: "KernelLiveDump++", tag: "Memory", file: "kernel-dump.zip", description: "Kernel and user-mode RAM dumps with suspicious string toggles and custom search." },
+  { id: "journal", name: "JournalTrace++", tag: "USN Journal", file: "journal.zip", description: "USN journal analysis with reason-code filters and bypass detections." },
+  { id: "crash", name: "CrashedFileViewer++", tag: "Crash Logs", file: "crash.zip", description: "Unified Windows crash artifacts with USN highlights and log-clearing detection." },
+  { id: "browser-history", name: "BrowsingHistoryView++", tag: "Browser", file: "browser-history.zip", description: "Multi-browser history with suspicious domain flags and VirusTotal integration." },
+  { id: "browser-downloads", name: "BrowserDownloadsView++", tag: "Browser", file: "browser-downloads.zip", description: "Aggregated browser downloads with USN modification tracking and YARA scans." },
+  { id: "bam", name: "BamParser++", tag: "Execution", file: "bam.zip", description: "BAM execution history with YARA engine, USN flags, and tamper detections." },
+  { id: "amcache", name: "AmcacheParser++", tag: "Amcache", file: "amcache.zip", description: "High-performance Amcache parser with YARA, SHA1 filters, and VT integration." },
+  { id: "srum", name: "SRUMExplorer++", tag: "Network", file: "srum.zip", description: "SRUM network usage mapping with YARA matching and USN journal tracking." },
   {
     id: "osforensics",
     name: "OSForensics",
     tag: "Full Suite",
     externalUrl: "https://www.osforensics.com/downloads/OSForensics.exe",
     homepage: "https://www.osforensics.com/download.html",
-    description: "PassMark investigation suite — official installer (~286 MB).",
-    featured: true,
+    description: "PassMark digital investigation suite — hash sets, timelines, deleted files, emails, and more.",
+    badge: "NEW",
   },
 ];
 
+function freeToolDownloadUrl(tool) {
+  if (tool.externalUrl) return tool.externalUrl;
+  return `/downloads/free-tools/${tool.file}`;
+}
+
+function freeToolPathLabel(tool) {
+  if (tool.externalUrl) return "osforensics.com/download";
+  return `dotx.store/downloads/free-tools/${tool.file}`;
+}
+
 function renderFreeTools() {
-  const toolsBase = "/downloads/free-tools/";
-  const featured = FREE_TOOLS_CATALOG.filter((t) => t.featured);
-  const regular = FREE_TOOLS_CATALOG.filter((t) => !t.featured);
   const avatar = escapeHtml(account?.avatar || "");
   const username = escapeHtml(account?.username || account?.globalName || "Moderator");
+  const panelPath = "dotx.store/downloads/dotx-free-tools.exe";
+  const count = FREE_TOOLS_CATALOG.length + 1; // + panel
 
-  const cards = regular
-    .map((tool, i) => {
-      const num = String(i + 1).padStart(2, "0");
-      const url = tool.externalUrl || toolsBase + tool.file;
-      const dlAttr = tool.externalUrl ? 'target="_blank" rel="noopener noreferrer"' : "download";
-      return `
-      <article class="ft-card" data-tag="${escapeHtml(tool.tag)}" data-name="${escapeHtml(tool.name.toLowerCase())}">
-        <div class="ft-card__top">
-          <span class="ft-card__num">${num}</span>
-          <span class="ft-card__tag">${escapeHtml(tool.tag)}</span>
+  const cards = FREE_TOOLS_CATALOG.map((tool) => {
+    const url = freeToolDownloadUrl(tool);
+    const path = freeToolPathLabel(tool);
+    const icon = FREE_TOOLS_ICONS[tool.id] || "◇";
+    const dlAttr = tool.externalUrl ? 'target="_blank" rel="noopener noreferrer"' : "download";
+    const badge = tool.badge
+      ? `<span class="dx-tool-card__badge">${escapeHtml(tool.badge)}</span>`
+      : "";
+    return `
+      <article class="dx-tool-card" data-name="${escapeHtml(tool.name.toLowerCase())}" data-tag="${escapeHtml(tool.tag.toLowerCase())}" data-desc="${escapeHtml(tool.description.toLowerCase())}">
+        <div class="dx-tool-card__icon" aria-hidden="true">${icon}</div>
+        ${badge}
+        <h3 class="dx-tool-card__title">${escapeHtml(tool.name)}</h3>
+        <p class="dx-tool-card__desc">${escapeHtml(tool.description)}</p>
+        <div class="dx-tool-card__path">
+          <span class="dx-tool-card__path-text" title="${escapeHtml(path)}">${escapeHtml(path)}</span>
+          <button type="button" class="dx-copy-btn" data-copy="${escapeHtml(url)}" title="Copy link" aria-label="Copy link">⧉</button>
         </div>
-        <h3 class="ft-card__title">${escapeHtml(tool.name)}</h3>
-        <p class="ft-card__desc">${escapeHtml(tool.description)}</p>
-        <a class="ft-card__btn" href="${escapeHtml(url)}" ${dlAttr}>Download</a>
+        <a class="dx-tool-card__dl" href="${escapeHtml(url)}" ${dlAttr}>
+          <span class="dx-dl-ico" aria-hidden="true">↓</span> Download
+        </a>
       </article>`;
-    })
-    .join("");
-
-  const featuredHtml = featured
-    .map((tool) => {
-      const url = tool.externalUrl || toolsBase + tool.file;
-      return `
-      <article class="ft-featured">
-        <div class="ft-featured__badge">Included · Full Suite</div>
-        <h3>${escapeHtml(tool.name)}</h3>
-        <p>${escapeHtml(tool.description)}</p>
-        <div class="ft-featured__actions">
-          <a class="btn btn--primary" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Download OSForensics</a>
-          <a class="btn btn--ghost" href="${escapeHtml(tool.homepage || url)}" target="_blank" rel="noopener noreferrer">Official site</a>
-        </div>
-      </article>`;
-    })
-    .join("");
+  }).join("");
 
   return `
-    <section class="ft-hero">
-      <div class="ft-hero__glow" aria-hidden="true"></div>
-      <div class="ft-hero__content">
-        <div class="ft-hero__copy">
-          <p class="ft-hero__eyebrow">Dashboard · Free Tools</p>
-          <h1 class="ft-hero__title">dot<span>x</span> Free Tools</h1>
-          <p class="ft-hero__desc">
-            Branded forensic panel for moderators — Discord identity stamped on the EXE,
-            live <strong>IN USE</strong> alerts so you never confuse open tools, and one red clean button when the check is done.
-          </p>
-          <div class="ft-hero__stats">
-            <div class="ft-stat"><span class="ft-stat__n">${FREE_TOOLS_CATALOG.length}</span><span class="ft-stat__l">Tools</span></div>
-            <div class="ft-stat"><span class="ft-stat__n">EXE</span><span class="ft-stat__l">Panel</span></div>
-            <div class="ft-stat"><span class="ft-stat__n">LIVE</span><span class="ft-stat__l">In-use</span></div>
-          </div>
+    <div class="dx-tools">
+      <div class="dx-tools__top">
+        <div class="dx-tools__search-wrap">
+          <span class="dx-tools__search-ico" aria-hidden="true">⌕</span>
+          <input type="search" id="ft-search" class="dx-tools__search" placeholder="Search tools by name or feature…" autocomplete="off" />
         </div>
-        <div class="ft-hero__panel">
-          <div class="ft-download-card">
-            <div class="ft-download-card__head">
-              <div class="ft-user">
-                ${avatar ? `<img src="${avatar}" alt="" class="ft-user__avatar" />` : `<span class="ft-user__fallback">◆</span>`}
-                <div>
-                  <div class="ft-user__name">${username}</div>
-                  <div class="ft-user__sub">Stamped on your panel EXE</div>
-                </div>
-              </div>
-            </div>
-            <p class="ft-download-card__lead">
-              Download the all-in-one panel. Your Discord name and avatar appear in the upper-right corner.
-            </p>
-            <div class="ft-download-card__actions">
-              <button type="button" class="btn btn--primary ft-download-card__cta" id="free-tools-download-exe">Download Panel EXE</button>
-              <a class="btn btn--ghost" href="/downloads/dotx-free-tools-panel.zip" download>Dev zip</a>
-            </div>
-            <p class="ft-download-card__status" id="free-tools-status"></p>
-            <ul class="ft-checklist">
-              <li>Discord badge in the corner</li>
-              <li>IN USE toast when a tool is open</li>
-              <li>One-click clean of install folder</li>
-            </ul>
+        <span class="dx-tools__count" id="ft-count">${count} tools</span>
+        <div class="dx-tools__user">
+          ${avatar ? `<img src="${avatar}" alt="" class="dx-tools__avatar" />` : `<span class="dx-tools__avatar-fallback">◆</span>`}
+          <div class="dx-tools__user-meta">
+            <span class="dx-tools__user-name">${username}</span>
+            <span class="dx-tools__user-sub">dotx Free Tools</span>
           </div>
         </div>
       </div>
-    </section>
 
-    ${featuredHtml}
-
-    <section class="ft-catalog">
-      <div class="ft-catalog__head">
-        <div>
-          <h2>Suite catalog</h2>
-          <p>${regular.length} utilities · filter by name or category</p>
+      <article class="dx-featured" data-name="free tools panel downloader" data-tag="panel" data-desc="all-in-one">
+        <div class="dx-featured__glow" aria-hidden="true"></div>
+        <div class="dx-featured__icon" aria-hidden="true">▣</div>
+        <span class="dx-featured__star">★ Featured</span>
+        <h2 class="dx-featured__title">FreeTools<span>Panel</span>++</h2>
+        <p class="dx-featured__desc">
+          Dot X all-in-one forensic downloader — stamp your Discord name &amp; avatar in the corner,
+          download the full suite, get live <strong>IN USE</strong> alerts, then clean everything with one red button.
+        </p>
+        <div class="dx-featured__path">
+          <span class="dx-featured__path-text">${panelPath}</span>
+          <button type="button" class="dx-copy-btn" data-copy="/downloads/dotx-free-tools.exe" title="Copy link" aria-label="Copy link">⧉</button>
         </div>
-        <input type="search" id="ft-search" class="ft-search" placeholder="Search tools…" autocomplete="off" />
-      </div>
-      <div class="ft-grid" id="ft-grid">${cards}</div>
-      <p class="ft-empty hidden" id="ft-empty">No tools match that search.</p>
-    </section>
+        <div class="dx-featured__actions">
+          <button type="button" class="dx-featured__cta" id="free-tools-download-exe">
+            <span class="dx-dl-ico" aria-hidden="true">↓</span> Download All-in-One
+          </button>
+          <p class="dx-featured__status" id="free-tools-status"></p>
+        </div>
+      </article>
+
+      <div class="dx-tools-grid" id="ft-grid">${cards}</div>
+      <p class="dx-tools-empty hidden" id="ft-empty">No tools match that search.</p>
+    </div>
   `;
 }
 
@@ -1077,8 +1078,9 @@ function bindFreeToolsEvents() {
     const btn = $("free-tools-download-exe");
     const status = $("free-tools-status");
     if (!btn) return;
+    const original = btn.innerHTML;
     btn.disabled = true;
-    btn.textContent = "Preparing…";
+    btn.innerHTML = `<span class="dx-dl-ico" aria-hidden="true">…</span> Preparing…`;
     if (status) status.textContent = "Stamping Discord name & avatar into the EXE…";
     try {
       if (typeof downloadBrandedFreeToolsExe === "function") {
@@ -1086,31 +1088,64 @@ function bindFreeToolsEvents() {
       } else {
         window.location.href = window.SITE_CONFIG?.freeToolsPanelUrl || "/downloads/dotx-free-tools.exe";
       }
-      if (status) status.textContent = "Download started — your Discord badge is on the panel.";
+      if (status) status.textContent = "Download started — Discord badge stamped.";
     } catch (err) {
       if (status) status.textContent = err.message || "Download failed.";
       window.location.href = "/downloads/dotx-free-tools.exe";
     } finally {
       btn.disabled = false;
-      btn.textContent = "Download Panel EXE";
+      btn.innerHTML = original;
     }
+  });
+
+  document.querySelectorAll(".dx-copy-btn[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const value = btn.getAttribute("data-copy") || "";
+      const absolute = value.startsWith("http")
+        ? value
+        : new URL(value, window.location.origin).href;
+      try {
+        await navigator.clipboard.writeText(absolute);
+        const prev = btn.textContent;
+        btn.textContent = "✓";
+        setTimeout(() => {
+          btn.textContent = prev;
+        }, 1200);
+      } catch {
+        /* ignore */
+      }
+    });
   });
 
   const search = $("ft-search");
   const grid = $("ft-grid");
   const empty = $("ft-empty");
-  search?.addEventListener("input", () => {
-    const q = String(search.value || "").trim().toLowerCase();
+  const featured = document.querySelector(".dx-featured");
+  const countEl = $("ft-count");
+
+  const filterTools = () => {
+    const q = String(search?.value || "").trim().toLowerCase();
     let shown = 0;
-    grid?.querySelectorAll(".ft-card").forEach((card) => {
-      const name = card.getAttribute("data-name") || "";
-      const tag = (card.getAttribute("data-tag") || "").toLowerCase();
-      const match = !q || name.includes(q) || tag.includes(q);
+    grid?.querySelectorAll(".dx-tool-card").forEach((card) => {
+      const blob = [
+        card.getAttribute("data-name") || "",
+        card.getAttribute("data-tag") || "",
+        card.getAttribute("data-desc") || "",
+      ].join(" ");
+      const match = !q || blob.includes(q);
       card.classList.toggle("hidden", !match);
       if (match) shown += 1;
     });
+    const featuredMatch =
+      !q ||
+      ["free tools", "panel", "downloader", "all-in-one", "exe"].some((k) => k.includes(q) || q.includes(k));
+    featured?.classList.toggle("hidden", Boolean(q) && !featuredMatch);
+    if (!q || featuredMatch) shown += 1;
     empty?.classList.toggle("hidden", shown > 0);
-  });
+    if (countEl) countEl.textContent = `${shown} tools`;
+  };
+
+  search?.addEventListener("input", filterTools);
 }
 
 function renderView(view) {
