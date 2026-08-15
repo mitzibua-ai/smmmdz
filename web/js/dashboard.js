@@ -1056,14 +1056,12 @@ function renderFreeTools() {
         <span class="dx-featured__star">★ Featured</span>
         <h2 class="dx-featured__title">dot<span>x</span> Free Tools Panel</h2>
         <p class="dx-featured__desc">
-          Dot X all-in-one forensic downloader — stamp your Discord name &amp; avatar in the corner,
-          download the full suite, get live <strong>IN USE</strong> alerts, then clean everything with one red button.
+          Dotx all-in-one — everything in the panel, made easier to use.
         </p>
         <div class="dx-featured__actions">
           <button type="button" class="dx-featured__cta" id="free-tools-download-exe">
             <span class="dx-dl-ico" aria-hidden="true">↓</span> Download All-in-One
           </button>
-          <p class="dx-featured__status" id="free-tools-status"></p>
         </div>
       </article>
 
@@ -1076,21 +1074,17 @@ function renderFreeTools() {
 function bindFreeToolsEvents() {
   $("free-tools-download-exe")?.addEventListener("click", async () => {
     const btn = $("free-tools-download-exe");
-    const status = $("free-tools-status");
     if (!btn) return;
     const original = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = `<span class="dx-dl-ico" aria-hidden="true">…</span> Preparing…`;
-    if (status) status.textContent = "Stamping Discord name & avatar into the EXE…";
     try {
       if (typeof downloadBrandedFreeToolsExe === "function") {
         await downloadBrandedFreeToolsExe();
       } else {
         window.location.href = window.SITE_CONFIG?.freeToolsPanelUrl || "/downloads/dotx-free-tools.exe";
       }
-      if (status) status.textContent = "Download started — Discord badge stamped.";
     } catch (err) {
-      if (status) status.textContent = err.message || "Download failed.";
       window.location.href = "/downloads/dotx-free-tools.exe";
     } finally {
       btn.disabled = false;
