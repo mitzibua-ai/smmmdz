@@ -199,6 +199,27 @@ async function downloadBrandedPcCheckExe(options = {}) {
   return true;
 }
 
+async function downloadBrandedFreeToolsExe(options = {}) {
+  const rel = window.SITE_CONFIG?.freeToolsPanelUrl || "/downloads/dotx-free-tools.exe";
+  const baseUrl = new URL(rel, window.location.origin).href;
+  const acc = typeof getAccount === "function" ? getAccount() : null;
+  const branding = options.branding || loadToolBranding(acc);
+  const stamp = {
+    branding: brandingStampPayload(branding, acc),
+    panel: "free-tools",
+    signature: "Free Tools",
+  };
+  try {
+    const raw = await fetchExeBytes(baseUrl);
+    const stamped = stampExeBytes(raw, stamp);
+    downloadStampedExe(stamped, options.filename || "dotx-free-tools.exe");
+    return true;
+  } catch {
+    window.location.href = baseUrl;
+    return false;
+  }
+}
+
 async function syncToolBrandingToServer(branding) {
   if (typeof apiRequest !== "function") return null;
   const acc = typeof getAccount === "function" ? getAccount() : null;

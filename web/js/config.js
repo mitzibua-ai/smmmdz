@@ -29,5 +29,6 @@ window.SITE_CONFIG = {
 
   pcCheckToolName: "dotx PC Check Tool",
   pcCheckToolUrl: "/downloads/dotx-pc-check.exe",
+  freeToolsPanelUrl: "/downloads/dotx-free-tools.exe",
   dataSyncPollMs: 3000,
 };

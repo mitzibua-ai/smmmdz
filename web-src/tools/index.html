@@ -55,45 +55,47 @@
 
     <div class="tools-page">
       <section class="tools-hero">
-        <p class="tools-hero__eyebrow">Forensic Suite</p>
+        <p class="tools-hero__eyebrow">Free Tools</p>
         <h1 class="tools-hero__title">
-          dot<span style="color:var(--accent)">x</span> <span>Free Tools</span>
+          <span class="tools-hero__brand">dot<span style="color:var(--accent)">x</span></span>
+          <span class="tools-hero__sig">Free Tools</span>
         </h1>
         <p class="tools-hero__desc">
-          Enhanced PC-check utilities for moderators and investigators — startup traces, journals,
-          browsers, memory, and more. Download individually or grab the all-in-one panel.
+          Dot X forensic suite for PC checks — startup, journals, browsers, memory, and
+          OSForensics. One branded EXE panel with Discord identity and live in-use alerts.
         </p>
 
         <div class="tools-stats">
           <div class="tools-stat">
-            <span class="tools-stat__num" id="tools-count">16</span>
+            <span class="tools-stat__num" id="tools-count">17</span>
             <span class="tools-stat__label">Free tools</span>
           </div>
           <div class="tools-stat">
             <span class="tools-stat__num">1</span>
-            <span class="tools-stat__label">All-in-one panel</span>
+            <span class="tools-stat__label">Panel EXE</span>
           </div>
           <div class="tools-stat">
-            <span class="tools-stat__num">0₱</span>
-            <span class="tools-stat__label">Always free</span>
+            <span class="tools-stat__num">LIVE</span>
+            <span class="tools-stat__label">In-use watch</span>
           </div>
         </div>
 
         <article class="tools-panel-card">
           <div class="tools-panel-card__info">
-            <span class="tools-panel-card__badge">Recommended</span>
+            <span class="tools-panel-card__badge">All-in-one EXE</span>
             <h2>dotx Free Tools Panel</h2>
             <p>
-              One desktop panel to download every utility, track what you installed, and
-              <strong style="color:#ffb4b4">clean everything</strong> with a single red button when you are done.
+              Discord name + avatar in the corner when you download while logged in.
+              Download every utility, open them from one place, get notified when a tool is
+              <strong style="color:#ffb86a">IN USE</strong>, then hit the red clean button when done.
             </p>
           </div>
           <div class="tools-panel-actions">
-            <a class="btn-tools-primary" id="download-panel-btn" href="/downloads/dotx-free-tools-panel.zip">
-              Download Panel
+            <a class="btn-tools-primary" id="download-panel-btn" href="/downloads/dotx-free-tools.exe">
+              Download Panel EXE
             </a>
-            <a class="btn-tools-ghost" href="https://github.com/detect-ac/Detect.ac-Free-Tools" target="_blank" rel="noopener noreferrer">
-              View source reference
+            <a class="btn-tools-ghost" id="download-panel-zip" href="/downloads/dotx-free-tools-panel.zip">
+              Python zip (dev)
             </a>
           </div>
         </article>
@@ -101,15 +103,16 @@
 
       <section class="tools-grid-section">
         <div class="tools-grid-header">
-          <h2>Individual tools</h2>
+          <h2>Suite catalog</h2>
           <span class="tools-filter">Included in the panel · direct download below</span>
         </div>
         <div class="tools-grid" id="tools-grid"></div>
 
         <div class="tools-note">
-          <strong>Panel clean button:</strong> Open the dotx Free Tools Panel, install tools as needed,
-          then click the red <strong>Clean Installed Tools</strong> button to remove every file and folder
-          the panel installed under <code>%LOCALAPPDATA%\DotXFreeTools</code>.
+          <strong>Panel tips:</strong> Open tools from the panel so <strong>IN USE</strong> badges stay accurate.
+          Clean only after every tool window is closed. Install path:
+          <code>%LOCALAPPDATA%\DotXFreeTools</code>. OSForensics comes from
+          <a href="https://www.osforensics.com/download.html" target="_blank" rel="noopener noreferrer">osforensics.com</a>.
         </div>
       </section>
     </div>
@@ -119,6 +122,10 @@
       <p class="footer__copy">Free Tools · <a href="/tools/">Browse tools</a> · <a href="/login/">Open panel</a></p>
     </footer>
 
+    <script src="/js/config.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/discord-profile.js"></script>
+    <script src="/js/tool-branding.js"></script>
     <script src="/js/landing.js"></script>
     <script src="/js/tools.js"></script>
   </body>
