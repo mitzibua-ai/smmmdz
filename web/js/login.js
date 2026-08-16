@@ -1,4 +1,4 @@
-const cfg = window.SITE_CONFIG || { name: "dotx", tagline: "High-quality Tools", version: "1.0" };
+const cfg = window.SITE_CONFIG || { name: "Dotx", tagline: "High-quality Tools", version: "1.0" };
 
 function $(id) {
   return document.getElementById(id);
@@ -36,7 +36,7 @@ function init() {
 
   if (account?.oauthLinked && !account?.discordAccessToken) {
     $("login-error").textContent =
-      "Log in again so dotx can read your Discord server roles for license status.";
+      "Log in again so Dotx can read your Discord server roles for license status.";
     $("login-error").classList.remove("hidden");
   }
 
