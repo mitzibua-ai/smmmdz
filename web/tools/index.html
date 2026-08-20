@@ -1,3 +1,41 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Free Tools — dotx</title><meta http-equiv="refresh" content="0;url=/dashboard/#signatures" /><script>window.location.replace("/dashboard/#signatures");</script></head><body><p style="font-family:system-ui;color:#8a94a8;padding:24px">
-      Free Tools moved to the dashboard.
-      <a href="/dashboard/#signatures">Open Free Tools</a></p></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta http-equiv="X-Content-Type-Options" content="nosniff" /><meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" /><title>Free Tools — Dotx</title><link rel="stylesheet" href="/css/tools.css" /><style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { height: 100%; }
+      body { min-height: 100%; color: var(--text); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+      a { color: inherit; text-decoration: none; }
+
+      .tools-nav {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0 48px; height: 72px;
+        background: rgba(10, 14, 26, 0.85);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .tools-nav__brand { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.02em; }
+      .tools-nav__brand span { color: var(--accent); }
+      .tools-nav__login {
+        padding: 8px 20px; font-size: 0.85rem; font-weight: 600;
+        color: var(--teal); border: 1px solid rgba(0,212,170,0.3);
+        border-radius: 8px; transition: background 0.15s;
+      }
+      .tools-nav__login:hover { background: rgba(0,212,170,0.1); }
+
+      .tools-footer {
+        max-width: 1100px; margin: 0 auto;
+        padding: 40px 48px 60px; text-align: center;
+        font-size: 0.8rem; color: var(--muted);
+      }
+      .tools-footer a { color: var(--teal); text-decoration: underline; text-underline-offset: 2px; }
+
+      @media (max-width: 768px) {
+        .tools-nav { padding: 0 20px; }
+        .tools-footer { padding: 40px 20px 60px; }
+      }
+    </style></head><body><nav class="tools-nav"><a href="/" class="tools-nav__brand">Dot<span>x</span></a><a href="/login/" class="tools-nav__login">Sign in</a></nav><div class="tools-page"><div class="tools-hero"><div class="tools-hero__eyebrow">Free &amp; Open</div><h1 class="tools-hero__title"><span class="tools-hero__brand">Dotx</span><span class="tools-hero__sig">Free Tools</span></h1><p class="tools-hero__desc">
+          Download forensic and analysis tools — no login required.
+        </p><div class="tools-stats"><div class="tools-stat"><span class="tools-stat__num" id="tools-count">0</span><span class="tools-stat__label">Tools</span></div><div class="tools-stat"><span class="tools-stat__num">Free</span><span class="tools-stat__label">Forever</span></div></div></div><div class="tools-panel-card" style="max-width:720px;margin:0 auto 56px"><div class="tools-panel-card__info"><div class="tools-panel-card__badge">★ Featured</div><h2>Dotx Free Tools Panel</h2><p>All-in-one panel — every tool in a single launcher.</p></div><div class="tools-panel-actions"><a class="btn-tools-primary" id="download-panel-btn" href="/downloads/dotx-free-tools.exe" download>
+            ↓ Download Panel EXE
+          </a><a class="btn-tools-ghost" id="download-panel-zip" href="/downloads/dotx-free-tools-panel.zip" download>
+            Download ZIP
+          </a></div></div><section class="tools-grid-section"><div class="tools-grid-header"><h2>All Tools</h2><span class="tools-filter" id="tools-count-label"></span></div><div class="tools-grid" id="tools-grid"></div></section><div class="tools-footer"><p>Need the full PC check tool? <a href="/login/">Sign in</a> to access the dotx dashboard.</p></div></div><script src="/js/config.js"></script><script src="/js/tools.js"></script></body></html>

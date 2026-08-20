@@ -1027,7 +1027,7 @@ function renderFreeTools() {
         <span class="dx-tool-card__tag">${escapeHtml(tool.tag)}</span>
         <h3 class="dx-tool-card__title">${escapeHtml(tool.name)}</h3>
         <p class="dx-tool-card__desc">${escapeHtml(tool.description)}</p>
-        <a class="dx-tool-card__dl" href="${escapeHtml(url)}" ${dlAttr}>
+        <a class="dx-tool-card__dl" href="${escapeHtml(url)}" ${dlAttr} data-tool-url="${escapeHtml(url)}">
           <span class="dx-dl-ico" aria-hidden="true">↓</span> Download
         </a>
       </article>`;
@@ -1050,6 +1050,10 @@ function renderFreeTools() {
         </div>
       </div>
 
+      <div class="dx-tools__public-link-row">
+        <button type="button" class="dx-tools__public-link-btn" id="free-tools-copy-link" data-allow-copy>Public Link</button>
+      </div>
+
       <article class="dx-featured" data-name="free tools panel downloader" data-tag="panel" data-desc="all-in-one">
         <div class="dx-featured__glow" aria-hidden="true"></div>
         <div class="dx-featured__icon" aria-hidden="true">▣</div>
@@ -1059,9 +1063,14 @@ function renderFreeTools() {
           Dotx all-in-one — everything in the panel, made easier to use.
         </p>
         <div class="dx-featured__actions">
-          <button type="button" class="dx-featured__cta" id="free-tools-download-exe">
+          <a
+            class="dx-featured__cta"
+            id="free-tools-download-exe"
+            href="${escapeHtml(window.SITE_CONFIG?.freeToolsPanelUrl || "/downloads/dotx-free-tools.exe")}"
+            download="dotx-free-tools.exe"
+          >
             <span class="dx-dl-ico" aria-hidden="true">↓</span> Download All-in-One
-          </button>
+          </a>
         </div>
       </article>
 
@@ -1072,24 +1081,29 @@ function renderFreeTools() {
 }
 
 function bindFreeToolsEvents() {
-  $("free-tools-download-exe")?.addEventListener("click", async () => {
-    const btn = $("free-tools-download-exe");
+  $("free-tools-copy-link")?.addEventListener("click", async () => {
+    const btn = $("free-tools-copy-link");
     if (!btn) return;
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = `<span class="dx-dl-ico" aria-hidden="true">…</span> Preparing…`;
+    const link = `${window.location.origin}/tools/`;
+    const original = btn.textContent;
     try {
-      if (typeof downloadBrandedFreeToolsExe === "function") {
-        await downloadBrandedFreeToolsExe();
-      } else {
-        window.location.href = window.SITE_CONFIG?.freeToolsPanelUrl || "/downloads/dotx-free-tools.exe";
-      }
-    } catch (err) {
-      window.location.href = "/downloads/dotx-free-tools.exe";
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = original;
+      await navigator.clipboard.writeText(link);
+      btn.textContent = "Copied!";
+    } catch {
+      window.prompt("Copy this link:", link);
     }
+    setTimeout(() => {
+      btn.textContent = original;
+    }, 2000);
+  });
+
+  document.querySelectorAll(".dx-tool-card__dl").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      const url = link.getAttribute("data-tool-url") || link.getAttribute("href") || "";
+      if (!url || !/^https?:\/\//i.test(url)) return;
+      e.preventDefault();
+      window.open(url, "_blank", "noopener,noreferrer");
+    });
   });
 
   const search = $("ft-search");

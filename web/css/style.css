@@ -4384,9 +4384,7 @@ a.btn.pin-download-link {
 }
 .dx-featured__cta:hover { transform:translateY(-1px); box-shadow:0 14px 28px rgba(212,0,0,0.45); }
 .dx-featured__cta:disabled { opacity:.7; cursor:wait; transform:none; }
-.dx-featured__cta--ghost { background:transparent; border:1px solid rgba(255,255,255,0.15); box-shadow:none; font-weight:600; }
-.dx-featured__cta--ghost:hover { background:rgba(255,255,255,0.06); box-shadow:none; border-color:rgba(255,255,255,0.25); }
-.dx-tools__public-link-row { margin-bottom:16px; }
+.dx-tools__public-link-row { margin:-8px 0 16px; }
 .dx-tools__public-link-btn {
   display:inline-flex; align-items:center; gap:6px;
   padding:7px 16px; font:inherit; font-size:0.82rem; font-weight:600;
