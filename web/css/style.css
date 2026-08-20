@@ -4425,6 +4425,7 @@ a.btn.pin-download-link {
   margin:0 0 16px; flex:1; font-size:0.84rem; color:var(--dx-muted); line-height:1.55; min-height:4.2em;
 }
 .dx-tool-card__dl {
+  position:relative; z-index:2;
   display:inline-flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:11px 12px;
   border-radius:12px; border:1px solid rgba(212,0,0,0.5);
   background:linear-gradient(135deg,#ef4444,#d40000); color:#fff;
