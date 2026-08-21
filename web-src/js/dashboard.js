@@ -69,6 +69,17 @@ function bindPinModalEvents() {
     lastGeneratedPin = pin;
 
     try {
+      if (typeof ensureToolBrandingSynced === "function") {
+        const brandingSync = await ensureToolBrandingSynced(account);
+        if (!brandingSync?.ok && loadToolBranding(account)?.customImage) {
+          alert(
+            "Your custom GUI image is not synced to dotx yet. Re-upload it in Account settings, wait for “Synced”, then generate a new PIN."
+          );
+          deletePin(account.discordId, pin.id);
+          return;
+        }
+      }
+
       const registered = await registerPinOnServer({
         id: pin.id,
         pin: pin.pin,
@@ -1284,13 +1295,13 @@ function bindToolBrandingEvents() {
   if (typeof loadToolBranding !== "function") return;
   if (!canCustomizePcCheckTool()) return;
 
-  $("tool-brand-avatar-toggle")?.addEventListener("change", (e) => {
+  $("tool-brand-avatar-toggle")?.addEventListener("change", async (e) => {
     const branding = loadToolBranding(account);
     branding.showDiscordAvatar = Boolean(e.target.checked);
     saveToolBranding(branding);
-    syncToolBrandingToServer(branding);
+    const sync = await syncToolBrandingToServer(branding);
     _refreshToolBrandPreview();
-    _toolBrandSetStatus("Saved.");
+    _toolBrandSetStatus(sync?.ok ? "Saved." : "Saved locally — cloud sync failed.", !sync?.ok);
   });
 
   $("tool-brand-file")?.addEventListener("change", async (e) => {
@@ -1308,19 +1319,28 @@ function bindToolBrandingEvents() {
       branding.customImage = dataUrl;
       branding.customImageName = name;
       saveToolBranding(branding);
-      syncToolBrandingToServer(branding);
+      const sync = await syncToolBrandingToServer(branding);
       _refreshToolBrandPreview();
-      _toolBrandSetStatus("Image saved.");
+      if (!sync?.ok) {
+        _toolBrandSetStatus(
+          sync?.error === "custom_image_not_saved" || sync?.error === "custom_image_too_large"
+            ? "Image too large for cloud sync. Try a simpler image or shorter GIF."
+            : "Saved locally — cloud sync failed. PIN downloads may miss your image.",
+          true
+        );
+        return;
+      }
+      _toolBrandSetStatus("Image saved and synced.");
     } catch (err) {
       _toolBrandSetStatus(err.message || "Upload failed.", true);
     }
   });
 
-  $("tool-brand-clear")?.addEventListener("click", () => {
+  $("tool-brand-clear")?.addEventListener("click", async () => {
     if (!canCustomizePcCheckTool()) return;
     clearToolCustomImage();
     const branding = loadToolBranding(account);
-    syncToolBrandingToServer(branding);
+    await syncToolBrandingToServer(branding);
     _refreshToolBrandPreview();
     _toolBrandSetStatus("Custom image removed.");
   });
@@ -1336,6 +1356,9 @@ function bindToolBrandingEvents() {
     btn.textContent = "Building…";
     _toolBrandSetStatus("Stamping your branding into the EXE…");
     try {
+      if (typeof ensureToolBrandingSynced === "function") {
+        await ensureToolBrandingSynced(account);
+      }
       await downloadBrandedPcCheckExe();
       _toolBrandSetStatus("Download started — branded EXE ready.");
     } catch (err) {

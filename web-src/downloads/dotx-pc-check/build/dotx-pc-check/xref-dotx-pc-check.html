@@ -15,7 +15,7 @@
 
 <div class="node">
   <a name="gui_app.py"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/gui_app.py" type="text/plain"><tt>gui_app.py</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/gui_app.py" type="text/plain"><tt>gui_app.py</tt></a>
 <span class="moduletype">Script</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -174,6 +174,8 @@ imports:
  &#8226;   <a href="#pccheck.report.builder">pccheck.report.builder</a>
  &#8226;   <a href="#pccheck.report.text_report">pccheck.report.text_report</a>
  &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
+ &#8226;   <a href="#pccheck.scanners.ArchiveScanner">pccheck.scanners.ArchiveScanner</a>
+ &#8226;   <a href="#pccheck.scanners.TraceScanner">pccheck.scanners.TraceScanner</a>
  &#8226;   <a href="#pccheck.scanners.archive_scanner">pccheck.scanners.archive_scanner</a>
  &#8226;   <a href="#pccheck.scanners.browser_scanner">pccheck.scanners.browser_scanner</a>
  &#8226;   <a href="#pccheck.scanners.cleaner_scanner">pccheck.scanners.cleaner_scanner</a>
@@ -1382,7 +1384,7 @@ imported by:
 
 <div class="node">
   <a name="cleanup"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/cleanup.py" type="text/plain"><tt>cleanup</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/cleanup.py" type="text/plain"><tt>cleanup</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -1878,6 +1880,7 @@ imported by:
  &#8226;   <a href="#pccheck.report.text_report">pccheck.report.text_report</a>
  &#8226;   <a href="#pccheck.scanners.cleaner_scanner">pccheck.scanners.cleaner_scanner</a>
  &#8226;   <a href="#pccheck.scanners.pe_scanner">pccheck.scanners.pe_scanner</a>
+ &#8226;   <a href="#pccheck.scanners.registry_scanner">pccheck.scanners.registry_scanner</a>
  &#8226;   <a href="#sqlite3.dbapi2">sqlite3.dbapi2</a>
 
   </div>
@@ -5063,7 +5066,6 @@ imported by:
  &#8226;   <a href="#operator">operator</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pccheck.data.trace_db">pccheck.data.trace_db</a>
- &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
  &#8226;   <a href="#pickle">pickle</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#statistics">statistics</a>
@@ -5384,7 +5386,6 @@ imports:
  &#8226;   <a href="#importlib">importlib</a>
  &#8226;   <a href="#importlib._bootstrap">importlib._bootstrap</a>
  &#8226;   <a href="#importlib._bootstrap_external">importlib._bootstrap_external</a>
- &#8226;   <a href="#importlib.machinery">importlib.machinery</a>
  &#8226;   <a href="#sys">sys</a>
  &#8226;   <a href="#warnings">warnings</a>
 
@@ -5515,8 +5516,7 @@ imports:
   </div>
   <div class="import">
 imported by:
-    <a href="#importlib">importlib</a>
- &#8226;   <a href="#importlib.abc">importlib.abc</a>
+    <a href="#importlib.abc">importlib.abc</a>
  &#8226;   <a href="#inspect">inspect</a>
  &#8226;   <a href="#py_compile">py_compile</a>
 
@@ -6562,10 +6562,8 @@ imported by:
  &#8226;   <a href="#pccheck.scanners.fivem_scanner">pccheck.scanners.fivem_scanner</a>
  &#8226;   <a href="#pccheck.scanners.pe_scanner">pccheck.scanners.pe_scanner</a>
  &#8226;   <a href="#pccheck.scanners.prefetch_scanner">pccheck.scanners.prefetch_scanner</a>
- &#8226;   <a href="#pccheck.scanners.registry_scanner">pccheck.scanners.registry_scanner</a>
  &#8226;   <a href="#pccheck.scanners.rpf_scanner">pccheck.scanners.rpf_scanner</a>
  &#8226;   <a href="#pccheck.scanners.trace_scanner">pccheck.scanners.trace_scanner</a>
- &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
  &#8226;   <a href="#pccheck.utils.match">pccheck.utils.match</a>
  &#8226;   <a href="#pccheck.utils.pe">pccheck.utils.pe</a>
  &#8226;   <a href="#pccheck.utils.rpf">pccheck.utils.rpf</a>
@@ -6578,7 +6576,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/__init__.py" type="text/plain"><tt>pccheck</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/__init__.py" type="text/plain"><tt>pccheck</tt></a>
 <span class="moduletype">Package</span>  <div class="import">
 imported by:
     <a href="#gui_app.py">gui_app.py</a>
@@ -6597,7 +6595,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.correlation"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/correlation.py" type="text/plain"><tt>pccheck.correlation</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/correlation.py" type="text/plain"><tt>pccheck.correlation</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6610,7 +6608,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#gui_app.py">gui_app.py</a>
- &#8226;   <a href="#pccheck.engine">pccheck.engine</a>
 
   </div>
 
@@ -6618,7 +6615,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.data"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/data/__init__.py" type="text/plain"><tt>pccheck.data</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/data/__init__.py" type="text/plain"><tt>pccheck.data</tt></a>
 <span class="moduletype">Package</span>  <div class="import">
 imports:
     <a href="#pccheck">pccheck</a>
@@ -6635,7 +6632,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.data.trace_db"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/data/trace_db.py" type="text/plain"><tt>pccheck.data.trace_db</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/data/trace_db.py" type="text/plain"><tt>pccheck.data.trace_db</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6652,7 +6649,6 @@ imports:
 imported by:
     <a href="#gui_app.py">gui_app.py</a>
  &#8226;   <a href="#pccheck.scanners.trace_scanner">pccheck.scanners.trace_scanner</a>
- &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
 
   </div>
 
@@ -6660,7 +6656,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.engine"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/engine.py" type="text/plain"><tt>pccheck.engine</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/engine.py" type="text/plain"><tt>pccheck.engine</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6669,7 +6665,6 @@ imports:
  &#8226;   <a href="#os">os</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pccheck">pccheck</a>
- &#8226;   <a href="#pccheck.correlation">pccheck.correlation</a>
  &#8226;   <a href="#pccheck.models">pccheck.models</a>
  &#8226;   <a href="#pccheck.report.text_report">pccheck.report.text_report</a>
  &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
@@ -6689,7 +6684,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.models"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/models.py" type="text/plain"><tt>pccheck.models</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/models.py" type="text/plain"><tt>pccheck.models</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6726,7 +6721,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.report"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/report/__init__.py" type="text/plain"><tt>pccheck.report</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/report/__init__.py" type="text/plain"><tt>pccheck.report</tt></a>
 <span class="moduletype">Package</span>  <div class="import">
 imports:
     <a href="#pccheck">pccheck</a>
@@ -6744,7 +6739,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.report.builder"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/report/builder.py" type="text/plain"><tt>pccheck.report.builder</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/report/builder.py" type="text/plain"><tt>pccheck.report.builder</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6763,7 +6758,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.report.text_report"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/report/text_report.py" type="text/plain"><tt>pccheck.report.text_report</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/report/text_report.py" type="text/plain"><tt>pccheck.report.text_report</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6783,11 +6778,12 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/__init__.py" type="text/plain"><tt>pccheck.scanners</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/__init__.py" type="text/plain"><tt>pccheck.scanners</tt></a>
 <span class="moduletype">Package</span>  <div class="import">
 imports:
     <a href="#pccheck">pccheck</a>
- &#8226;   <a href="#pccheck.scanners.archive_scanner">pccheck.scanners.archive_scanner</a>
+ &#8226;   <a href="#pccheck.scanners.ArchiveScanner">pccheck.scanners.ArchiveScanner</a>
+ &#8226;   <a href="#pccheck.scanners.TraceScanner">pccheck.scanners.TraceScanner</a>
  &#8226;   <a href="#pccheck.scanners.browser_scanner">pccheck.scanners.browser_scanner</a>
  &#8226;   <a href="#pccheck.scanners.cleaner_scanner">pccheck.scanners.cleaner_scanner</a>
  &#8226;   <a href="#pccheck.scanners.file_scanner">pccheck.scanners.file_scanner</a>
@@ -6797,7 +6793,6 @@ imports:
  &#8226;   <a href="#pccheck.scanners.process_scanner">pccheck.scanners.process_scanner</a>
  &#8226;   <a href="#pccheck.scanners.registry_scanner">pccheck.scanners.registry_scanner</a>
  &#8226;   <a href="#pccheck.scanners.rpf_scanner">pccheck.scanners.rpf_scanner</a>
- &#8226;   <a href="#pccheck.scanners.trace_scanner">pccheck.scanners.trace_scanner</a>
 
   </div>
   <div class="import">
@@ -6821,8 +6816,32 @@ imported by:
 </div>
 
 <div class="node">
+  <a name="pccheck.scanners.ArchiveScanner"></a>
+  <a target="code" href="" type="text/plain"><tt>pccheck.scanners.ArchiveScanner</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#gui_app.py">gui_app.py</a>
+ &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
+
+  </div>
+
+</div>
+
+<div class="node">
+  <a name="pccheck.scanners.TraceScanner"></a>
+  <a target="code" href="" type="text/plain"><tt>pccheck.scanners.TraceScanner</tt></a>
+<span class="moduletype">MissingModule</span>  <div class="import">
+imported by:
+    <a href="#gui_app.py">gui_app.py</a>
+ &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
+
+  </div>
+
+</div>
+
+<div class="node">
   <a name="pccheck.scanners.archive_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/archive_scanner.py" type="text/plain"><tt>pccheck.scanners.archive_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/archive_scanner.py" type="text/plain"><tt>pccheck.scanners.archive_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6841,7 +6860,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#gui_app.py">gui_app.py</a>
- &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
 
   </div>
 
@@ -6849,7 +6867,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.browser_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/browser_scanner.py" type="text/plain"><tt>pccheck.scanners.browser_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/browser_scanner.py" type="text/plain"><tt>pccheck.scanners.browser_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6875,7 +6893,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.cleaner_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/cleaner_scanner.py" type="text/plain"><tt>pccheck.scanners.cleaner_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/cleaner_scanner.py" type="text/plain"><tt>pccheck.scanners.cleaner_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6884,10 +6902,7 @@ imports:
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pccheck.models">pccheck.models</a>
  &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
- &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
- &#8226;   <a href="#pccheck.utils.match">pccheck.utils.match</a>
  &#8226;   <a href="#pccheck.utils.walk">pccheck.utils.walk</a>
- &#8226;   <a href="#re">re</a>
 
   </div>
   <div class="import">
@@ -6901,7 +6916,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.file_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/file_scanner.py" type="text/plain"><tt>pccheck.scanners.file_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/file_scanner.py" type="text/plain"><tt>pccheck.scanners.file_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6925,7 +6940,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.fivem_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/fivem_scanner.py" type="text/plain"><tt>pccheck.scanners.fivem_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/fivem_scanner.py" type="text/plain"><tt>pccheck.scanners.fivem_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6934,7 +6949,6 @@ imports:
  &#8226;   <a href="#pccheck.models">pccheck.models</a>
  &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
  &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
- &#8226;   <a href="#pccheck.utils.match">pccheck.utils.match</a>
  &#8226;   <a href="#pccheck.utils.walk">pccheck.utils.walk</a>
 
   </div>
@@ -6949,7 +6963,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.pe_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/pe_scanner.py" type="text/plain"><tt>pccheck.scanners.pe_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/pe_scanner.py" type="text/plain"><tt>pccheck.scanners.pe_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6973,7 +6987,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.prefetch_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/prefetch_scanner.py" type="text/plain"><tt>pccheck.scanners.prefetch_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/prefetch_scanner.py" type="text/plain"><tt>pccheck.scanners.prefetch_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -6981,7 +6995,6 @@ imports:
  &#8226;   <a href="#pccheck.models">pccheck.models</a>
  &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
  &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
- &#8226;   <a href="#pccheck.utils.match">pccheck.utils.match</a>
  &#8226;   <a href="#pccheck.utils.pe">pccheck.utils.pe</a>
  &#8226;   <a href="#winreg">winreg</a>
 
@@ -6997,7 +7010,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.process_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/process_scanner.py" type="text/plain"><tt>pccheck.scanners.process_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/process_scanner.py" type="text/plain"><tt>pccheck.scanners.process_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -7006,7 +7019,6 @@ imports:
  &#8226;   <a href="#pccheck.models">pccheck.models</a>
  &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
  &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
- &#8226;   <a href="#pccheck.utils.match">pccheck.utils.match</a>
  &#8226;   <a href="#pccheck.utils.pe">pccheck.utils.pe</a>
 
   </div>
@@ -7021,15 +7033,14 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.registry_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/registry_scanner.py" type="text/plain"><tt>pccheck.scanners.registry_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/registry_scanner.py" type="text/plain"><tt>pccheck.scanners.registry_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
- &#8226;   <a href="#pathlib">pathlib</a>
+ &#8226;   <a href="#datetime">datetime</a>
  &#8226;   <a href="#pccheck.models">pccheck.models</a>
  &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
  &#8226;   <a href="#pccheck.signatures">pccheck.signatures</a>
- &#8226;   <a href="#pccheck.utils.match">pccheck.utils.match</a>
  &#8226;   <a href="#re">re</a>
  &#8226;   <a href="#winreg">winreg</a>
 
@@ -7045,7 +7056,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.rpf_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/rpf_scanner.py" type="text/plain"><tt>pccheck.scanners.rpf_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/rpf_scanner.py" type="text/plain"><tt>pccheck.scanners.rpf_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -7069,7 +7080,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.scanners.trace_scanner"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/scanners/trace_scanner.py" type="text/plain"><tt>pccheck.scanners.trace_scanner</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/scanners/trace_scanner.py" type="text/plain"><tt>pccheck.scanners.trace_scanner</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -7086,7 +7097,6 @@ imports:
   <div class="import">
 imported by:
     <a href="#gui_app.py">gui_app.py</a>
- &#8226;   <a href="#pccheck.scanners">pccheck.scanners</a>
 
   </div>
 
@@ -7094,15 +7104,12 @@ imported by:
 
 <div class="node">
   <a name="pccheck.signatures"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/signatures.py" type="text/plain"><tt>pccheck.signatures</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/signatures.py" type="text/plain"><tt>pccheck.signatures</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
  &#8226;   <a href="#dataclasses">dataclasses</a>
- &#8226;   <a href="#functools">functools</a>
- &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pccheck">pccheck</a>
- &#8226;   <a href="#pccheck.data.trace_db">pccheck.data.trace_db</a>
  &#8226;   <a href="#pccheck.models">pccheck.models</a>
 
   </div>
@@ -7111,7 +7118,6 @@ imported by:
     <a href="#gui_app.py">gui_app.py</a>
  &#8226;   <a href="#pccheck.scanners.archive_scanner">pccheck.scanners.archive_scanner</a>
  &#8226;   <a href="#pccheck.scanners.browser_scanner">pccheck.scanners.browser_scanner</a>
- &#8226;   <a href="#pccheck.scanners.cleaner_scanner">pccheck.scanners.cleaner_scanner</a>
  &#8226;   <a href="#pccheck.scanners.file_scanner">pccheck.scanners.file_scanner</a>
  &#8226;   <a href="#pccheck.scanners.fivem_scanner">pccheck.scanners.fivem_scanner</a>
  &#8226;   <a href="#pccheck.scanners.prefetch_scanner">pccheck.scanners.prefetch_scanner</a>
@@ -7125,7 +7131,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.utils"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/utils/__init__.py" type="text/plain"><tt>pccheck.utils</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/utils/__init__.py" type="text/plain"><tt>pccheck.utils</tt></a>
 <span class="moduletype">Package</span>  <div class="import">
 imports:
     <a href="#pccheck">pccheck</a>
@@ -7145,25 +7151,19 @@ imported by:
 
 <div class="node">
   <a name="pccheck.utils.match"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/utils/match.py" type="text/plain"><tt>pccheck.utils.match</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/utils/match.py" type="text/plain"><tt>pccheck.utils.match</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pccheck.utils">pccheck.utils</a>
- &#8226;   <a href="#re">re</a>
 
   </div>
   <div class="import">
 imported by:
     <a href="#gui_app.py">gui_app.py</a>
  &#8226;   <a href="#pccheck.scanners.archive_scanner">pccheck.scanners.archive_scanner</a>
- &#8226;   <a href="#pccheck.scanners.cleaner_scanner">pccheck.scanners.cleaner_scanner</a>
  &#8226;   <a href="#pccheck.scanners.file_scanner">pccheck.scanners.file_scanner</a>
- &#8226;   <a href="#pccheck.scanners.fivem_scanner">pccheck.scanners.fivem_scanner</a>
- &#8226;   <a href="#pccheck.scanners.prefetch_scanner">pccheck.scanners.prefetch_scanner</a>
- &#8226;   <a href="#pccheck.scanners.process_scanner">pccheck.scanners.process_scanner</a>
- &#8226;   <a href="#pccheck.scanners.registry_scanner">pccheck.scanners.registry_scanner</a>
  &#8226;   <a href="#pccheck.scanners.trace_scanner">pccheck.scanners.trace_scanner</a>
 
   </div>
@@ -7172,7 +7172,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.utils.pe"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/utils/pe.py" type="text/plain"><tt>pccheck.utils.pe</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/utils/pe.py" type="text/plain"><tt>pccheck.utils.pe</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -7199,7 +7199,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.utils.rpf"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/utils/rpf.py" type="text/plain"><tt>pccheck.utils.rpf</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/utils/rpf.py" type="text/plain"><tt>pccheck.utils.rpf</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -7221,7 +7221,7 @@ imported by:
 
 <div class="node">
   <a name="pccheck.utils.walk"></a>
-  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/utils/walk.py" type="text/plain"><tt>pccheck.utils.walk</tt></a>
+  <a target="code" href="///C:/Users/Administrator/Projects/fivem-pc-check/web-src/downloads/dotx-pc-check/pccheck/utils/walk.py" type="text/plain"><tt>pccheck.utils.walk</tt></a>
 <span class="moduletype">SourceModule</span>  <div class="import">
 imports:
     <a href="#__future__">__future__</a>
@@ -7489,9 +7489,7 @@ imported by:
  &#8226;   <a href="#pathlib">pathlib</a>
  &#8226;   <a href="#pccheck.correlation">pccheck.correlation</a>
  &#8226;   <a href="#pccheck.scanners.browser_scanner">pccheck.scanners.browser_scanner</a>
- &#8226;   <a href="#pccheck.scanners.cleaner_scanner">pccheck.scanners.cleaner_scanner</a>
  &#8226;   <a href="#pccheck.scanners.registry_scanner">pccheck.scanners.registry_scanner</a>
- &#8226;   <a href="#pccheck.utils.match">pccheck.utils.match</a>
  &#8226;   <a href="#pccheck.utils.pe">pccheck.utils.pe</a>
  &#8226;   <a href="#pickle">pickle</a>
  &#8226;   <a href="#posixpath">posixpath</a>

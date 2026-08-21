@@ -55,83 +55,14 @@ class ScanResult:
     username: str = ""
 
     @property
-    def correlation_findings(self) -> list[Finding]:
-        return [f for f in self.findings if (f.signature or "").startswith("corr_")]
-
-    @property
     def verdict(self) -> str:
-        if not self.findings:
-            return "CLEAN"
-
-        # Ignore INFO-only noise
-        actionable = [f for f in self.findings if f.severity != Severity.INFO]
-        if not actionable:
-            return "CLEAN"
-
-        severities = {f.severity for f in actionable}
-        criticals = [f for f in actionable if f.severity == Severity.CRITICAL]
-        correlations = self.correlation_findings
-        strong_corr = [
-            f
-            for f in correlations
-            if f.severity == Severity.CRITICAL
-            and f.signature
-            in {
-                "corr_cleaner_plus_cheat",
-                "corr_wipe_plus_cheat",
-                "corr_multi_source_brand",
-                "corr_exec_and_disk",
-                "corr_injection_cover",
-                "corr_cleaner_exec_remnant",
-            }
-        ]
-
-        # Cross-scanner correlations are high-confidence cheating / cover-up
-        if strong_corr:
-            return "CHEATING LIKELY"
-
-        # Strong cheat / known cleaner brand hits
-        strong = [
-            f
-            for f in criticals
-            if f.category in {Category.CHEAT, Category.INJECTION}
-            or any(
-                tok in (f.signature or "").lower() + (f.evidence or "").lower()
-                for tok in (
-                    "9zcleaner",
-                    "susano",
-                    "eulen",
-                    "macho",
-                    "skript",
-                    "gosth",
-                    "redengine",
-                    "corr_cleaner_plus_cheat",
-                    "corr_wipe_plus_cheat",
-                )
-            )
-        ]
-
-        if strong:
-            return "CHEATING LIKELY"
-
-        # Multiple independent critical signals
-        if len(criticals) >= 2:
-            return "CHEATING LIKELY"
-
-        # Any correlation (even HIGH) escalates review
-        if correlations and Severity.HIGH in severities:
-            return "SUSPICIOUS"
-
-        # Single critical cleaner heuristic without brand proof → suspicious not cheating
+        severities = {f.severity for f in self.findings}
         if Severity.CRITICAL in severities:
-            return "SUSPICIOUS"
-
+            return "CHEATING LIKELY"
         if Severity.HIGH in severities:
             return "SUSPICIOUS"
-
         if Severity.MEDIUM in severities:
             return "REVIEW NEEDED"
-
         return "CLEAN"
 
     @property
@@ -143,13 +74,7 @@ class ScanResult:
             Severity.LOW: 5,
             Severity.INFO: 0,
         }
-        base = sum(weights[f.severity] for f in self.findings if not (f.signature or "").startswith("corr_"))
-        # Correlations add confidence without fully double-counting raw hits
-        corr_bonus = sum(
-            18 if f.severity == Severity.CRITICAL else 10 if f.severity == Severity.HIGH else 5
-            for f in self.correlation_findings
-        )
-        return min(100, base + corr_bonus)
+        return min(100, sum(weights[f.severity] for f in self.findings))
 
     def add(self, finding: Finding) -> None:
         self.findings.append(finding)
@@ -159,7 +84,6 @@ class ScanResult:
             "verdict": self.verdict,
             "score": self.score,
             "finding_count": len(self.findings),
-            "correlation_count": len(self.correlation_findings),
             "findings": [f.to_dict() for f in self.findings],
             "modules_run": self.modules_run,
             "errors": self.errors,

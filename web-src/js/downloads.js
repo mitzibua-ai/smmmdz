@@ -19,12 +19,6 @@ function isValidPinFormat(pin) {
   return /^\d{6}$/.test(pin);
 }
 
-function apiDownloadUrl(pin) {
-  const base = typeof apiBaseUrl === "function" ? apiBaseUrl() : "";
-  if (!base) return "";
-  return `${base.replace(/\/$/, "")}/api/download/${encodeURIComponent(pin)}`;
-}
-
 async function verifyPin(pin) {
   if (typeof useSupabaseDirect === "function" && useSupabaseDirect()) {
     return supabaseRpc("verify_pin_rpc", { p_pin: pin });
@@ -40,31 +34,6 @@ async function verifyPin(pin) {
   return res.json();
 }
 
-function staticExeDownloadUrl() {
-  const rel = window.SITE_CONFIG?.pcCheckToolUrl || "/downloads/dotx-pc-check.exe";
-  return new URL(rel, window.location.origin).href;
-}
-
-async function downloadPinBrandedExe(pin, branding) {
-  const baseUrl = staticExeDownloadUrl();
-  if (typeof fetchExeBytes !== "function" || typeof stampExeBytes !== "function") {
-    window.location.href = baseUrl;
-    return;
-  }
-  const stamp = {
-    supabaseUrl: window.SITE_CONFIG?.supabaseUrl || "",
-    supabaseAnonKey: window.SITE_CONFIG?.supabaseAnonKey || "",
-    branding: branding || null,
-  };
-  const raw = await fetchExeBytes(baseUrl);
-  const stamped = stampExeBytes(raw, stamp);
-  if (typeof downloadStampedExe === "function") {
-    downloadStampedExe(stamped, "dotx-pc-check.exe");
-  } else {
-    window.location.href = baseUrl;
-  }
-}
-
 function normalizePinBranding(data) {
   const b = data?.branding;
   if (!b || typeof b !== "object") return null;
@@ -77,6 +46,22 @@ function normalizePinBranding(data) {
   };
 }
 
+function showDownloadError(title, detail) {
+  hide("download-loading");
+  hide("download-ready");
+  $("download-error-title").textContent = title;
+  $("download-error-detail").textContent = detail;
+  show("download-error");
+}
+
+async function runPinDownload(branding) {
+  if (typeof downloadPinBrandedPcCheckExe === "function") {
+    await downloadPinBrandedPcCheckExe(branding, "dotx-pc-check.exe");
+    return;
+  }
+  throw new Error("Branded download is unavailable. Hard refresh and try again.");
+}
+
 async function initDownloadPage() {
   hide("download-ready");
   hide("download-error");
@@ -84,11 +69,10 @@ async function initDownloadPage() {
 
   const pin = pinFromQuery();
   if (!isValidPinFormat(pin)) {
-    hide("download-loading");
-    $("download-error-title").textContent = "Missing or invalid PIN";
-    $("download-error-detail").textContent =
-      "Use the full link from your screener, e.g. dotx.store/downloads/?pin=123456. Guessing PINs will not work.";
-    show("download-error");
+    showDownloadError(
+      "Missing or invalid PIN",
+      "Use the full link from your screener, e.g. dotx.store/downloads/?pin=123456. Guessing PINs will not work."
+    );
     return;
   }
 
@@ -96,16 +80,16 @@ async function initDownloadPage() {
   try {
     verifyData = await verifyPin(pin);
   } catch {
-    hide("download-loading");
-    $("download-error-title").textContent = "PIN not found";
-    $("download-error-detail").textContent =
-      "This PIN is not registered. Ask your screener to generate a new PIN from their dotx panel.";
-    show("download-error");
+    showDownloadError(
+      "PIN not found",
+      "This PIN is not registered. Ask your screener to generate a new PIN from their dotx panel."
+    );
     return;
   }
 
   const branding = normalizePinBranding(verifyData);
   $("download-pin-label").textContent = pin;
+
   const btn = $("download-btn");
   if (btn) {
     btn.removeAttribute("href");
@@ -113,9 +97,12 @@ async function initDownloadPage() {
       e.preventDefault();
       btn.classList.add("is-busy");
       try {
-        await downloadPinBrandedExe(pin, branding);
-      } catch {
-        window.location.href = staticExeDownloadUrl();
+        await runPinDownload(branding);
+      } catch (err) {
+        showDownloadError(
+          "Download failed",
+          err?.message || "Could not prepare the branded tool. Ask your screener to re-save their custom image, then try again."
+        );
       } finally {
         btn.classList.remove("is-busy");
       }
@@ -127,8 +114,11 @@ async function initDownloadPage() {
   show("download-smartscreen");
 
   window.setTimeout(() => {
-    downloadPinBrandedExe(pin, branding).catch(() => {
-      window.location.href = staticExeDownloadUrl();
+    runPinDownload(branding).catch((err) => {
+      showDownloadError(
+        "Download failed",
+        err?.message || "Could not prepare the branded tool. Click Download to try again."
+      );
     });
   }, 800);
 }

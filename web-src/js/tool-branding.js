@@ -1,7 +1,8 @@
 /** PC Check EXE branding — Account settings + download stamp helpers. */
 const TOOL_BRANDING_KEY = "dotx_tool_branding_v1";
-const MAX_BRAND_IMAGE_CHARS = 280_000;
-const MAX_BRAND_EDGE = 720;
+/** Keep under every backend limit (RPC 320k, edge/legacy 200k). Base64 expands ~4/3. */
+const MAX_BRAND_IMAGE_CHARS = 180_000;
+const MAX_BRAND_EDGE = 640;
 
 function defaultToolBranding(acc = typeof getAccount === "function" ? getAccount() : null) {
   return {
@@ -66,48 +67,31 @@ function compressImageFile(file) {
       return;
     }
 
-    // Keep GIFs as-is when small enough (animation preserved for web preview; EXE shows first frame)
-    if (file.type === "image/gif" && file.size <= 220_000) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const dataUrl = String(reader.result || "");
-        if (dataUrl.length > MAX_BRAND_IMAGE_CHARS) {
-          reject(new Error("GIF is too large after encoding. Try a smaller GIF."));
-          return;
-        }
-        resolve({ dataUrl, name: file.name });
-      };
-      reader.onerror = () => reject(new Error("Could not read file."));
-      reader.readAsDataURL(file);
-      return;
-    }
-
+    // Always rasterize to PNG (first GIF frame). Raw GIFs blow past sync limits and
+    // animated GIFs often fail in the tkinter EXE — PNG stamps reliably into the panel.
     const url = URL.createObjectURL(file);
     const img = new Image();
     img.onload = () => {
       try {
-        const scale = Math.min(1, MAX_BRAND_EDGE / Math.max(img.width, img.height, 1));
-        const w = Math.max(1, Math.round(img.width * scale));
-        const h = Math.max(1, Math.round(img.height * scale));
         const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
         const ctx = canvas.getContext("2d");
-        ctx.clearRect(0, 0, w, h);
-        ctx.drawImage(img, 0, 0, w, h);
-        // PNG only — the EXE UI (tkinter) cannot load JPEG without Pillow.
-        let dataUrl = canvas.toDataURL("image/png");
-        if (dataUrl.length > MAX_BRAND_IMAGE_CHARS) {
-          const w2 = Math.max(1, Math.round(w * 0.7));
-          const h2 = Math.max(1, Math.round(h * 0.7));
-          canvas.width = w2;
-          canvas.height = h2;
-          ctx.clearRect(0, 0, w2, h2);
-          ctx.drawImage(img, 0, 0, w2, h2);
+        let edge = MAX_BRAND_EDGE;
+        let dataUrl = "";
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const scale = Math.min(1, edge / Math.max(img.width, img.height, 1));
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          canvas.width = w;
+          canvas.height = h;
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          // PNG only — the EXE UI (tkinter) cannot load JPEG without Pillow.
           dataUrl = canvas.toDataURL("image/png");
+          if (dataUrl.length <= MAX_BRAND_IMAGE_CHARS) break;
+          edge = Math.max(160, Math.round(edge * 0.72));
         }
         URL.revokeObjectURL(url);
-        if (dataUrl.length > MAX_BRAND_IMAGE_CHARS) {
+        if (!dataUrl || dataUrl.length > MAX_BRAND_IMAGE_CHARS) {
           reject(new Error("Image is still too large. Use a smaller file."));
           return;
         }
@@ -147,21 +131,16 @@ async function fetchExeBytes(url) {
 function stampExeBytes(exeBytes, configObj) {
   const marker = new TextEncoder().encode(DOTX_CONFIG_MARKER);
   const json = new TextEncoder().encode(JSON.stringify(configObj));
-  // Strip previous stamp if present
-  let end = exeBytes.length;
+  // Only scan the PE overlay tail — avoids false hits inside the packed binary.
   const hay = exeBytes;
-  for (let i = hay.length - marker.length; i >= 0; i -= 1) {
-    let ok = true;
+  const scanFrom = Math.max(0, hay.length - 1_048_576);
+  let end = hay.length;
+  outer: for (let i = hay.length - marker.length; i >= scanFrom; i -= 1) {
     for (let j = 0; j < marker.length; j += 1) {
-      if (hay[i + j] !== marker[j]) {
-        ok = false;
-        break;
-      }
+      if (hay[i + j] !== marker[j]) continue outer;
     }
-    if (ok) {
-      end = i;
-      break;
-    }
+    end = i;
+    break;
   }
   const base = hay.subarray(0, end);
   const out = new Uint8Array(base.length + marker.length + json.length);
@@ -183,7 +162,26 @@ function downloadStampedExe(bytes, filename = "dotx-pc-check.exe") {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
-async function downloadBrandedPcCheckExe(options = {}) {
+async function deliverExeDownload(bytes, filename = "dotx-pc-check.exe") {
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ accept: { "application/octet-stream": [".exe"] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(bytes);
+      await writable.close();
+      return true;
+    } catch (err) {
+      if (err?.name === "AbortError") return false;
+    }
+  }
+  downloadStampedExe(bytes, filename);
+  return true;
+}
+
+async function buildBrandedPcCheckStamp(options = {}) {
   const rel = window.SITE_CONFIG?.pcCheckToolUrl || "/downloads/dotx-pc-check.exe";
   const baseUrl = new URL(rel, window.location.origin).href;
   const acc = typeof getAccount === "function" ? getAccount() : null;
@@ -194,8 +192,61 @@ async function downloadBrandedPcCheckExe(options = {}) {
     branding: brandingStampPayload(branding, acc),
   };
   const raw = await fetchExeBytes(baseUrl);
-  const stamped = stampExeBytes(raw, stamp);
-  downloadStampedExe(stamped, options.filename || "dotx-pc-check.exe");
+  return stampExeBytes(raw, stamp);
+}
+
+async function ensureToolBrandingSynced(acc = typeof getAccount === "function" ? getAccount() : null) {
+  if (typeof registerUserOnServer === "function" && acc?.discordId) {
+    await registerUserOnServer(acc).catch(() => null);
+  }
+  return syncToolBrandingToServer(loadToolBranding(acc));
+}
+
+async function syncToolBrandingToServer(branding) {
+  if (typeof apiRequest !== "function") {
+    return { ok: false, error: "api_unavailable" };
+  }
+  const acc = typeof getAccount === "function" ? getAccount() : null;
+  if (!acc?.discordId) {
+    return { ok: false, error: "not_signed_in" };
+  }
+
+  if (typeof registerUserOnServer === "function") {
+    await registerUserOnServer(acc).catch(() => null);
+  }
+
+  const payload = brandingStampPayload(branding, acc);
+  const expectedCustom = Boolean(payload.customImage);
+
+  try {
+    const data = await apiRequest("/api/users/branding", {
+      method: "POST",
+      body: {
+        discordId: acc.discordId,
+        branding: payload,
+      },
+    });
+    const saved = data?.branding || null;
+    if (expectedCustom && !saved?.customImage) {
+      return {
+        ok: false,
+        error: "custom_image_not_saved",
+        branding: saved,
+      };
+    }
+    return { ok: true, branding: saved };
+  } catch (err) {
+    const msg = String(err?.message || err?.code || "sync_failed");
+    if (msg.includes("custom_image_too_large")) {
+      return { ok: false, error: "custom_image_too_large" };
+    }
+    return { ok: false, error: msg };
+  }
+}
+
+async function downloadBrandedPcCheckExe(options = {}) {
+  const stamped = await buildBrandedPcCheckStamp(options);
+  await deliverExeDownload(stamped, options.filename || "dotx-pc-check.exe");
   return true;
 }
 
@@ -212,7 +263,7 @@ async function downloadBrandedFreeToolsExe(options = {}) {
   try {
     const raw = await fetchExeBytes(baseUrl);
     const stamped = stampExeBytes(raw, stamp);
-    downloadStampedExe(stamped, options.filename || "dotx-free-tools.exe");
+    await deliverExeDownload(stamped, options.filename || "dotx-free-tools.exe");
     return true;
   } catch {
     window.location.href = baseUrl;
@@ -220,20 +271,25 @@ async function downloadBrandedFreeToolsExe(options = {}) {
   }
 }
 
-async function syncToolBrandingToServer(branding) {
-  if (typeof apiRequest !== "function") return null;
-  const acc = typeof getAccount === "function" ? getAccount() : null;
-  if (!acc?.discordId) return null;
-  const payload = brandingStampPayload(branding, acc);
-  try {
-    return await apiRequest("/api/users/branding", {
-      method: "POST",
-      body: {
-        discordId: acc.discordId,
-        branding: payload,
-      },
-    });
-  } catch {
-    return null;
+async function downloadPinBrandedPcCheckExe(branding, filename = "dotx-pc-check.exe") {
+  const rel = window.SITE_CONFIG?.pcCheckToolUrl || "/downloads/dotx-pc-check.exe";
+  const baseUrl = new URL(rel, window.location.origin).href;
+  if (typeof fetchExeBytes !== "function" || typeof stampExeBytes !== "function") {
+    throw new Error("Download helpers unavailable.");
   }
+  const stamp = {
+    supabaseUrl: window.SITE_CONFIG?.supabaseUrl || "",
+    supabaseAnonKey: window.SITE_CONFIG?.supabaseAnonKey || "",
+    branding: branding || null,
+  };
+  const raw = await fetchExeBytes(baseUrl);
+  const stamped = stampExeBytes(raw, stamp);
+  if (stamped.length <= raw.length) {
+    throw new Error("Branding stamp failed — EXE was not updated.");
+  }
+  if (branding?.customImage && stamped.length < raw.length + 1000) {
+    throw new Error("Custom image was not stamped into the EXE. Re-upload it in Account settings.");
+  }
+  await deliverExeDownload(stamped, filename);
+  return true;
 }

@@ -4,8 +4,7 @@ import winreg
 from pathlib import Path
 
 from pccheck.models import Category, Finding, ScanResult, Severity
-from pccheck.signatures import CHEAT_FILE_SIGNATURES, CLEANER_FILE_SIGNATURES
-from pccheck.utils.match import match_path, suspicious_filename
+from pccheck.signatures import CHEAT_FILE_SIGNATURES, CLEANER_FILE_SIGNATURES, SUSPICIOUS_FILENAMES
 from pccheck.utils.pe import is_random_cheat_filename
 
 PREFETCH_DIR = Path(r"C:\Windows\Prefetch")
@@ -20,7 +19,7 @@ def _prefetch_enabled() -> bool:
             val, _ = winreg.QueryValueEx(key, "EnablePrefetcher")
             return int(val) != 0
     except OSError:
-        return True
+        return True  # assume enabled if we cannot read
 
 
 class PrefetchScanner:
@@ -37,15 +36,14 @@ class PrefetchScanner:
             result.errors.append(f"Prefetch read error: {exc}")
             return
 
-        # Empty prefetch alone is weak — only flag if very empty on enabled system
-        if len(pf_files) < 3 and _prefetch_enabled():
+        if len(pf_files) < 5 and _prefetch_enabled():
             result.add(
                 Finding(
-                    title="Prefetch folder nearly empty",
-                    description="Very few Prefetch files — may indicate prefetch clearing (check cleaner signals)",
-                    severity=Severity.MEDIUM,
+                    title="Prefetch folder suspiciously empty",
+                    description="Very few Prefetch files — may indicate prefetch clearing (anti-forensic)",
+                    severity=Severity.HIGH,
                     category=Category.CLEANER,
-                    evidence=f"Only {len(pf_files)} .pf files in {PREFETCH_DIR}",
+                    evidence=f"Only {len(pf_files)} .pf files found in {PREFETCH_DIR}",
                     path=str(PREFETCH_DIR),
                     signature="prefetch_clearing",
                 )
@@ -56,6 +54,7 @@ class PrefetchScanner:
 
         for pf in pf_files:
             lower = pf.name.lower()
+            # Random-name prefetch (SZ05E.EXE-*.pf) — survives cheat rename at runtime
             base = lower.split("-")[0] if "-" in lower else lower.replace(".pf", "")
             if base.endswith(".exe") and is_random_cheat_filename(base):
                 if pf.name not in seen:
@@ -64,8 +63,8 @@ class PrefetchScanner:
                         Finding(
                             title="Random-name executable was run (Prefetch)",
                             description=(
-                                "Prefetch proves a random-name exe was executed — "
-                                "cheats rename each run but Prefetch keeps the launch name"
+                                "Prefetch proves a random-name exe (e.g. sz05e.exe) was executed — "
+                                "cheats rename each run but Prefetch keeps the name used at launch"
                             ),
                             severity=Severity.CRITICAL,
                             category=Category.CHEAT,
@@ -77,7 +76,7 @@ class PrefetchScanner:
 
             for sig in all_sigs:
                 for pattern in sig.patterns:
-                    if len(pattern) >= 5 and match_path(pattern, pf.name) and pf.name not in seen:
+                    if pattern.lower() in lower and pf.name not in seen:
                         seen.add(pf.name)
                         result.add(
                             Finding(
@@ -92,13 +91,13 @@ class PrefetchScanner:
                         )
                         break
 
-            for sus in ("9zcleaner", "eulen", "susano", "macho", "cheat", "bypass", "injector"):
-                if suspicious_filename(pf.name, sus) and pf.name not in seen:
+            for sus in SUSPICIOUS_FILENAMES:
+                if sus in lower and pf.name not in seen:
                     seen.add(pf.name)
                     result.add(
                         Finding(
                             title="Suspicious Prefetch entry",
-                            description="Prefetch file name matches suspicious cheat/cleaner keyword",
+                            description="Prefetch file name matches suspicious keyword",
                             severity=Severity.MEDIUM,
                             category=Category.SUSPICIOUS,
                             evidence=pf.name,
@@ -108,10 +107,12 @@ class PrefetchScanner:
                     )
                     break
 
-        cleaner_keywords = ("prefetchcleaner", "prefetchwiper", "9zcleaner", "usnclean", "bamcleaner", "evidencewiper")
-        for pf in pf_files:
-            lower = pf.name.lower()
-            if any(kw in lower for kw in cleaner_keywords) and pf.name not in seen:
+        cleaner_hits = [
+            f for f in pf_files
+            if any(kw in f.name.lower() for kw in ("clean", "wiper", "9z", "bypass", "clear"))
+        ]
+        for pf in cleaner_hits:
+            if pf.name not in seen:
                 seen.add(pf.name)
                 result.add(
                     Finding(

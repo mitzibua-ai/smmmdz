@@ -9,10 +9,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from pccheck.correlation import apply_correlations
 from pccheck.models import ScanResult
 from pccheck.scanners import (
-    ArchiveScanner,
     BrowserScanner,
     CleanerScanner,
     FileScanner,
@@ -22,7 +20,6 @@ from pccheck.scanners import (
     ProcessScanner,
     RegistryScanner,
     RpfScanner,
-    TraceScanner,
 )
 
 ALL_SCANNERS = [
@@ -32,8 +29,6 @@ ALL_SCANNERS = [
     PEScanner(),
     RpfScanner(),
     FileScanner(),
-    ArchiveScanner(),
-    TraceScanner(),
     FiveMScanner(),
     BrowserScanner(),
     CleanerScanner(),
@@ -60,14 +55,6 @@ class ScanEngine:
                 scanner.scan(result)
             except Exception as exc:
                 result.errors.append(f"{scanner.name} failed: {exc}")
-
-        print("  Running: Correlation Engine...", flush=True)
-        try:
-            correlated = apply_correlations(result)
-            if correlated:
-                print(f"    -> {len(correlated)} correlation hit(s)", flush=True)
-        except Exception as exc:
-            result.errors.append(f"Correlation Engine failed: {exc}")
 
         result.scan_duration_sec = time.perf_counter() - start
         return result

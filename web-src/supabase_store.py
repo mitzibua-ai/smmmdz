@@ -539,14 +539,18 @@ def save_tool_branding(discord_id: str, branding: dict) -> dict:
     user = _fetch_user(discord_id)
     if not user:
         raise ValueError("user_not_found")
+    raw_image = branding.get("customImage")
+    custom_image = None
+    if isinstance(raw_image, str) and raw_image.strip():
+        if len(raw_image) > 320000:
+            raise ValueError("custom_image_too_large")
+        custom_image = raw_image
     clean = {
         "showDiscordAvatar": branding.get("showDiscordAvatar") is not False,
         "username": str(branding.get("username") or user.get("username") or "")[:64],
         "discordId": str(discord_id).strip(),
         "avatarUrl": str(branding.get("avatarUrl") or "")[:500],
-        "customImage": branding.get("customImage")
-        if isinstance(branding.get("customImage"), str) and len(branding.get("customImage") or "") <= 200000
-        else None,
+        "customImage": custom_image,
     }
     user["toolBranding"] = clean
     _upsert_user(user)

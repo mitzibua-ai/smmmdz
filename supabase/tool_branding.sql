@@ -31,6 +31,11 @@ begin
     raise exception 'license_required';
   end if;
 
+  if jsonb_typeof(p_branding->'customImage') = 'string'
+     and length(p_branding->>'customImage') > 320000 then
+    raise exception 'custom_image_too_large';
+  end if;
+
   clean := jsonb_build_object(
     'showDiscordAvatar', coalesce((p_branding->>'showDiscordAvatar')::boolean, true),
     'username', left(coalesce(p_branding->>'username', u.username, ''), 64),

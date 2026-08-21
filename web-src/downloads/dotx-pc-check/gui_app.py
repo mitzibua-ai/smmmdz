@@ -114,7 +114,14 @@ def load_embedded_config() -> dict:
     """Read stamped DOTXCONFIG JSON from the frozen EXE (or nearby config for dev)."""
     if getattr(sys, "frozen", False):
         try:
-            data = Path(sys.executable).read_bytes()
+            path = Path(sys.executable)
+            size = path.stat().st_size
+            # Config is appended as a PE overlay — only read the tail.
+            read_from = max(0, size - 1_048_576)
+            with path.open("rb") as fh:
+                if read_from:
+                    fh.seek(read_from)
+                data = fh.read()
             idx = data.rfind(DOTX_CONFIG_MARKER)
             if idx != -1:
                 payload = data[idx + len(DOTX_CONFIG_MARKER) :].decode("utf-8")
@@ -636,7 +643,16 @@ class DotxApp(tk.Tk):
             raw = base64.b64decode(b64, validate=False)
         except Exception:
             return None
-        return self._photo_from_bytes(raw, suffix)
+        photo = self._photo_from_bytes(raw, suffix)
+        if photo is not None:
+            return photo
+        # Fallback: some PNG/GIF payloads load via in-memory PhotoImage(data=...)
+        if suffix in {".png", ".gif"}:
+            try:
+                return self._remember_image(tk.PhotoImage(data=b64))
+            except tk.TclError:
+                pass
+        return None
 
     def _photo_from_url(self, url: str) -> tk.PhotoImage | None:
         if not url or not url.startswith("http"):

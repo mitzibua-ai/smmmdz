@@ -5,7 +5,6 @@ import ctypes.wintypes as wt
 
 from pccheck.models import Category, Finding, ScanResult, Severity
 from pccheck.signatures import CHEAT_PROCESS_SIGNATURES
-from pccheck.utils.match import match_process_name
 from pccheck.utils.pe import is_random_cheat_filename
 
 TH32CS_SNAPPROCESS = 0x00000002
@@ -113,7 +112,7 @@ class ProcessScanner:
                 if key in seen:
                     continue
 
-                proc_hit = any(match_process_name(lower_exe, p) for p in sig.process_names)
+                proc_hit = any(p in lower_exe for p in sig.process_names)
                 title_hit = any(t in " ".join(window_titles) for t in sig.window_titles)
 
                 if proc_hit or title_hit:

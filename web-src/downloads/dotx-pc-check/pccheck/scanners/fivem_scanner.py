@@ -5,22 +5,20 @@ from pathlib import Path
 
 from pccheck.models import Category, Finding, ScanResult, Severity
 from pccheck.signatures import CHEAT_FILE_SIGNATURES, MAX_CONTENT_SCAN_BYTES, SCAN_EXTENSIONS
-from pccheck.utils.match import match_path
 from pccheck.utils.walk import iter_files_limited
 
-FIVEM_LUA_HIGH: tuple[tuple[str, str], ...] = (
-    ("loadstring", "Obfuscated Lua execution (loadstring)"),
-    ("networkresurrectlocalplayer", "Revive/godmode exploit"),
-    ("addmoney", "Money injection pattern"),
-    ("aimbot", "Aimbot script"),
-    ("triggerbot", "Triggerbot script"),
-    ("noclip", "Noclip cheat script"),
-)
-
-FIVEM_LUA_CONTEXT: tuple[tuple[str, str], ...] = (
-    ("performhttprequest", "Remote code fetch via HTTP"),
-    ("giveweapon", "Weapon spawn script"),
-    ("setentityhealth", "God mode pattern"),
+FIVEM_LUA_PATTERNS: tuple[tuple[str, str, Severity], ...] = (
+    ("loadstring", "Obfuscated Lua execution (loadstring)", Severity.HIGH),
+    ("performhttprequest", "Remote code fetch via HTTP", Severity.HIGH),
+    ("citizen.invoke", "Native function abuse", Severity.MEDIUM),
+    ("triggerServerEvent", "Suspicious server event trigger", Severity.MEDIUM),
+    ("giveweapon", "Weapon spawn script", Severity.MEDIUM),
+    ("setentityhealth", "God mode pattern", Severity.MEDIUM),
+    ("networkresurrectlocalplayer", "Revive/godmode exploit", Severity.HIGH),
+    ("addmoney", "Money injection pattern", Severity.HIGH),
+    ("noclip", "Noclip cheat script", Severity.MEDIUM),
+    ("aimbot", "Aimbot script", Severity.HIGH),
+    ("triggerbot", "Triggerbot script", Severity.HIGH),
 )
 
 FIVEM_SUBDIRS = ("mods", "citizen", "plugins")
@@ -77,7 +75,7 @@ class FiveMScanner:
                 lower_path = str(path).lower()
                 for sig in CHEAT_FILE_SIGNATURES:
                     for pattern in sig.patterns:
-                        if len(pattern) >= 5 and match_path(pattern, path) and lower_path not in seen:
+                        if pattern.lower() in lower_path and lower_path not in seen:
                             seen.add(lower_path)
                             result.add(
                                 Finding(
@@ -118,9 +116,7 @@ class FiveMScanner:
         except (OSError, PermissionError):
             return
 
-        path_suspicious = any(kw in str(path).lower() for kw in ("cheat", "hack", "modmenu", "executor", "bypass"))
-
-        for pattern, desc in FIVEM_LUA_HIGH:
+        for pattern, desc, severity in FIVEM_LUA_PATTERNS:
             if pattern.lower() in text:
                 key = f"{path}:{pattern}"
                 if key in seen:
@@ -130,28 +126,7 @@ class FiveMScanner:
                     Finding(
                         title=f"Suspicious FiveM script: {pattern}",
                         description=desc,
-                        severity=Severity.HIGH,
-                        category=Category.FIVEM,
-                        evidence=f"Found '{pattern}' in script",
-                        path=str(path),
-                        signature=pattern,
-                    )
-                )
-
-        context_hits = sum(1 for pattern, _ in FIVEM_LUA_CONTEXT if pattern.lower() in text)
-        if context_hits >= 2 or (context_hits >= 1 and path_suspicious):
-            for pattern, desc in FIVEM_LUA_CONTEXT:
-                if pattern.lower() not in text:
-                    continue
-                key = f"{path}:{pattern}"
-                if key in seen:
-                    continue
-                seen.add(key)
-                result.add(
-                    Finding(
-                        title=f"Suspicious FiveM script: {pattern}",
-                        description=desc,
-                        severity=Severity.MEDIUM,
+                        severity=severity,
                         category=Category.FIVEM,
                         evidence=f"Found '{pattern}' in script",
                         path=str(path),

@@ -11,7 +11,7 @@ from pccheck.signatures import (
     SCAN_EXTENSIONS,
     SUSPICIOUS_FILENAMES,
 )
-from pccheck.utils.match import is_whitelisted_path, pattern_matches, suspicious_filename
+from pccheck.utils.match import pattern_matches
 from pccheck.utils.walk import iter_files_limited
 
 CONTENT_EXTENSIONS = {".exe", ".dll", ".sys", ".bat", ".cmd", ".ps1", ".lua", ".js", ".txt", ".ini", ".cfg"}
@@ -62,14 +62,11 @@ class FileScanner:
                     if path.suffix and path.suffix.lower() not in SCAN_EXTENSIONS:
                         continue
 
-                    if is_whitelisted_path(path):
-                        continue
-
                     lower_name = path.name.lower()
                     lower_path = str(path).lower()
 
                     for sus in SUSPICIOUS_FILENAMES:
-                        if suspicious_filename(lower_name, sus) and lower_path not in seen:
+                        if sus in lower_name and lower_path not in seen:
                             seen.add(lower_path)
                             result.add(
                                 Finding(
@@ -90,12 +87,6 @@ class FileScanner:
                     for sig in all_sigs:
                         matched_pat = None
                         for pattern in sig.patterns:
-                            if sig.category.value in {"cleaner", "bypass"} and ext == ".txt":
-                                if not any(
-                                    tok in lower_path
-                                    for tok in ("cheat", "bypass", "cleaner", "wiper", "tools", "9z")
-                                ):
-                                    continue
                             if pattern_matches(pattern, path, content):
                                 matched_pat = pattern
                                 break

@@ -503,18 +503,33 @@ class DotxHandler(SimpleHTTPRequestHandler):
     def _send_error_json(self, message: str, status: int = 400) -> None:
         self._send_json({"error": message}, status=status)
 
-    def _stamp_exe(self, exe_bytes: bytes, server_url: str) -> bytes:
+    def _stamp_exe(self, exe_bytes: bytes, config: dict) -> bytes:
         base = exe_bytes
-        idx = base.rfind(DOTX_CONFIG_MARKER)
+        # Only strip a previous overlay stamp from the file tail.
+        tail_from = max(0, len(base) - 1_048_576)
+        idx = base.rfind(DOTX_CONFIG_MARKER, tail_from)
         if idx != -1:
             base = base[:idx]
-        config = json.dumps({"serverUrl": server_url}, separators=(",", ":")).encode("utf-8")
-        return base + DOTX_CONFIG_MARKER + config
+        payload = json.dumps(config, separators=(",", ":")).encode("utf-8")
+        return base + DOTX_CONFIG_MARKER + payload
 
     def _resolve_tool_exe(self) -> Path | None:
         return resolve_tool_exe()
 
-    def _send_tool_exe(self) -> None:
+    def _tool_download_config(self, pin_code: str | None = None) -> dict:
+        config: dict = {"serverUrl": self._public_base_url()}
+        if not pin_code:
+            return config
+        pin_entry = find_pin_by_code(pin_code)
+        if not pin_entry:
+            return config
+        owner = get_site_user(str(pin_entry.get("discordId") or ""))
+        branding = branding_for_user(owner)
+        if branding:
+            config["branding"] = branding
+        return config
+
+    def _send_tool_exe(self, pin_code: str | None = None) -> None:
         exe_path = self._resolve_tool_exe()
         if not exe_path:
             if self._api_path().startswith("/api/download/"):
@@ -523,7 +538,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
             self.send_error(503, "PC Check tool not available on server.")
             return
 
-        data = self._stamp_exe(exe_path.read_bytes(), self._public_base_url())
+        data = self._stamp_exe(exe_path.read_bytes(), self._tool_download_config(pin_code))
         self.send_response(200)
         self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Content-Disposition", 'attachment; filename="dotx-pc-check.exe"')
@@ -693,7 +708,7 @@ class DotxHandler(SimpleHTTPRequestHandler):
             if not find_pin_by_code(pin_code):
                 self._send_error_json("invalid_pin", 404)
                 return True
-            self._send_tool_exe()
+            self._send_tool_exe(pin_code)
             return True
 
         if path.startswith("/api/pins/") and self.command == "GET":

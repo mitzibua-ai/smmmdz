@@ -686,14 +686,18 @@ async function handleApi(req: Request): Promise<Response> {
       if (!ownerIds().has(discordId)) return errorResponse(req, "license_required", 403);
     }
     const brandingIn = (body.branding && typeof body.branding === "object" ? body.branding : {}) as Json;
+    const rawImage = brandingIn.customImage;
+    let customImage: string | null = null;
+    if (typeof rawImage === "string" && rawImage.trim()) {
+      if (rawImage.length > 320000) return errorResponse(req, "custom_image_too_large", 400);
+      customImage = rawImage;
+    }
     const clean: Json = {
       showDiscordAvatar: brandingIn.showDiscordAvatar !== false,
       username: String(brandingIn.username || "").slice(0, 64),
       discordId,
       avatarUrl: String(brandingIn.avatarUrl || "").slice(0, 500),
-      customImage: typeof brandingIn.customImage === "string" && brandingIn.customImage.length <= 200000
-        ? brandingIn.customImage
-        : null,
+      customImage,
     };
     const sb = supabase();
     const { data, error } = await sb

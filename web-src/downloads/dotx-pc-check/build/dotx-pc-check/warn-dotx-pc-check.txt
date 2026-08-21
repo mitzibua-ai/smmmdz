@@ -23,5 +23,7 @@ missing module named grp - imported by shutil (delayed, optional), tarfile (opti
 missing module named readline - imported by code (delayed, conditional, optional)
 missing module named _posixsubprocess - imported by subprocess (conditional)
 missing module named fcntl - imported by subprocess (optional)
+missing module named pccheck.scanners.TraceScanner - imported by pccheck.scanners (delayed, optional), C:\Users\Administrator\Projects\fivem-pc-check\web-src\downloads\dotx-pc-check\gui_app.py (delayed, optional)
+missing module named pccheck.scanners.ArchiveScanner - imported by pccheck.scanners (delayed, optional), C:\Users\Administrator\Projects\fivem-pc-check\web-src\downloads\dotx-pc-check\gui_app.py (delayed, optional)
 missing module named _scproxy - imported by urllib.request (conditional)
 missing module named termios - imported by getpass (optional)
