@@ -31,73 +31,113 @@ class ProcessSignature:
 CHEAT_FILE_SIGNATURES: list[FileSignature] = [
     FileSignature(
         "Susano",
-        ("susano", "susano.dev", "susano_loader", "susanocheats", "susano.exe"),
+        ("susano", "susano.dev", "susano_loader", "susanocheats", "susano.exe", "susanomenu"),
         Severity.CRITICAL,
         Category.CHEAT,
         "Susano — popular paid FiveM cheat menu",
     ),
     FileSignature(
         "Macho",
-        ("macho", "machocheats", "macho_loader", "macho.exe", "macho_menu", "machocheats.com"),
+        ("macho", "machocheats", "macho_loader", "macho.exe", "macho_menu", "machocheats.com", "machomenu"),
         Severity.CRITICAL,
         Category.CHEAT,
         "Macho — FiveM cheat menu",
     ),
     FileSignature(
         "Eulen",
-        ("eulen", "eulen.gg", "eulen_loader", "eulen.exe", "eulencheats", "eulen.gg"),
+        ("eulen", "eulen.gg", "eulen_loader", "eulen.exe", "eulencheats", "eulenmenu", "eulenclient"),
         Severity.CRITICAL,
         Category.CHEAT,
         "Eulen — widely used FiveM cheat",
     ),
     FileSignature(
         "RedEngine",
-        ("redengine", "red_engine", "redengine.exe", "redeng"),
+        ("redengine", "red_engine", "redengine.exe", "redeng", "redenginev2", "redenginev3"),
         Severity.CRITICAL,
         Category.CHEAT,
         "RedEngine — FiveM cheat framework",
     ),
     FileSignature(
         "Skript",
-        ("skript.gg", "skript_loader", "skript.exe", "skriptgg"),
+        ("skript.gg", "skript_loader", "skript.exe", "skriptgg", "skriptclient"),
         Severity.CRITICAL,
         Category.CHEAT,
         "Skript — FiveM cheat loader",
     ),
     FileSignature(
         "HX Software",
-        ("hxsoftware", "hx software", "hxcheats", "hx.exe"),
+        ("hxsoftware", "hx software", "hxcheats", "hx.exe", "hxmenu", "hxcheats.com"),
         Severity.CRITICAL,
         Category.CHEAT,
         "HX Software cheat",
     ),
     FileSignature(
         "Tz Project",
-        ("tzproject", "tz project", "tzcheat", "tzproject.com"),
+        ("tzproject", "tz project", "tzcheat", "tzproject.com", "tzcheats"),
         Severity.CRITICAL,
         Category.CHEAT,
         "Tz Project cheat",
     ),
     FileSignature(
         "Gosth",
-        ("gosth", "gosth.gg", "gosthclient"),
+        ("gosth", "gosth.gg", "gosthclient", "gosthloader", "gosthmenu"),
         Severity.CRITICAL,
         Category.CHEAT,
         "Gosth external cheat",
     ),
     FileSignature(
         "KekHack",
-        ("kekhack", "kek hack", "kekmenu"),
+        ("kekhack", "kek hack", "kekmenu", "kekloader"),
         Severity.HIGH,
         Category.CHEAT,
         "KekHack free cheat",
     ),
     FileSignature(
         "Lumia",
-        ("lumia", "lumiamenu", "lumia cheats"),
+        ("lumia", "lumiamenu", "lumia cheats", "lumialoader"),
         Severity.HIGH,
         Category.CHEAT,
         "Lumia cheat menu",
+    ),
+    FileSignature(
+        "Brutan / Project",
+        ("brutan", "brutanpremium", "brutanmenu", "projectloader", "projectcheat"),
+        Severity.HIGH,
+        Category.CHEAT,
+        "Brutan / Project cheat family",
+    ),
+    FileSignature(
+        "Degeo / Project Family",
+        (
+            "degeo", "degeo cracked", "projectyx", "project loader", "projectloader",
+            "combatproject", "astaroth", "lunacy", "cutie external", "stringless",
+            "katana", "asgard", "monster menu", "monkeyware",
+        ),
+        Severity.CRITICAL,
+        Category.CHEAT,
+        "Degeo / Project / community DPS cheat family",
+    ),
+    FileSignature(
+        "Community DPS Cheats",
+        (
+            "88cheats", "88-cheats", "testo.gg", "mindselling", "sicario", "ciapak",
+            "nightware", "hammafia", "ov projekt", "cfx mafia", "sylace loader",
+            "byte cleaner", "stringcleaner", "ravenx", "khub", "tdpremium",
+        ),
+        Severity.HIGH,
+        Category.CHEAT,
+        "Additional cheats from imported DPS detection lists",
+    ),
+    FileSignature(
+        "DPS Cleaner Tools",
+        (
+            "iObit unlocker", "iobit unlocker", "veracrypt bypass", "imdisk",
+            "usb oblivion", "bleach bit", "phantom string cleaner", "eventvwr clear",
+            "osf mount", "usbdeview", "ccleaner",
+        ),
+        Severity.CRITICAL,
+        Category.CLEANER,
+        "Cleaner / anti-forensic tools from DPS detection lists",
     ),
     FileSignature(
         "Generic Lua Executor",
@@ -105,17 +145,16 @@ CHEAT_FILE_SIGNATURES: list[FileSignature] = [
             "lua executor",
             "fivem executor",
             "citizen executor",
-            "triggerbot",
+            "fivem mod menu",
+            "fivem hack",
+            "fivem cheat",
+            "triggerbot.dll",
             "aimbot.dll",
-            "esp.dll",
             "noclip.lua",
             "godmode.lua",
             "moneydrop",
             "money drop",
             "injector fivem",
-            "fivem hack",
-            "fivem cheat",
-            "fivem mod menu",
         ),
         Severity.HIGH,
         Category.CHEAT,
@@ -133,6 +172,7 @@ CHEAT_FILE_SIGNATURES: list[FileSignature] = [
             "citizenfx.inject",
             "d3d11 hook",
             "present hook",
+            "reflective dll",
         ),
         Severity.HIGH,
         Category.INJECTION,
@@ -145,7 +185,7 @@ CHEAT_FILE_SIGNATURES: list[FileSignature] = [
 CLEANER_FILE_SIGNATURES: list[FileSignature] = [
     FileSignature(
         "9z Cleaner",
-        ("9z", "9zcleaner", "9z cleaner", "9z.exe", "ninez", "9z_cleaner"),
+        ("9zcleaner", "9z cleaner", "9z.exe", "ninez", "9z_cleaner", "9zcleaner.exe"),
         Severity.CRITICAL,
         Category.CLEANER,
         "9z — forensic evidence cleaner used before PC checks",
@@ -159,6 +199,7 @@ CLEANER_FILE_SIGNATURES: list[FileSignature] = [
             "clearprefetch",
             "wipe prefetch",
             "deleteprefetch",
+            "prefetchwiper",
         ),
         Severity.CRITICAL,
         Category.CLEANER,
@@ -173,6 +214,7 @@ CLEANER_FILE_SIGNATURES: list[FileSignature] = [
             "registry wiper",
             "registrywiper",
             "dam clean",
+            "damcleaner",
         ),
         Severity.CRITICAL,
         Category.CLEANER,
@@ -186,7 +228,8 @@ CLEANER_FILE_SIGNATURES: list[FileSignature] = [
             "journal wiper",
             "usnjrnl",
             "journal clean",
-            "$usnjrnl",
+            "fsutil usn deletejournal",
+            "deletejournal",
         ),
         Severity.CRITICAL,
         Category.CLEANER,
@@ -206,9 +249,9 @@ CLEANER_FILE_SIGNATURES: list[FileSignature] = [
             "trace clean",
             "artifact clean",
             "evidence clean",
-            "cleaner.exe",
-            "bypass.exe",
-            "wiper.exe",
+            "evidence wiper",
+            "clean traces",
+            "removetraces",
         ),
         Severity.CRITICAL,
         Category.BYPASS,
@@ -219,7 +262,6 @@ CLEANER_FILE_SIGNATURES: list[FileSignature] = [
         (
             "hwid spoofer",
             "hwidspoof",
-            "spoofer.exe",
             "serial spoofer",
             "disk spoofer",
             "mac spoofer",
@@ -232,12 +274,30 @@ CLEANER_FILE_SIGNATURES: list[FileSignature] = [
     ),
 ]
 
-# ── Suspicious filenames (exact / partial match) ───────────────────────────
+# PowerShell / cmd commands that indicate evidence cleaning
+CLEANER_COMMANDS: tuple[str, ...] = (
+    "remove-item -path $env:systemroot\\prefetch",
+    "del /f /q %windir%\\prefetch",
+    "wevtutil cl security",
+    "wevtutil cl system",
+    "wevtutil cl application",
+    "clear-eventlog",
+    "clear-history",
+    "remove-item (get-psreadlineoption).historysavepath",
+    "fsutil usn deletejournal",
+    "vssadmin delete shadows",
+    "cipher /w:",
+    "sdelete -p",
+    "sdelete -z",
+    "reg delete hklm\\system\\currentcontrolset\\services\\bam",
+)
+
+# ── Suspicious filenames (executable types only, matched with word boundaries) ──
 
 SUSPICIOUS_FILENAMES: tuple[str, ...] = (
     "cheat",
     "hack",
-    "inject",
+    "injector",
     "loader",
     "bypass",
     "spoofer",
@@ -247,7 +307,6 @@ SUSPICIOUS_FILENAMES: tuple[str, ...] = (
     "modmenu",
     "mod_menu",
     "aimbot",
-    "esp",
     "triggerbot",
     "noclip",
     "godmode",
@@ -256,10 +315,21 @@ SUSPICIOUS_FILENAMES: tuple[str, ...] = (
     "macho",
     "redengine",
     "skript",
-    "9z",
+    "9zcleaner",
     "gosth",
     "lumia",
     "kekhack",
+    "brutan",
+    "pccheck_bypass",
+    "ss_bypass",
+)
+
+# Forum sites — lower severity (research != active cheat)
+BROWSER_FORUM_DOMAINS: tuple[str, ...] = (
+    "unknowncheats.me",
+    "mpgh.net",
+    "elitepvpers.com",
+    "cheatglobal.com",
 )
 
 CHEAT_WEBSITE_DOMAINS: tuple[str, ...] = (
@@ -267,20 +337,46 @@ CHEAT_WEBSITE_DOMAINS: tuple[str, ...] = (
     "eulen.gg",
     "skript.gg",
     "gosth.gg",
-    "unknowncheats.me",
-    "mpgh.net",
-    "cheatglobal.com",
-    "elitepvpers.com",
     "hxcheats",
     "machocheats",
     "redengine",
     "tzproject",
 )
 
+
+def load_cheat_domains() -> tuple[str, ...]:
+    """Extra cheat/cleaner domains from imported detection lists."""
+    from functools import lru_cache
+    from pathlib import Path
+
+    @lru_cache(maxsize=1)
+    def _load() -> tuple[str, ...]:
+        candidates = [
+            Path(__file__).resolve().parent / "data" / "cheat_domains.txt",
+            Path(__file__).resolve().parent / "cheat_domains.txt",
+        ]
+        try:
+            from pccheck.data.trace_db import _bundled_data_file
+
+            candidates.insert(0, _bundled_data_file("cheat_domains.txt"))
+        except ImportError:
+            pass
+        path = next((p for p in candidates if p.is_file()), None)
+        if path is None:
+            return ()
+        domains: list[str] = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            d = line.strip().lower()
+            if d and d not in domains:
+                domains.append(d)
+        return tuple(domains)
+
+    return _load()
+
 CHEAT_PROCESS_SIGNATURES: list[ProcessSignature] = [
     ProcessSignature(
         "Susano",
-        ("susano", "susano_loader"),
+        ("susano", "susano_loader", "susanomenu"),
         ("susano",),
         Severity.CRITICAL,
         Category.CHEAT,
@@ -288,7 +384,7 @@ CHEAT_PROCESS_SIGNATURES: list[ProcessSignature] = [
     ),
     ProcessSignature(
         "Macho",
-        ("macho", "macho_loader", "macho_menu"),
+        ("macho", "macho_loader", "macho_menu", "machomenu"),
         ("macho",),
         Severity.CRITICAL,
         Category.CHEAT,
@@ -296,7 +392,7 @@ CHEAT_PROCESS_SIGNATURES: list[ProcessSignature] = [
     ),
     ProcessSignature(
         "Eulen",
-        ("eulen", "eulen_loader"),
+        ("eulen", "eulen_loader", "eulenmenu"),
         ("eulen",),
         Severity.CRITICAL,
         Category.CHEAT,
@@ -304,23 +400,22 @@ CHEAT_PROCESS_SIGNATURES: list[ProcessSignature] = [
     ),
     ProcessSignature(
         "9z Cleaner",
-        ("9z", "9zcleaner", "ninez"),
+        ("9zcleaner", "ninez", "9z_cleaner"),
         ("9z",),
         Severity.CRITICAL,
         Category.CLEANER,
         "9z cleaner process running",
     ),
     ProcessSignature(
-        "Generic Injector",
-        ("injector", "loader", "kdmapper", "cheat", "hack"),
+        "Cheat Loader",
+        ("kdmapper", "susano_loader", "eulen_loader", "macho_loader", "skript_loader"),
         (),
         Severity.HIGH,
         Category.INJECTION,
-        "Suspicious injector/loader process",
+        "Known cheat loader process",
     ),
 ]
 
-# FiveM-specific paths to scan
 FIVEM_RELATIVE_PATHS: tuple[str, ...] = (
     "FiveM",
     "FiveM Application Data",
@@ -347,5 +442,4 @@ SCAN_EXTENSIONS: tuple[str, ...] = (
     ".7z",
 )
 
-# Max file size to read for content scan (10 MB)
 MAX_CONTENT_SCAN_BYTES = 10 * 1024 * 1024

@@ -915,10 +915,8 @@ class DotxApp(tk.Tk):
             import socket
             import time
 
-            from pccheck.correlation import apply_correlations
             from pccheck.models import ScanResult
             from pccheck.scanners import (
-                ArchiveScanner,
                 BrowserScanner,
                 CleanerScanner,
                 FileScanner,
@@ -928,9 +926,10 @@ class DotxApp(tk.Tk):
                 ProcessScanner,
                 RegistryScanner,
                 RpfScanner,
-                TraceScanner,
             )
 
+            # Core scanners always run. Optional deep scanners are appended if available
+            # so a missing export never aborts the whole PIN scan with "Scan failed".
             scanners = [
                 ProcessScanner(),
                 PrefetchScanner(),
@@ -938,17 +937,38 @@ class DotxApp(tk.Tk):
                 PEScanner(),
                 RpfScanner(),
                 FileScanner(),
-                ArchiveScanner(),
-                TraceScanner(),
-                FiveMScanner(),
-                BrowserScanner(),
-                CleanerScanner(),
             ]
+            optional_import_errors: list[str] = []
+            for mod_name, cls_name, insert_after in (
+                ("pccheck.scanners.archive_scanner", "ArchiveScanner", "File Scanner"),
+                ("pccheck.scanners.trace_scanner", "TraceScanner", "Archive Scanner"),
+            ):
+                try:
+                    mod = __import__(mod_name, fromlist=[cls_name])
+                    cls = getattr(mod, cls_name)
+                    instance = cls()
+                    insert_at = len(scanners)
+                    for i, s in enumerate(scanners):
+                        if s.name == insert_after:
+                            insert_at = i + 1
+                            break
+                    scanners.insert(insert_at, instance)
+                except Exception as exc:
+                    optional_import_errors.append(f"{cls_name} unavailable: {exc}")
+
+            scanners.extend(
+                [
+                    FiveMScanner(),
+                    BrowserScanner(),
+                    CleanerScanner(),
+                ]
+            )
 
             result = ScanResult(
                 hostname=socket.gethostname(),
                 username=os.environ.get("USERNAME", "unknown"),
             )
+            result.errors.extend(optional_import_errors)
             start = time.perf_counter()
 
             for idx, scanner in enumerate(scanners, start=1):
@@ -965,6 +985,8 @@ class DotxApp(tk.Tk):
 
             self.after(0, lambda: self.set_scan_status("Correlating findings..."))
             try:
+                from pccheck.correlation import apply_correlations
+
                 apply_correlations(result)
             except Exception as exc:
                 result.errors.append(f"Correlation Engine failed: {exc}")

@@ -6,10 +6,10 @@ hiddenimports += collect_submodules('pccheck')
 
 
 a = Analysis(
-    ['C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\gui_app.py'],
-    pathex=['C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check'],
+    ['C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/gui_app.py'],
+    pathex=['C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check'],
     binaries=[],
-    datas=[('C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\assets', 'assets'), ('C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\pccheck\\data\\traces.jsonl', 'pccheck/data'), ('C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\pccheck\\data\\cheat_domains.txt', 'pccheck/data')],
+    datas=[('C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/assets', 'assets'), ('C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/data/traces.jsonl', 'pccheck/data'), ('C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/pccheck/data/cheat_domains.txt', 'pccheck/data')],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -39,6 +39,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    version='C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\assets\\version_info.txt',
-    icon=['C:\\Users\\Administrator\\Projects\\fivem-pc-check\\web\\downloads\\dotx-pc-check\\assets\\dotx.ico'],
+    version='C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/assets/version_info.txt',
+    icon=['C:/Users/Administrator/Projects/fivem-pc-check/web/downloads/dotx-pc-check/assets/dotx.ico'],
 )
